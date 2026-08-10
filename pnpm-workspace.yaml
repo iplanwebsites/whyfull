@@ -1,0 +1,9 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# Build scripts are opt-in under pnpm 9+. These are the ones we actually need.
+allowBuilds:
+  esbuild: true
+  lightningcss: true
+  unrs-resolver: true

@@ -1,0 +1,8 @@
+node_modules
+dist
+.output
+.turbo
+.cache
+pnpm-lock.yaml
+package-lock.json
+yarn.lock

@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.output/
+.turbo/
+.cache/
+
+*.local
+.env*
+!.env.example
+
+*.tsbuildinfo
+.DS_Store
+
+# Per-machine Claude Code settings
+.claude/settings.local.json
