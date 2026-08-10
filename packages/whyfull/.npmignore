@@ -1,5 +1,18 @@
+# Belt-and-suspenders: package.json's "files" allowlist is what actually
+# controls the published tarball (only "dist" and "README.md" ship). This
+# file exists so the same intent holds if that allowlist is ever removed.
+
 src/
-tsconfig.json
-tsup.config.ts
-*.test.*
 test/
+*.test.*
+
+# config
+tsconfig.json
+tsdown.config.ts
+scriptc_plan.md
+
+# tooling / local state
+.turbo/
+node_modules/
+*.tsbuildinfo
+.DS_Store

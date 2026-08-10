@@ -1,21 +1,22 @@
 #!/usr/bin/env node
 /**
- * yful — report where disk space went on a developer machine.
+ * whyfull — report where disk space went on a developer machine.
  *
  * Read-only by design. There is no delete flag and there will not be one:
  * `hf cache delete` already does revision-aware blob refcounting, and
  * reimplementing that is how you corrupt someone's model cache.
  */
 
+import mri from "mri"
 import { scan } from "./scan"
 import { render, dim } from "./report"
 import { human } from "./size"
 
 const HELP = `
-  yful — where did my disk go?
+  whyfull — where did my disk go?
 
   Usage
-    npx yful [options]
+    npx whyfull [options]
 
   Options
     --json            machine-readable output
@@ -23,7 +24,7 @@ const HELP = `
     --all             also list locations that were not found
     --no-drill        skip child breakdown (fastest)
     --exact           count every file in huge package stores (slow, precise)
-    --help            this
+    -h, --help        this
 
   Reads a table of known cache and model locations, measures what exists, and
   ranks it by how safe it is to remove. Prints the reclaim command for each.
@@ -39,28 +40,39 @@ interface CliOptions {
 }
 
 function parseArgs(argv: string[]): CliOptions {
-  const opts: CliOptions = { json: false, top: 5, all: false, help: false, exact: false }
-  for (let i = 0; i < argv.length; i += 1) {
-    const arg = argv[i]
-    if (arg === "--json") opts.json = true
-    else if (arg === "--all") opts.all = true
-    else if (arg === "--exact") opts.exact = true
-    else if (arg === "--no-drill") opts.top = 0
-    else if (arg === "--help" || arg === "-h") opts.help = true
-    else if (arg === "--top") {
-      const n = Number.parseInt(argv[i + 1], 10)
-      if (Number.isNaN(n)) {
-        process.stderr.write("yful: --top needs a number\n")
-        process.exit(2)
-      }
-      opts.top = n
-      i += 1
-    } else {
-      process.stderr.write(`yful: unknown option ${arg}\n`)
-      process.exit(2)
-    }
+  let unknown: string | undefined
+  const argvNoDrillFriendly = argv.filter((a) => a !== "--no-drill")
+  const hasNoDrill = argvNoDrillFriendly.length !== argv.length
+
+  const raw = mri(argvNoDrillFriendly, {
+    boolean: ["json", "all", "exact", "help"],
+    string: ["top"],
+    // mri only rejects flags outside this map — every recognised flag needs an
+    // entry here (self-aliased is fine) or it silently reads as "unknown".
+    alias: { json: "json", all: "all", exact: "exact", h: "help" },
+    default: { top: "5" },
+    unknown: (flag) => {
+      unknown = flag
+    },
+  })
+
+  if (unknown) {
+    process.stderr.write(`whyfull: unknown option ${unknown}\n`)
+    process.exit(2)
   }
-  return opts
+
+  if (raw._.length > 0) {
+    process.stderr.write(`whyfull: unexpected argument ${raw._[0]}\n`)
+    process.exit(2)
+  }
+
+  const top = hasNoDrill ? 0 : Number.parseInt(raw.top, 10)
+  if (Number.isNaN(top)) {
+    process.stderr.write("whyfull: --top needs a number\n")
+    process.exit(2)
+  }
+
+  return { json: raw.json, top, all: raw.all, help: raw.help, exact: raw.exact }
 }
 
 const opts = parseArgs(process.argv.slice(2))

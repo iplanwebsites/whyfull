@@ -2,7 +2,7 @@
   "name": "whyfull",
   "version": "0.0.1",
   "private": false,
-  "description": "Report where disk space went on a developer machine — AI model caches, package stores, build output. Read-only, zero dependencies.",
+  "description": "Find where disk space went on a dev machine (AI caches, package stores, build output), ranked by how safe each is to delete. Read-only.",
   "keywords": [
     "disk",
     "disk-space",
@@ -18,7 +18,7 @@
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
-    "yful": "./dist/cli.mjs"
+    "whyfull": "dist/cli.mjs"
   },
   "main": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
@@ -42,12 +42,14 @@
     "dev": "tsdown --watch",
     "clean": "rm -rf dist"
   },
+  "dependencies": {
+    "mri": "^1.2.0",
+    "picocolors": "^1.1.1"
+  },
   "devDependencies": {
     "@types/node": "^22",
     "@yful/tsconfig": "workspace:*",
-    "scriptc": "^0.0.23",
     "tsdown": "^0.22.14",
-    "typescript": "^5.7.2",
-    "unrun": "^0.3.1"
+    "typescript": "^5.7.2"
   }
 }

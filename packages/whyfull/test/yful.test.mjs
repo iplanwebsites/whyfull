@@ -10,13 +10,23 @@ import {
 import { tmpdir, homedir } from "node:os"
 import { join } from "node:path"
 
-import { measure, human, volume } from "../dist/size.js"
-import { forPlatform, TARGETS, TIERS } from "../dist/targets.js"
-import { scan, byTier } from "../dist/scan.js"
-import { render } from "../dist/report.js"
+// tsdown bundles the package into a single entry point; the public API is
+// re-exported from index.mjs, so tests import from there rather than per-module
+// paths (which don't exist in the built output).
+import {
+  measure,
+  human,
+  volume,
+  forPlatform,
+  TARGETS,
+  TIERS,
+  scan,
+  byTier,
+  render,
+} from "../dist/index.mjs"
 
 function fixture() {
-  const root = mkdtempSync(join(tmpdir(), "yful-test-"))
+  const root = mkdtempSync(join(tmpdir(), "whyfull-test-"))
   mkdirSync(join(root, "a"))
   mkdirSync(join(root, "a", "nested"))
   mkdirSync(join(root, "b"))
@@ -71,7 +81,7 @@ test("measure flags a partial walk instead of guessing", () => {
 })
 
 test("measure survives a missing path", () => {
-  const r = measure(join(tmpdir(), "yful-does-not-exist-xyz"))
+  const r = measure(join(tmpdir(), "whyfull-does-not-exist-xyz"))
   assert.equal(r.bytes, 0)
   assert.equal(r.files, 0)
 })
@@ -163,7 +173,7 @@ function fakeReport() {
         hint: "hf cache scan",
         present: true,
         bytes: 90e9,
-        children: [{ name: "models--x--y", bytes: 30e9, atime: new Date(0) }],
+        children: [{ name: "models--x--y", bytes: 30e9, atimeMs: 0 }],
       },
       {
         id: "npm",
@@ -246,7 +256,7 @@ test("cli emits no ansi codes when NO_COLOR is set", async () => {
   // useColor is decided at import time, so this must be asserted in a child.
   // Piping stdout already makes isTTY false; NO_COLOR must hold even so.
   const { execFileSync } = await import("node:child_process")
-  const out = execFileSync(process.execPath, ["dist/cli.js", "--help"], {
+  const out = execFileSync(process.execPath, ["dist/cli.mjs", "--help"], {
     cwd: new URL("..", import.meta.url).pathname,
     env: { ...process.env, NO_COLOR: "1" },
     encoding: "utf8",
@@ -264,7 +274,7 @@ test("cli rejects a bad --top and unknown flags", async () => {
   for (const args of [["--top", "abc"], ["--nope"]]) {
     assert.throws(
       () =>
-        execFileSync(process.execPath, ["dist/cli.js", ...args], {
+        execFileSync(process.execPath, ["dist/cli.mjs", ...args], {
           cwd,
           stdio: "pipe",
         }),

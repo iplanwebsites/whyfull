@@ -21,6 +21,13 @@ importers:
   packages/tsconfig: {}
 
   packages/whyfull:
+    dependencies:
+      mri:
+        specifier: ^1.2.0
+        version: 1.2.0
+      picocolors:
+        specifier: ^1.1.1
+        version: 1.1.1
     devDependencies:
       '@types/node':
         specifier: ^22
@@ -28,15 +35,18 @@ importers:
       '@yful/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig
-      scriptc:
-        specifier: ^0.0.23
-        version: 0.0.23
       tsdown:
         specifier: ^0.22.14
         version: 0.22.14(typescript@5.9.3)(unrun@0.3.1)
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
+
+  packages/whyfull-native:
+    devDependencies:
+      scriptc:
+        specifier: ^0.0.23
+        version: 0.0.23
       unrun:
         specifier: ^0.3.1
         version: 0.3.1
@@ -462,9 +472,16 @@ packages:
     resolution: {integrity: sha512-NkJQA7oZ4YHQhd2+H3BoRFKF3d/XNsiKpHZCQEMH9pDX27hQQLsTyOocyRgaIVtf8gHX3Nt3LPkR4e5EdtPAGQ==}
     engines: {node: ^22.18.0 || >=24.0.0}
 
+  mri@1.2.0:
+    resolution: {integrity: sha512-tzzskb3bG8LvYGFF/mDTpq3jpI6Q9wc3LEmBaghu+DdCssd1FakN7Bc0hVNmEyGq1bq3RgfkCb3cmQLpNPOroA==}
+    engines: {node: '>=4'}
+
   obug@2.1.4:
     resolution: {integrity: sha512-4a+OsYv9UktOJKE+l1A4OufDgdRF9PifWj+tJnHURo/P+WOxpG4GzUFL9qCalmWauao6ogiG+QvnCovwPoyAWA==}
     engines: {node: '>=12.20.0'}
+
+  picocolors@1.1.1:
+    resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
 
   picomatch@4.0.5:
     resolution: {integrity: sha512-RvwwcruNjI1ncT5xRakeyS9Lf8lcItv34KD+aif+VH9kduAyfYBipGh12274xtenIPZ119/R9BdTBa8gAwSh0A==}
@@ -837,7 +854,11 @@ snapshots:
 
   import-without-cache@0.4.0: {}
 
+  mri@1.2.0: {}
+
   obug@2.1.4: {}
+
+  picocolors@1.1.1: {}
 
   picomatch@4.0.5: {}
 

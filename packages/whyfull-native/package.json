@@ -1,0 +1,15 @@
+{
+  "name": "@whyfull/native",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Work-in-progress native build of whyfull compiled with scriptc. Not published to npm — distributed through a separate channel. See README.",
+  "type": "module",
+  "scripts": {
+    "coverage": "scriptc coverage ../whyfull/src/cli.ts",
+    "build": "scriptc build ../whyfull/src/cli.ts"
+  },
+  "devDependencies": {
+    "scriptc": "^0.0.23",
+    "unrun": "^0.3.1"
+  }
+}

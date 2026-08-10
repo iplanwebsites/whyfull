@@ -49,7 +49,8 @@ export interface ChildEntry {
   name: string
   path: string
   bytes: number
-  atime: Date | null
+  /** Last-access time as epoch ms; -1 when unavailable. */
+  atimeMs: number
 }
 
 /** Volume capacity. */

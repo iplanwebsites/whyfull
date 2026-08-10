@@ -48,13 +48,13 @@ function children(
     // Inherit the parent's budget: without it, drilling into a 630k-file pnpm
     // store re-walks everything the budgeted parent scan deliberately skipped.
     const { bytes } = measure(full, { seen, budget })
-    let atime: Date | null = null
+    let atimeMs = -1
     try {
-      atime = statSync(full).atime
+      atimeMs = statSync(full).atimeMs
     } catch {
       /* atime is a nicety, not required */
     }
-    out.push({ name: entry.name, path: full, bytes, atime })
+    out.push({ name: entry.name, path: full, bytes, atimeMs })
   }
 
   return out.sort((a, b) => b.bytes - a.bytes).slice(0, limit)

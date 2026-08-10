@@ -1,25 +1,19 @@
 /** Terminal rendering. Colour is opt-out via NO_COLOR / non-TTY. */
 
+import { createColors } from "picocolors"
 import { human } from "./size"
 import { byTier } from "./scan"
 import type { Report, RenderOptions, Tier } from "./types"
 
-const useColor = process.stdout.isTTY && !process.env.NO_COLOR
-const c =
-  (code: string) =>
-  (s: string | number): string =>
-    useColor ? `\x1b[${code}m${s}\x1b[0m` : String(s)
-
-const bold = c("1")
-const dim = c("2")
+// picocolors' own auto-detection treats win32 and CI as always-color, which
+// would leak escapes into piped/redirected output. Keep the narrower, explicit
+// gate this tool has always used: a real TTY, and NO_COLOR unset.
+const useColor = Boolean(process.stdout.isTTY) && !process.env.NO_COLOR
+const { bold, dim, red, yellow, green, cyan } = createColors(useColor)
 
 // Exported so the CLI's own trailing lines honour NO_COLOR too, rather than
 // hardcoding escapes that leak into piped and redirected output.
 export { dim, bold }
-const red = c("31")
-const yellow = c("33")
-const green = c("32")
-const cyan = c("36")
 
 const TIER_COLOR: Record<Tier, (s: string | number) => string> = {
   AUTO: green,
@@ -37,9 +31,9 @@ function bar(fraction: number, width = 28): string {
   return green(glyph)
 }
 
-function age(date: Date | null): string {
-  if (!date) return ""
-  const days = Math.floor((Date.now() - date.getTime()) / 86400000)
+function age(atimeMs: number): string {
+  if (atimeMs < 0) return ""
+  const days = Math.floor((Date.now() - atimeMs) / 86400000)
   if (days < 1) return "today"
   if (days < 30) return `${days}d ago`
   if (days < 365) return `${Math.floor(days / 30)}mo ago`
@@ -101,7 +95,8 @@ export function render(report: Report, opts: RenderOptions = {}): string {
 
       for (const child of item.children || []) {
         if (child.bytes < 1e8) continue
-        const when = child.atime ? dim(` · used ${age(child.atime)}`) : ""
+        const when =
+          child.atimeMs >= 0 ? dim(` · used ${age(child.atimeMs)}`) : ""
         out.push(
           `    ${lpad(human(child.bytes), 10)}    ${dim("↳")} ${child.name}${when}`
         )
@@ -143,7 +138,7 @@ export function render(report: Report, opts: RenderOptions = {}): string {
   }
 
   out.push("")
-  out.push(`  ${dim("Read-only report. yful never deletes anything.")}`)
+  out.push(`  ${dim("Read-only report. whyfull never deletes anything.")}`)
   out.push("")
 
   return out.join("\n")

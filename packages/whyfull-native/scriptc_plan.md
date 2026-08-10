@@ -1,85 +1,78 @@
 # scriptc Compatibility Plan
 
 ## Goal
-Compile yful to a standalone native binary (~320KB) using [scriptc](https://scriptc.dev/) — no Node/Bun runtime required.
+Compile whyfull to a standalone native binary using [scriptc](https://scriptc.dev/) —
+no Node/Bun runtime required. A hello-world binary is ~320KB.
 
-## Current Status
-89% of statements compile statically. Three blockers prevent full compilation.
+The user-facing summary of this effort — the RAM-vs-speed trade and the current
+blocker — lives in [`README.md`](README.md). This file is the working detail.
 
-## Blockers
+## Status
+`ScannedTarget[]` now compiles. The public API is unchanged.
 
-| # | Type | Location | Fix | Effort |
-|---|------|----------|-----|--------|
-| 1 | `Set<string>` | `scan.ts`, `size.ts` | Replace with `Map<string, boolean>` | Low |
-| 2 | `Date \| null` | `ChildEntry.atime` | Use `number` (epoch ms), -1 for null | Low |
-| 3 | `ScannedTarget[]` | Core API | See below | High |
-
-## The ScannedTarget Problem
-
-scriptc compiles arrays of primitives and simple records, but not arrays of interfaces with:
-- Optional fields (`files?: number`)
-- Nullable fields (`bytes: number | null`)
-- Nested complex types (`children: ChildEntry[]`)
-
-`ScannedTarget` has all three:
-
-```typescript
-interface ScannedTarget {
-  id: string
-  label: string
-  path: string | null          // nullable
-  bytes: number | null         // nullable
-  files?: number               // optional
-  denied?: boolean             // optional
-  partial?: boolean            // optional
-  children: ChildEntry[]       // nested array
-  // ... 10 more fields
-}
-```
-
-### Options
-
-**A) Flatten to parallel arrays**
-```typescript
-// Instead of: targets: ScannedTarget[]
-targetIds: string[]
-targetLabels: string[]
-targetBytes: number[]      // -1 = null
-targetFiles: number[]      // -1 = missing
-targetChildren: string[][] // serialized
-```
-- Breaks the public API
-- Harder to consume as a library
-- Report JSON becomes unwieldy
-
-**B) Use `Map<string, unknown>` per target**
-```typescript
-targets: Map<string, unknown>[]
-```
-- Loses type safety
-- Runtime field access instead of static
-
-**C) Keep Node/Bun, skip scriptc**
-- Current approach works fine
-- 96KB bundle + runtime vs 320KB standalone
-- Users already have Node if they're devs
-
-## Recommendation
-
-Fix blockers 1 and 2 (trivial, improves JSON serialization anyway).
-
-For blocker 3: unless standalone binary is a hard requirement, the API degradation isn't worth it. Ship via `npx yful` or bundle with Bun (`bun build --compile`).
-
-## Quick Wins (independent of decision)
+Measure with the real tool rather than reasoning about it — the compiler is
+always more current than this document:
 
 ```bash
-# Blocker 1: Set → Map
--const seen = new Set<string>()
-+const seen = new Map<string, true>()
-
-# Blocker 2: Date → epoch
--atime: Date | null
-+atimeMs: number  // -1 for null
+pnpm --filter @whyfull/native coverage   # scriptc coverage ../whyfull/src/cli.ts
 ```
 
-These changes also make the report fully JSON-round-trippable (Date objects don't survive `JSON.parse(JSON.stringify())`).
+## Resolved
+
+**`ChildEntry.atime: Date | null` → `atimeMs: number`** (-1 when unavailable).
+
+This was the *only* thing blocking `ScannedTarget[]`, and through it `Report`.
+`Date` compiles in a restricted form (construction, `getTime`, `toISOString`,
+calendar getters) but **not as a union arm** — there is no runtime narrowing test
+against sibling arms. The nullable union was the blocker, not `Date` itself.
+
+Worth doing regardless of scriptc: `Date` does not survive
+`JSON.parse(JSON.stringify())`, so the report is now genuinely round-trippable.
+
+## Corrections to the previous revision
+
+That revision named three blockers. Two were not real, and the third was
+misdiagnosed. Verified with `scriptc coverage` on minimal probes:
+
+| Claim | Reality |
+|---|---|
+| `Set<string>` blocks compilation | **False.** `Set` compiles; keys may be strings or numbers. The real (minor) blocker is `MeasureOptions.seen?: Set<string>` — an *optional* Set, i.e. a union with `undefined`. |
+| Optional/nullable/nested fields block records | **False.** All three compile. A probe with `bytes: number \| null`, `files?: number`, and `children: C[]` reported 21/23 static; the only blocker was the `Date` union. |
+| `ScannedTarget[]` needs flattening to parallel arrays | **Unnecessary.** The full shape — nullable, optional, and nested-array fields intact — compiles at 100% static once `atime` becomes a number. |
+
+**Do not flatten the API.** Options A and B in the previous revision would have
+broken the public interface to solve a problem that did not exist.
+
+## Remaining blockers
+
+None require API changes. Roughly in order of effort:
+
+- **`Number.parseInt`** (SC2012) — one call site in `cli.ts`.
+- **`MeasureOptions.seen?: Set<string>`** (SC2009) — the optionality, not the
+  `Set`. Pass a required `Set` and let callers hand in an empty one.
+- **Object spread after explicit properties** (SC1090) — spreads must come first.
+- **Logical operators on mixed operand types** (SC1042) — ×2.
+- **Callback returning `number | false | null`** (SC2011) — narrow the return type.
+- **Unlowered `@types/node` surface** (SC2020) — `fs.statfsSync`, `StatsFs.blocks`,
+  `StatsFs.bavail`, `Dirent.name`, `Stats.atimeMs`. Not ours to fix; upstream
+  lowerings, or an FFI/`--dynamic` escape hatch. `volume()` is the main casualty.
+  This is the headline blocker: `Stats.blocks`/`nlink`/`atimeMs` fail typecheck
+  rather than degrading gracefully, so `coverage` bails before tier analysis.
+  Tracked upstream in
+  **[scriptc#119](https://github.com/vercel-labs/scriptc/issues/119)**.
+
+## Notes for whoever picks this up
+
+- Coverage only analyzes programs that **typecheck**, in scriptc's own type world
+  (`es2025` + its ambient declarations, with deliberate tightenings — e.g.
+  `JSON.parse` returns `unknown`, `pop()` returns `T`).
+- **Temporal is not an option.** scriptc's type world has no `Temporal` namespace
+  (`SC0001`), so it fails before tier analysis; Node 22 has no global `Temporal`
+  either. It would add a polyfill dependency to a zero-dependency package and
+  raise `engines.node`. Epoch-ms numbers are the shape that compiles.
+- Arrays are **dense** — out-of-bounds reads trap rather than yielding
+  `undefined`, and the trap is not catchable. `process.argv[2]` needs an explicit
+  length check. Worth auditing `cli.ts` before a real build.
+- `--dynamic` embeds a JS engine (~620KB) and is opt-in; static is the default.
+- Statement counts rise as blockers clear — unblocking `Report` took the analyzed
+  count from 79 to 179, so the headline percentage understates progress.
