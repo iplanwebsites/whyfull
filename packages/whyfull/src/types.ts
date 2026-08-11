@@ -106,4 +106,41 @@ export interface ScanOptions {
 /** Options for render(). */
 export interface RenderOptions {
   showAll?: boolean
+  discovered?: DiscoverResult | null
+}
+
+// ------------------------------------------------------------ discovery ----
+
+/** A child directory within a discovered directory. */
+export interface DiscoveredChild {
+  name: string
+  path: string
+  bytes: number
+}
+
+/** A discovered large directory outside the known target set. */
+export interface DiscoveredDir {
+  name: string
+  path: string
+  bytes: number
+  root: string
+  children: DiscoveredChild[]
+}
+
+/** Discovery scan result. */
+export interface DiscoverResult {
+  dirs: DiscoveredDir[]
+  threshold: number
+}
+
+/** Options for discover(). */
+export interface DiscoverOptions {
+  platform?: NodeJS.Platform
+  /** Minimum bytes to report (default 5 GB). */
+  threshold?: number
+  /** Maximum results to return (default 20). */
+  maxResults?: number
+  /** Number of top children to report per discovered dir (default 3). */
+  drill?: number
+  onProgress?: ((name: string) => void) | null
 }

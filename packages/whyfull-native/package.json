@@ -6,10 +6,10 @@
   "type": "module",
   "scripts": {
     "coverage": "scriptc coverage ../whyfull/src/cli.ts",
-    "build": "scriptc build ../whyfull/src/cli.ts"
+    "build:native": "scriptc build ../whyfull/src/cli.ts"
   },
   "devDependencies": {
-    "scriptc": "^0.0.23",
+    "scriptc": "^0.0.24",
     "unrun": "^0.3.1"
   }
 }

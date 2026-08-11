@@ -1,16 +1,25 @@
 {
-  "name": "yful",
+  "name": "whyfull-monorepo",
   "private": true,
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iplanwebsites/whyfull.git"
+  },
   "packageManager": "pnpm@9.12.0",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.18"
   },
   "scripts": {
+    "whyfull": "node packages/whyfull/dist/cli.mjs",
     "dev": "turbo dev",
     "build": "turbo build",
     "typecheck": "turbo typecheck",
     "test": "turbo test",
     "lint": "turbo lint",
+    "docs:sync": "node scripts/sync-publish-docs.mjs --write",
+    "docs:check": "node scripts/sync-publish-docs.mjs",
+    "check": "pnpm docs:check && pnpm format:check && pnpm typecheck && pnpm test",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,mjs,json,css,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mjs,json,css,md}\"",
     "clean": "turbo clean && rm -rf node_modules"

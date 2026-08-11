@@ -22,8 +22,15 @@ import type { MeasureResult, MeasureOptions, VolumeInfo } from "./types"
  * is mostly links into a blob dir, so naive counting inflates them several
  * times over. This is the same reason `du` sums are unreliable across sections.
  */
-export function measure(path: string, opts: MeasureOptions = {}): MeasureResult {
-  const { maxDepth = Infinity, seen = new Set<string>(), budget = Infinity } = opts
+export function measure(
+  path: string,
+  opts: MeasureOptions = {}
+): MeasureResult {
+  const {
+    maxDepth = Infinity,
+    seen = new Set<string>(),
+    budget = Infinity,
+  } = opts
 
   let bytes = 0
   let files = 0

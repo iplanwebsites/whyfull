@@ -165,6 +165,7 @@ export function byTier(report: Report): TierGroup[] {
     g.items.push(t)
     g.bytes += t.bytes
   }
-  for (const g of groups.values()) g.items.sort((a, b) => (b.bytes ?? 0) - (a.bytes ?? 0))
+  for (const g of groups.values())
+    g.items.sort((a, b) => (b.bytes ?? 0) - (a.bytes ?? 0))
   return [...groups.values()].sort((a, b) => a.rank - b.rank)
 }

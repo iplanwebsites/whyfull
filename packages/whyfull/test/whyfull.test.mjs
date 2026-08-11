@@ -6,6 +6,7 @@ import {
   writeFileSync,
   symlinkSync,
   linkSync,
+  rmSync,
 } from "node:fs"
 import { tmpdir, homedir } from "node:os"
 import { join } from "node:path"
@@ -37,47 +38,61 @@ function fixture() {
   return root
 }
 
-test("measure sums nested files", () => {
+function withFixture(run) {
   const root = fixture()
-  const { bytes, files } = measure(root)
-  assert.equal(files, 3)
-  assert.ok(bytes >= 3 * 65536, `expected >=196608, got ${bytes}`)
+  try {
+    return run(root)
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+}
+
+test("measure sums nested files", () => {
+  withFixture((root) => {
+    const { bytes, files } = measure(root)
+    assert.equal(files, 3)
+    assert.ok(bytes >= 3 * 65536, `expected >=196608, got ${bytes}`)
+  })
 })
 
 test("measure does not follow symlinks", () => {
-  const root = fixture()
-  const before = measure(root).bytes
-  // A symlink pointing back at a sibling dir would double-count, or loop
-  // forever if the walker followed it. This is the HF snapshots->blobs shape.
-  symlinkSync(join(root, "a"), join(root, "b", "link-to-a"))
-  const after = measure(root)
-  assert.equal(after.bytes, before, "symlinked dir must not be recounted")
-  assert.equal(after.files, 3)
+  withFixture((root) => {
+    const before = measure(root).bytes
+    // A symlink pointing back at a sibling dir would double-count, or loop
+    // forever if the walker followed it. This is the HF snapshots->blobs shape.
+    symlinkSync(join(root, "a"), join(root, "b", "link-to-a"))
+    const after = measure(root)
+    assert.equal(after.bytes, before, "symlinked dir must not be recounted")
+    assert.equal(after.files, 3)
+  })
 })
 
 test("measure counts a hard-linked inode once", () => {
-  const root = fixture()
-  const before = measure(root).bytes
-  // pnpm stores and HF blobs are mostly hard links; counting both names
-  // inflates the total. Same inode, two paths, one contribution.
-  linkSync(join(root, "a", "one.bin"), join(root, "b", "hardlink.bin"))
-  const after = measure(root).bytes
-  assert.equal(after, before, "hard link must not add bytes")
+  withFixture((root) => {
+    const before = measure(root).bytes
+    // pnpm stores and HF blobs are mostly hard links; counting both names
+    // inflates the total. Same inode, two paths, one contribution.
+    linkSync(join(root, "a", "one.bin"), join(root, "b", "hardlink.bin"))
+    const after = measure(root).bytes
+    assert.equal(after, before, "hard link must not add bytes")
+  })
 })
 
 test("measure reports maxDepth truncation without throwing", () => {
-  const root = fixture()
-  const shallow = measure(root, { maxDepth: 1 })
-  const deep = measure(root)
-  assert.ok(shallow.bytes < deep.bytes, "depth limit should reduce the total")
+  withFixture((root) => {
+    const shallow = measure(root, { maxDepth: 1 })
+    const deep = measure(root)
+    assert.ok(shallow.bytes < deep.bytes, "depth limit should reduce the total")
+  })
 })
 
 test("measure flags a partial walk instead of guessing", () => {
-  const root = fixture()
-  const capped = measure(root, { budget: 1 })
-  assert.equal(capped.partial, true)
-  // The contract is "at least this much" — never an extrapolated total.
-  assert.ok(capped.bytes <= measure(root).bytes)
+  withFixture((root) => {
+    const capped = measure(root, { budget: 1 })
+    assert.equal(capped.partial, true)
+    // The contract is "at least this much" — never an extrapolated total.
+    assert.ok(capped.bytes <= measure(root).bytes)
+  })
 })
 
 test("measure survives a missing path", () => {
@@ -152,9 +167,8 @@ test("macOS-only targets are absent on other platforms", () => {
   }
 })
 
-// A real scan walks the whole machine and took ~55s per call, which made this
-// suite unusable. Synthesize a report with the same shape instead; the walking
-// itself is covered by the measure() tests above.
+// The walking itself is covered by the measure() tests above. The report tests
+// use synthesized data so the suite never scans the developer's real machine.
 function fakeReport() {
   return {
     platform: "darwin",
@@ -208,8 +222,11 @@ function fakeReport() {
 }
 
 test("scan returns a renderable report", () => {
-  const report = scan({ top: 0, platform: process.platform })
+  // AIX has no built-in targets, which exercises report construction without
+  // walking the machine running the test suite.
+  const report = scan({ top: 0, platform: "aix" })
   assert.ok(Array.isArray(report.targets))
+  assert.equal(report.targets.length, 0)
   assert.ok(report.total >= 0)
   assert.equal(typeof report.generatedAt, "string")
 })
@@ -268,10 +285,16 @@ test("cli emits no ansi codes when NO_COLOR is set", async () => {
   )
 })
 
-test("cli rejects a bad --top and unknown flags", async () => {
+test("cli rejects invalid --top values and unknown flags", async () => {
   const { execFileSync } = await import("node:child_process")
   const cwd = new URL("..", import.meta.url).pathname
-  for (const args of [["--top", "abc"], ["--nope"]]) {
+  for (const args of [
+    ["--top", "abc"],
+    ["--top", "12oops"],
+    ["--top", "-1"],
+    ["--top", "1.5"],
+    ["--nope"],
+  ]) {
     assert.throws(
       () =>
         execFileSync(process.execPath, ["dist/cli.mjs", ...args], {

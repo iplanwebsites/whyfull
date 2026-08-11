@@ -1,5 +1,5 @@
 {
-  "extends": "@yful/tsconfig/node-library.json",
+  "extends": "@whyfull/tsconfig/node-library.json",
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",

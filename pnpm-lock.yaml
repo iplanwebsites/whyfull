@@ -32,7 +32,7 @@ importers:
       '@types/node':
         specifier: ^22
         version: 22.20.1
-      '@yful/tsconfig':
+      '@whyfull/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig
       tsdown:
@@ -45,8 +45,8 @@ importers:
   packages/whyfull-native:
     devDependencies:
       scriptc:
-        specifier: ^0.0.23
-        version: 0.0.23
+        specifier: ^0.0.24
+        version: 0.0.24
       unrun:
         specifier: ^0.3.1
         version: 0.3.1
@@ -146,11 +146,11 @@ packages:
   '@rolldown/pluginutils@1.0.1':
     resolution: {integrity: sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw==}
 
-  '@scriptc/compiler@0.0.23':
-    resolution: {integrity: sha512-sTKufnYpKvARLyTL6aU54qjgwg0buk9P52IQtYQHaHksO8+6IPCYObeovflnOHkI+XSRkUY2ewJGKirowUKmwg==}
+  '@scriptc/compiler@0.0.24':
+    resolution: {integrity: sha512-3zqxvxVNDRyvf4+rKtw4QtuRVZ/nMznLB/AKhJED09AxYr5y33hK/rwQulANyoLw347dYPgUQGOqfOxFuu628A==}
 
-  '@scriptc/runtime@0.0.23':
-    resolution: {integrity: sha512-EotriD4E/72QaYBxnLF7XCjhzjWiZvbaBhVWXhMZhL7XQaj3fN29piQC+NYnXqNoqpa++CeZv4kNtdl2U+YLyg==}
+  '@scriptc/runtime@0.0.24':
+    resolution: {integrity: sha512-ctkX/c3astnv8zfHOXMXrU8IfEqoVT32HoI5SC2GG8zmz5qd/Y3Ze2YUg865qCsAIu4N2qwMb5SGMln2ps6qBQ==}
 
   '@turbo/darwin-64@2.10.9':
     resolution: {integrity: sha512-Jh+pTGXLNz8+1tkUU13TI/f+ZOI+OvC4YbHi1H+57iSpLt5DR3xgptd+4sA07RdjdRR/RX/01uQQu2OkbzIefA==}
@@ -522,8 +522,8 @@ packages:
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
 
-  scriptc@0.0.23:
-    resolution: {integrity: sha512-KPqUNkncfcYJ+UMYENr+e5pKi1EZeesveZdyjmj0PnX3oB5f6Y7HAKDfgaUubRbfWGE8LcZDEweC4VeCYUqYGg==}
+  scriptc@0.0.24:
+    resolution: {integrity: sha512-1En15faXmw7XFBK57MmW44aI4iK58ql9C1avNLQVFSyXhBDoEj51AnZPXJU0yBZOhVdTfgJVNHCU0g4rndOCxQ==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -668,13 +668,13 @@ snapshots:
 
   '@rolldown/pluginutils@1.0.1': {}
 
-  '@scriptc/compiler@0.0.23':
+  '@scriptc/compiler@0.0.24':
     dependencies:
-      '@scriptc/runtime': 0.0.23
+      '@scriptc/runtime': 0.0.24
       typescript: 7.0.2
       typescript5: typescript@5.9.3
 
-  '@scriptc/runtime@0.0.23': {}
+  '@scriptc/runtime@0.0.24': {}
 
   '@turbo/darwin-64@2.10.9':
     optional: true
@@ -902,9 +902,9 @@ snapshots:
       '@rolldown/binding-win32-arm64-msvc': 1.2.3
       '@rolldown/binding-win32-x64-msvc': 1.2.3
 
-  scriptc@0.0.23:
+  scriptc@0.0.24:
     dependencies:
-      '@scriptc/compiler': 0.0.23
+      '@scriptc/compiler': 0.0.24
 
   tinyexec@1.3.0: {}
 

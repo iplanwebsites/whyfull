@@ -1,7 +1,9 @@
 {
-  "name": "@yful/tsconfig",
+  "name": "@whyfull/tsconfig",
   "version": "0.0.0",
   "private": true,
   "license": "MIT",
-  "files": ["*.json"]
+  "files": [
+    "*.json"
+  ]
 }

@@ -1,178 +1,228 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/iplanwebsites/whyfull/main/assets/whyfull-banner.jpg" alt="whyfull scanning known developer clutter on a hard drive" width="100%">
+</p>
+
 # whyfull
 
-Finds where disk space went on a dev machine (AI model caches, package stores,
-build output) and ranks each finding by how safe it is to delete. Read-only: it
-prints the reclaim command; you run it.
+Find the developer-tool clutter you can reclaim, without crawling your whole
+drive or deleting anything for you.
 
 ```bash
 npx whyfull
 ```
 
-```
-  ███████████████████████████░  110.4 GB free of 3.63 TB  (97% used)
-  Critically full. Deleting real files is the only fix at this level.
+I built whyfull after repeatedly finding the same kinds of dead weight on my
+own machine: model caches, package stores, browser binaries, simulator data,
+container images, and build output. The space was recoverable, but discovering
+it over and over with `du`, Finder, or an agent poking around at random was slow.
 
-  Found 235.9 GB across 22 known locations · 204.3 GB safely reclaimable
+whyfull starts with a maintained map of the places developer tools tend to put
+large files. It checks those known locations, measures what is actually there,
+and ranks the results by how safe they are to reclaim. You get the appropriate
+cleanup command or app instruction for each result. **whyfull never runs it.**
 
-  1. REGENERATES AUTOMATICALLY  17.9 GB — Safe. Rebuilt on next use, costs a re-download.
-      ≥3.25 GB  pnpm store                     Package managers
-                pnpm store prune  (drops only unreferenced packages)
-       2.96 GB  pip cache                      Package managers
-                pip cache purge
+It is useful on its own in a terminal, and especially useful as a fast,
+structured first step for a coding agent asked to free disk space.
 
-  3. JUDGEMENT CALL  167.5 GB — Safe to delete but slow to restore. Decide per item.
-      86.0 GB  HuggingFace hub cache          AI models
-      15.7 GB    ↳ models--black-forest-labs--FLUX.2-dev · used 3mo ago
-                hf cache scan  (then: hf cache delete — revision-aware TUI)
-      16.7 GB  LM Studio models               AI models
-                Manage in LM Studio > My Models. No CLI.
+## Why it is fast
 
-  Read-only report. whyfull never deletes anything.
-```
+The normal scan is intentionally narrow. It visits a few dozen high-value
+locations for your operating system instead of recursively walking every file
+under your home directory or disk.
 
-## Who this is for
+1. Resolve the known locations for macOS, Linux, or Windows.
+2. Measure only the ones that exist.
+3. Account for allocated disk blocks and avoid double-counting hard links.
+4. Rank every finding by deletion risk and show the tool-native reclaim action.
 
-**Coding agents, first.** An agent told to "free up space" needs a reliable map
-before it touches anything. `whyfull --json` is that map: a stable,
-machine-readable list of what's using disk and how risky each item is to remove,
-each with a reclaim command to propose or run instead of guessing at `rm`.
-whyfull only ever reads the filesystem, so pointing an agent at it is safe.
+This is a map, not another cleanup implementation. Package managers, model
+tools, and desktop apps already know how to clean up their own data safely;
+whyfull helps you see which of them is worth opening first.
 
-**Humans too.** The default output is a ranked report you can skim in a second.
+If the known map does not explain the missing space, `--discover` adds a bounded
+scan of common user folders and reports unknown directories larger than 5 GB.
+That mode is slower, but still more purposeful than a full-drive crawl.
 
-## Why it exists
+## Read-only by design
 
-Every ecosystem already ships a good cleaner: `hf cache scan`, `ollama list`,
-`docker system df`, `pnpm store prune`, [npkill](https://github.com/voidcosmos/npkill).
-Use them; they know their own data best. What none of them give you is the total
-picture. whyfull is the one command that shows a machine is sitting on 86 GB of
-HuggingFace weights, 17 GB of LM Studio models, and 3 GB of pnpm store at once,
-ranked against each other by deletion risk. It measures and ranks; the reclaim
-work stays with the specialized tools.
+There is no `--clean` flag. The scanner imports no filesystem write APIs, starts
+no child processes, and makes no network requests. It only reports what it finds
+and suggests the native cleanup command or app workflow.
 
-## It never deletes anything
+Some recommendations still deserve judgement. An old model can be downloaded
+again, but that may be expensive. A Photos library may be the only copy of your
+data. That is why findings are grouped into explicit safety tiers instead of
+being presented as one giant delete list.
 
-There is no `--clean` flag, by design. `hf cache delete` already does
-revision-aware reference counting on model blobs; a reimplementation would only
-find new ways to corrupt a cache. whyfull imports no write or spawn APIs — its
-only filesystem calls are reads (`readdirSync`, `lstatSync`, `statSync`,
-`statfsSync`, `existsSync`). It cannot modify the disk or reach the network.
+> `npx` may download the npm package when it is not already cached. The whyfull
+> process itself remains local and read-only.
 
 ## Usage
 
-```
-whyfull                 report, ranked, with a breakdown of the largest caches
-whyfull --json          machine-readable output (see "JSON output" below)
-whyfull --top 10        drill into the n largest children of big targets (default: 5)
-whyfull --no-drill      skip the child breakdown (fastest)
-whyfull --exact         count every file in huge package stores (slow, precise)
-whyfull --all           also list locations that were not found
-whyfull -h, --help      print usage and exit
+No installation is required:
+
+```bash
+npx whyfull
 ```
 
-Every flag is a plain boolean or takes one value — there's no subcommand tree.
+Or install the command globally:
 
-### Exit codes
-
-| Code | Meaning                                                                             |
-| ---- | ---------------------------------------------------------------------------------- |
-| `0`  | Report printed (or `--help` shown)                                                  |
-| `2`  | Bad invocation — unknown flag, extra argument, or a non-numeric `--top`             |
-
-A permission-denied location is reported in the output as an undercount, not
-treated as failure — the exit code stays `0`.
-
-## JSON output
-
-`whyfull --json` prints one `Report` object and nothing else — safe to pipe into
-`jq` or parse directly. This is the interface to build automation on.
-
-```jsonc
-{
-  "platform": "darwin",
-  "volume": { "total": 3996329328640, "free": 118548484096, "used": 3877780844544 },
-  "targets": [
-    {
-      "id": "huggingface",              // stable key, safe to match on
-      "label": "HuggingFace hub cache", // display name
-      "group": "AI models",
-      "tier": "JUDGEMENT",              // AUTO | REBUILD | JUDGEMENT | APP | DATA
-      "hint": "hf cache scan  (then: hf cache delete — revision-aware TUI)",
-      "path": "/Users/you/.cache/huggingface",
-      "bytes": 92303937536,             // allocated blocks, not apparent size
-      "files": 483,
-      "present": true,                  // false when the location doesn't exist
-      "denied": false,                  // true when it exists but couldn't be read
-      "partial": false,                 // true when a file-count budget cut the walk short — bytes is a lower bound
-      "children": []                    // largest subdirectories; empty unless --top > 0 and the target is large
-    }
-  ],
-  "denied": 4,     // count of targets with denied: true
-  "partial": 2,    // count of targets with partial: true
-  "exact": false,  // whether --exact was used
-  "total": 253309513728,
-  "generatedAt": "2026-08-10T12:47:42.037Z"
-}
+```bash
+npm install --global whyfull
+whyfull
 ```
 
-`bytes: null` and `path: null` mean `present: false`: the location was checked
-and doesn't exist. When `partial` is `true`, `bytes` is a **lower bound**, not an
-extrapolated guess; re-run with `--exact` for the true figure. `hint` is the
-reclaim command for a caller to surface or run.
+| Command              | What it does                                                    |
+| -------------------- | --------------------------------------------------------------- |
+| `whyfull`            | Print the ranked report and drill into large known locations.   |
+| `whyfull --json`     | Emit one machine-readable report and no presentation text.      |
+| `whyfull --top 10`   | Show the ten largest children of each large target.             |
+| `whyfull --no-drill` | Skip child breakdowns for the quickest known-location scan.     |
+| `whyfull --exact`    | Fully count huge package stores instead of using a file budget. |
+| `whyfull --discover` | Also look for unknown 5 GB+ directories in common user folders. |
+| `whyfull --all`      | Include known locations that were not found.                    |
+| `whyfull --help`     | Show command help.                                              |
+
+The command exits with `0` after a report or help output, and `2` for an invalid
+option or value. Permission-denied locations are marked as undercounts in the
+report rather than treated as a failed run.
 
 ## Safety tiers
 
-Findings are ranked by deletion risk, not by size. A 60 GB Photos library and a
-60 GB npm cache are the same size and nowhere near the same finding.
+| Tier                          | Meaning                                                         |
+| ----------------------------- | --------------------------------------------------------------- |
+| 1 · regenerates automatically | Safe to rebuild on next use; usually costs a download.          |
+| 2 · rebuildable               | No source data is lost, but rebuilding costs CPU time.          |
+| 3 · judgement call            | Removable, but slow or expensive to restore. Decide per item.   |
+| 4 · app-managed               | Quit or use the owning app so it does not immediately recreate. |
+| 5 · real data                 | May be the only copy. Never bulk-delete it.                     |
 
-| Tier                          | Meaning                                      |
-| ----------------------------- | -------------------------------------------- |
-| 1 · regenerates automatically | Rebuilt on next use. Costs a re-download.    |
-| 2 · rebuildable               | Costs CPU time. No data lost.                |
-| 3 · judgement call            | Safe, but slow to restore. Decide per item.  |
-| 4 · app-managed               | Quit the app first or it rewrites the cache. |
-| 5 · real data                 | May be the only copy. Never bulk-delete.     |
+The built-in map covers AI model stores, npm/pnpm/Yarn and other package caches,
+Xcode and browser build artifacts, Docker and WSL data, application caches, and
+large user-data locations that should be protected rather than deleted.
 
-## What it knows about
+## JSON and programmatic API
 
-**AI models** — HuggingFace, Ollama, LM Studio, PyTorch hub, Whisper
-**Package managers** — npm, pnpm, Yarn, pip, uv, conda, Cargo, Go, Gradle, Homebrew
-**Build output** — Xcode DerivedData / DeviceSupport / Simulators, Playwright, Puppeteer, Electron
-**Containers** — Docker VM image, WSL2 virtual disks
-**App caches** — Spotify, Adobe Camera Raw, VS Code
-**User data** (flagged, never recommended for deletion) — Photos, Mail, iOS backups, Trash
-
-Runs on macOS, Linux, and Windows. Requires Node 18.15+. On macOS, TCC-protected
-locations (Mail, Photos, iOS backups) are unreadable without Full Disk Access and
-are reported as undercounts rather than shown empty.
-
-## API
+`whyfull --json` is the interface intended for agents and automation. Each
+target has a stable `id`, display metadata, resolved `path`, byte and file
+counts, safety `tier`, reclaim `hint`, and flags for missing, denied, or partial
+measurements. A partial byte count is a lower bound; use `--exact` when you need
+the full count.
 
 ```js
-import { scan, byTier, render, human } from "whyfull"
+import { byTier, human, render, scan } from "whyfull"
 
 const report = scan({ top: 5 })
+
 for (const tier of byTier(report)) {
   console.log(tier.label, human(tier.bytes))
 }
+
+console.log(render(report))
 ```
 
-## Native build
+The package also exports `measure`, `volume`, `discover`, `TARGETS`, `TIERS`,
+`TARGETS_RAW`, `forPlatform`, and the corresponding TypeScript types.
 
-A standalone native binary (no Node runtime, ~3 MB peak RAM against ~61 MB) is in
-progress, currently blocked upstream on
-[scriptc#119](https://github.com/vercel-labs/scriptc/issues/119). It saves
-memory rather than time; the scan is I/O-bound either way. See
-[`packages/whyfull-native`](../whyfull-native) for details.
+## Add a private target
 
-## Dependencies
+You can extend the built-in map without forking the project. Create
+`~/.config/whyfull/targets.json`:
 
-Two runtime dependencies, both tiny and dependency-free:
-[`mri`](https://github.com/lukeed/mri) for flag parsing and
-[`picocolors`](https://github.com/alexeyraspopov/picocolors) for terminal colour,
-under 15 KB unpacked combined. Colour is off unless stdout is a TTY, and always
-off when `NO_COLOR` is set.
+```json
+[
+  {
+    "id": "kontakt",
+    "label": "Kontakt libraries",
+    "group": "Music production",
+    "tier": "DATA",
+    "paths": {
+      "darwin": ["~/Library/Application Support/Native Instruments"],
+      "linux": [],
+      "win32": []
+    },
+    "hint": "Manage in Native Access. Sample libraries are data, not a cache."
+  }
+]
+```
+
+Custom entries merge with the built-in targets at runtime. Invalid config is
+ignored so a typo cannot prevent the normal report from running. Paths may use
+`~/` or a leading environment variable such as `$HF_HOME`.
+
+## Contributing new locations
+
+This project gets more useful when developers contribute the bulky locations
+they have already had to track down. If a tool regularly leaves gigabytes in a
+predictable place, please share it.
+
+The quickest route is to
+[open a target suggestion](https://github.com/iplanwebsites/whyfull/issues/new)
+with:
+
+- what creates the directory;
+- its path on each operating system you can verify;
+- how the owning tool recommends reclaiming it;
+- which safety tier fits, and why;
+- a documentation link when one exists.
+
+For a pull request, add the entry to
+[`packages/whyfull/src/targets-data.ts`](https://github.com/iplanwebsites/whyfull/blob/main/packages/whyfull/src/targets-data.ts).
+Keep target IDs stable, prefer the owning tool's cleanup command over a generic
+`rm`, and leave unsupported operating-system path arrays empty. Then run:
+
+```bash
+pnpm install
+pnpm build
+pnpm check
+```
+
+Small corrections are just as welcome as new targets. Paths and cleanup advice
+change over time, so a verified fix is valuable.
+
+## Development
+
+The public repository is
+[`iplanwebsites/whyfull`](https://github.com/iplanwebsites/whyfull).
+
+```bash
+git clone https://github.com/iplanwebsites/whyfull.git
+cd whyfull
+corepack enable
+pnpm install
+pnpm build
+pnpm check
+```
+
+The monorepo uses pnpm and Turborepo. The npm package is in
+[`packages/whyfull`](https://github.com/iplanwebsites/whyfull/tree/main/packages/whyfull).
+Development currently requires Node 22.18 or newer; the published CLI supports
+Node 18.15 or newer.
+
+### README and publish-document contract
+
+The root `README.md` is canonical. npm displays the copy in
+`packages/whyfull/README.md`, so the two files are required to be byte-for-byte
+identical.
+
+Edit the root document, then mirror it with:
+
+```bash
+pnpm docs:sync
+```
+
+`pnpm docs:check`, the main `pnpm check`, CI, and the package's `prepack` hook
+all fail when the copies drift. The same small script mirrors `LICENSE` and
+`NOTICE` into the npm package so the published tarball contains its legal files.
+
+## Native experiment
+
+[`packages/whyfull-native`](https://github.com/iplanwebsites/whyfull/tree/main/packages/whyfull-native)
+tracks an experimental standalone build using
+[scriptc](https://scriptc.dev/). It is not part of the npm release. The normal
+Node CLI remains the supported package.
 
 ## License
 
-Apache-2.0
+[Apache-2.0](https://github.com/iplanwebsites/whyfull/blob/main/LICENSE) © Felix
+Menard.

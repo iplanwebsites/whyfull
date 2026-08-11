@@ -20,23 +20,30 @@ The `whyfull` API compiles as-is. `Report` and everything in it is plain data
 
 ## Status
 
-Blocked upstream. scriptc's `Stats` type is missing three properties whyfull
-relies on: `blocks` (allocated size, not apparent size), `nlink` (hard-link
-dedup), and `atimeMs` (cache age). Each fails typecheck outright, so compilation
-bails before it can produce a binary.
+scriptc 0.0.24 added the three `Stats` properties whyfull relies on: `blocks`
+(allocated size, not apparent size), `nlink` (hard-link dedup), and `atimeMs`
+(cache age). Coverage now completes with 201 of 237 statements (84%) compiling
+statically.
 
-Tracked in **[scriptc#119](https://github.com/vercel-labs/scriptc/issues/119)**.
+That work was tracked in
+**[scriptc#119](https://github.com/vercel-labs/scriptc/issues/119)**, now closed.
+The binary is still a work in progress: `Dirent.name`, `fs.statfsSync`, and two
+`StatsFs` fields remain unlowered, alongside several project-level static
+compatibility fixes listed in [`scriptc_plan.md`](scriptc_plan.md).
 
 Full technical notes — what already compiles, the remaining minor blockers, and
 why alternatives like `Temporal` or flattening the API are the wrong fixes — are
 in [`scriptc_plan.md`](scriptc_plan.md).
 
-## Building (once unblocked)
+## Building and measuring
 
 ```bash
-pnpm --filter @whyfull/native coverage   # analyze what compiles
-pnpm --filter @whyfull/native build      # produce the binary
+pnpm --filter @whyfull/native coverage     # analyze what compiles
+pnpm --filter @whyfull/native build:native # produce the binary
 ```
+
+The script is named `build:native` (not `build`) so turbo skips it while the
+remaining compatibility work is in progress.
 
 Measure with the real tool rather than reasoning about it — the compiler is
 always more current than the notes.

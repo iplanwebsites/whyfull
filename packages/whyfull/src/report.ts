@@ -3,6 +3,7 @@
 import { createColors } from "picocolors"
 import { human } from "./size"
 import { byTier } from "./scan"
+import { REPO_URL } from "./targets"
 import type { Report, RenderOptions, Tier } from "./types"
 
 // picocolors' own auto-detection treats win32 and CI as always-color, which
@@ -135,6 +136,33 @@ export function render(report: Report, opts: RenderOptions = {}): string {
           : "Run with higher privileges to include them."
       )}`
     )
+  }
+
+  // ---------------------------------------------------- discovered dirs ----
+  const { discovered } = opts
+  if (discovered && discovered.dirs.length > 0) {
+    out.push("")
+    out.push(
+      `  ${bold(yellow("UNKNOWN HOGS"))}  ${dim(
+        `>${human(discovered.threshold)} — not in our database yet`
+      )}`
+    )
+    for (const d of discovered.dirs) {
+      out.push(
+        `    ${lpad(human(d.bytes), 10)}  ${pad(d.name, 30)} ${dim(d.root)}`
+      )
+      // Show top children so users can see what's inside
+      for (const child of d.children || []) {
+        out.push(
+          `    ${lpad(human(child.bytes), 10)}    ${dim("↳")} ${child.name}`
+        )
+      }
+    }
+    out.push("")
+    out.push(
+      `  ${dim("Know what these are? Help others by opening an issue:")}`
+    )
+    out.push(`  ${cyan(`${REPO_URL}/issues/new`)}`)
   }
 
   out.push("")

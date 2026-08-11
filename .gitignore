@@ -3,10 +3,22 @@ dist/
 .output/
 .turbo/
 .cache/
+.artifacts/
+*.tgz
 
 *.local
 .env*
 !.env.example
+
+# Local credentials and signing material
+.envrc
+.netrc
+.npmrc
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
 
 *.tsbuildinfo
 .DS_Store

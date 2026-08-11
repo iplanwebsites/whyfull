@@ -3,6 +3,16 @@
   "version": "0.0.1",
   "private": false,
   "description": "Find where disk space went on a dev machine (AI caches, package stores, build output), ranked by how safe each is to delete. Read-only.",
+  "author": "Felix Menard",
+  "homepage": "https://github.com/iplanwebsites/whyfull#readme",
+  "bugs": {
+    "url": "https://github.com/iplanwebsites/whyfull/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iplanwebsites/whyfull.git",
+    "directory": "packages/whyfull"
+  },
   "keywords": [
     "disk",
     "disk-space",
@@ -30,16 +40,22 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE",
+    "NOTICE"
   ],
   "engines": {
     "node": ">=18.15"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "tsdown",
     "typecheck": "tsc --noEmit",
     "test": "node --test \"test/**/*.test.mjs\"",
     "dev": "tsdown --watch",
+    "prepack": "node ../../scripts/sync-publish-docs.mjs && tsdown",
     "clean": "rm -rf dist"
   },
   "dependencies": {
@@ -48,7 +64,7 @@
   },
   "devDependencies": {
     "@types/node": "^22",
-    "@yful/tsconfig": "workspace:*",
+    "@whyfull/tsconfig": "workspace:*",
     "tsdown": "^0.22.14",
     "typescript": "^5.7.2"
   }

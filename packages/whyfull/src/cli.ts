@@ -9,6 +9,7 @@
 
 import mri from "mri"
 import { scan } from "./scan"
+import { discover } from "./discover"
 import { render, dim } from "./report"
 import { human } from "./size"
 
@@ -24,11 +25,14 @@ const HELP = `
     --all             also list locations that were not found
     --no-drill        skip child breakdown (fastest)
     --exact           count every file in huge package stores (slow, precise)
+    --discover        also scan Desktop/Downloads/Music for unknown hogs (>5 GB)
     -h, --help        this
 
   Reads a table of known cache and model locations, measures what exists, and
   ranks it by how safe it is to remove. Prints the reclaim command for each.
   Never deletes, never writes, never touches the network.
+
+  Add custom targets in ~/.config/whyfull/targets.json — see README for schema.
 `
 
 interface CliOptions {
@@ -37,6 +41,7 @@ interface CliOptions {
   all: boolean
   help: boolean
   exact: boolean
+  discover: boolean
 }
 
 function parseArgs(argv: string[]): CliOptions {
@@ -45,11 +50,17 @@ function parseArgs(argv: string[]): CliOptions {
   const hasNoDrill = argvNoDrillFriendly.length !== argv.length
 
   const raw = mri(argvNoDrillFriendly, {
-    boolean: ["json", "all", "exact", "help"],
+    boolean: ["json", "all", "exact", "help", "discover"],
     string: ["top"],
     // mri only rejects flags outside this map — every recognised flag needs an
     // entry here (self-aliased is fine) or it silently reads as "unknown".
-    alias: { json: "json", all: "all", exact: "exact", h: "help" },
+    alias: {
+      json: "json",
+      all: "all",
+      exact: "exact",
+      h: "help",
+      discover: "discover",
+    },
     default: { top: "5" },
     unknown: (flag) => {
       unknown = flag
@@ -66,13 +77,20 @@ function parseArgs(argv: string[]): CliOptions {
     process.exit(2)
   }
 
-  const top = hasNoDrill ? 0 : Number.parseInt(raw.top, 10)
-  if (Number.isNaN(top)) {
-    process.stderr.write("whyfull: --top needs a number\n")
+  const top = hasNoDrill ? 0 : Number(raw.top)
+  if (!Number.isSafeInteger(top) || top < 0) {
+    process.stderr.write("whyfull: --top needs a non-negative integer\n")
     process.exit(2)
   }
 
-  return { json: raw.json, top, all: raw.all, help: raw.help, exact: raw.exact }
+  return {
+    json: raw.json,
+    top,
+    all: raw.all,
+    help: raw.help,
+    exact: raw.exact,
+    discover: raw.discover,
+  }
 }
 
 const opts = parseArgs(process.argv.slice(2))
@@ -97,12 +115,24 @@ const report = scan({
     : null,
 })
 
+// Discovery mode: scan common dirs for unknown hogs
+const discovered = opts.discover
+  ? discover({
+      onProgress: interactive
+        ? (name: string) => {
+            process.stderr.write(`\r\x1b[2K  discovering ${name}…`)
+          }
+        : null,
+    })
+  : null
+
 if (interactive) process.stderr.write("\r\x1b[2K")
 
 if (opts.json) {
-  process.stdout.write(`${JSON.stringify(report, null, 2)}\n`)
+  const output = discovered ? { ...report, discovered } : report
+  process.stdout.write(`${JSON.stringify(output, null, 2)}\n`)
 } else {
-  process.stdout.write(render(report, { showAll: opts.all }))
+  process.stdout.write(render(report, { showAll: opts.all, discovered }))
   process.stdout.write(
     `  ${dim(`Scanned ${human(report.total)} in ${((Date.now() - started) / 1000).toFixed(1)}s`)}\n\n`
   )
