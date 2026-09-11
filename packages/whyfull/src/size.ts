@@ -79,7 +79,16 @@ export function measure(
       if (entry.isSymbolicLink()) continue
 
       if (entry.isDirectory()) {
-        if (depth < maxDepth) stack.push({ dir: full, depth: depth + 1 })
+        if (depth < maxDepth) {
+          stack.push({ dir: full, depth: depth + 1 })
+        } else {
+          // depth >= maxDepth: this subtree is never walked, so whatever it
+          // holds is silently missing from the total. That is exactly the
+          // ~85 GB ~/.codex case (`worktrees/<id>/<repo>/…` sits deeper than
+          // depth 2) — report it the same way a budget cutoff is reported,
+          // as "≥", never as a complete number.
+          truncated = true
+        }
         continue
       }
 

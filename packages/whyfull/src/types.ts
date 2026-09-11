@@ -42,6 +42,8 @@ export interface ScannedTarget extends Omit<ResolvedTarget, "childrenDir"> {
   partial?: boolean
   childrenDir?: string
   children: ChildEntry[]
+  /** pnpm store only: the per-format `v*` folders inside it. */
+  storeVersions?: StoreVersion[]
 }
 
 /** A child directory within a target. */
@@ -51,6 +53,11 @@ export interface ChildEntry {
   bytes: number
   /** Last-access time as epoch ms; -1 when unavailable. */
   atimeMs: number
+  /**
+   * Of `bytes`, how many are clones/hard links of a pnpm store on the same
+   * device. Present only when the heuristic in pnpm.ts fires. Upper bound.
+   */
+  sharedBytes?: number
 }
 
 /** Volume capacity. */
@@ -107,6 +114,7 @@ export interface ScanOptions {
 export interface RenderOptions {
   showAll?: boolean
   discovered?: DiscoverResult | null
+  worktrees?: WorktreeResult | null
 }
 
 // ------------------------------------------------------------ discovery ----
@@ -143,4 +151,116 @@ export interface DiscoverOptions {
   /** Number of top children to report per discovered dir (default 3). */
   drill?: number
   onProgress?: ((name: string) => void) | null
+}
+
+// ----------------------------------------------------------------- pnpm ----
+
+/** One `v<N>` folder inside a pnpm content-addressable store. */
+export interface StoreVersion {
+  name: string
+  path: string
+  /** The N in `v<N>`, for "newest" comparisons. */
+  version: number
+  bytes: number
+  files: number
+  partial: boolean
+  mtimeMs: number
+  birthtimeMs: number
+  /** Written by a pnpm nobody runs any more — safe to `rm -rf`. */
+  stale: boolean
+}
+
+/** Result of the "is this node_modules cloned from a store" heuristic. */
+export interface SharedStoreInfo {
+  storeDir: string
+  sameDevice: boolean
+}
+
+// ------------------------------------------------------------ worktrees ----
+
+/** Which tool created a worktree, guessed from its path. */
+export type WorktreeTool =
+  | "claude"
+  | "codex"
+  | "gemini"
+  | "windsurf"
+  | "cursor"
+  | "conductor"
+  | "vibe-kanban"
+  | "copilot"
+  | "junie"
+  | "zed"
+  | "opencode"
+  | "manual"
+
+/**
+ * `linked`  — registered and present, the normal case.
+ * `locked`  — registered, present, and has a `locked` file (session may be live).
+ * `orphan`  — the directory exists but its admin dir is gone or points elsewhere.
+ * `stale`   — registered in the admin dir but the directory is missing (~0 bytes).
+ */
+export type WorktreeState = "linked" | "orphan" | "stale" | "locked"
+
+/** One linked worktree (or one stale registration). */
+export interface WorktreeEntry {
+  path: string
+  name: string
+  mainRepo: string
+  tool: WorktreeTool
+  state: WorktreeState
+  branch: string | null
+  detached: boolean
+  /** max(mtime of admin HEAD, admin index); -1 when neither is readable. */
+  lastActivityMs: number
+  /** index mtime > HEAD mtime: staged or checked out after the last commit. */
+  dirtyHint: boolean
+  bytes: number
+  files: number
+  partial: boolean
+  /** Bytes of `node_modules` cloned/linked from a pnpm store. Upper bound. */
+  sharedBytes: number
+  ageDays: number
+  hint: string
+}
+
+/** Every worktree belonging to one main repo. */
+export interface WorktreeCluster {
+  mainRepo: string
+  /** The admin directory: `<main>/.git/worktrees` or `<main>/.bare/worktrees`. */
+  adminDir: string
+  worktrees: WorktreeEntry[]
+  /** Sum of apparent bytes. */
+  bytes: number
+  /** Sum of bytes − sharedBytes: what deleting everything would really free. */
+  realBytes: number
+}
+
+/** findWorktrees() result. */
+export interface WorktreeResult {
+  clusters: WorktreeCluster[]
+  seeds: string[]
+  truncated: boolean
+  scannedAt: string
+}
+
+/** Options for findWorktrees(). */
+export interface WorktreeOptions {
+  /** Extra seed directories to look under. */
+  roots?: string[]
+  /** Include the built-in home/code-root seeds (default true; false in tests). */
+  includeDefaults?: boolean
+  /** Only report worktrees at least this many days idle (default 0 = all). */
+  minAgeDays?: number
+  /**
+   * File budget per worktree measure (default 20000). Low on purpose: every
+   * worktree saturates any budget (node_modules alone is >100k files), so cost
+   * is linear in the budget and 68 worktrees at 40k files takes 71s against 33s
+   * at 20k. Sizes are honest lower bounds either way, marked "≥".
+   */
+  budget?: number
+  /** Count every file, ignoring the budget. */
+  exact?: boolean
+  /** Stop after this many worktrees and set `truncated` (default 500). */
+  maxWorktrees?: number
+  onProgress?: ((label: string) => void) | null
 }

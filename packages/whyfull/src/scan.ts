@@ -6,6 +6,7 @@
 import { existsSync, readdirSync, statSync } from "node:fs"
 import { join } from "node:path"
 import { measure, volume } from "./size"
+import { sharedStore, storeVersions } from "./pnpm"
 import { forPlatform, TIERS } from "./targets"
 import type {
   Report,
@@ -54,7 +55,15 @@ function children(
     } catch {
       /* atime is a nicety, not required */
     }
-    out.push({ name: entry.name, path: full, bytes, atimeMs })
+    const child: ChildEntry = { name: entry.name, path: full, bytes, atimeMs }
+
+    // On macOS pnpm clones rather than hard-links, so every node_modules whyfull
+    // drills into reports its full apparent size while costing near zero on
+    // disk. measure() cannot see that (clones have distinct inodes), so annotate
+    // the child instead of silently overstating what deleting it would free.
+    if (sharedStore(full)) child.sharedBytes = bytes
+
+    out.push(child)
   }
 
   return out.sort((a, b) => b.bytes - a.bytes).slice(0, limit)
@@ -120,6 +129,19 @@ export function scan(opts: ScanOptions = {}): Report {
       denied: wasDenied,
       partial: wasPartial,
       children: [],
+    }
+
+    // The pnpm store keeps one folder per store FORMAT version and never
+    // deletes the old ones, so this single number is really v3 + v10 + v11 with
+    // only the newest live. Matched on the path suffix rather than the target id
+    // so it works whether or not the target map has been split yet. Gated on
+    // `top` like every other drill-down: --no-drill promises "fastest", and
+    // sizing three store versions is seconds.
+    if (top > 0 && path.endsWith("/pnpm/store")) {
+      const versions = storeVersions(path, {
+        budget: exact ? Infinity : undefined,
+      })
+      if (versions.length > 0) entry.storeVersions = versions
     }
 
     // Drill into the big ones only — child measurement re-walks subtrees.

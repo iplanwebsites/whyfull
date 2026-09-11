@@ -4,7 +4,7 @@ import { createColors } from "picocolors"
 import { human } from "./size"
 import { byTier } from "./scan"
 import { REPO_URL } from "./targets"
-import type { Report, RenderOptions, Tier } from "./types"
+import type { Report, RenderOptions, Tier, WorktreeResult } from "./types"
 
 // picocolors' own auto-detection treats win32 and CI as always-color, which
 // would leak escapes into piped/redirected output. Keep the narrower, explicit
@@ -98,9 +98,22 @@ export function render(report: Report, opts: RenderOptions = {}): string {
         if (child.bytes < 1e8) continue
         const when =
           child.atimeMs >= 0 ? dim(` · used ${age(child.atimeMs)}`) : ""
+        const shared = child.sharedBytes
+          ? dim(` · ${human(child.sharedBytes)} shared with pnpm store`)
+          : ""
         out.push(
-          `    ${lpad(human(child.bytes), 10)}    ${dim("↳")} ${child.name}${when}`
+          `    ${lpad(human(child.bytes), 10)}    ${dim("↳")} ${child.name}${when}${shared}`
         )
+      }
+
+      // The store's own version folders: v3 is dead weight no pnpm can read,
+      // and `pnpm store prune` will never remove it.
+      for (const v of item.storeVersions || []) {
+        const size = v.partial ? `≥${human(v.bytes)}` : human(v.bytes)
+        const note = v.stale
+          ? cyan(` stale — rm -rf ${v.path}`)
+          : dim(` · written ${age(v.mtimeMs)}`)
+        out.push(`    ${lpad(size, 10)}    ${dim("↳")} ${v.name}${note}`)
       }
 
       if (item.hint) out.push(`                ${cyan(item.hint)}`)
@@ -165,9 +178,79 @@ export function render(report: Report, opts: RenderOptions = {}): string {
     out.push(`  ${cyan(`${REPO_URL}/issues/new`)}`)
   }
 
+  // ------------------------------------------------------- git worktrees ----
+  const { worktrees } = opts
+  if (worktrees) out.push(...renderWorktrees(worktrees))
+
   out.push("")
   out.push(`  ${dim("Read-only report. whyfull never deletes anything.")}`)
   out.push("")
 
   return out.join("\n")
+}
+
+/**
+ * Worktrees are reported per main repo, not as one flat list: the actionable
+ * unit is "this repo has 34 abandoned checkouts", and the reclaim command needs
+ * the main repo path anyway. "Real" subtracts the pnpm-store clones, which are
+ * the difference between a scary number and a true one.
+ */
+function renderWorktrees(result: WorktreeResult): string[] {
+  const out: string[] = []
+  const lpad = (s: string | number, n: number) => String(s).padStart(n)
+
+  const plural = (n: number, word: string) =>
+    `${n} ${word}${n === 1 ? "" : "s"}`
+  const total = result.clusters.reduce((sum, c) => sum + c.worktrees.length, 0)
+  out.push("")
+  if (total === 0) {
+    out.push(`  ${bold("GIT WORKTREES")}  ${dim("none found")}`)
+    return out
+  }
+
+  const bytes = result.clusters.reduce((sum, c) => sum + c.bytes, 0)
+  const real = result.clusters.reduce((sum, c) => sum + c.realBytes, 0)
+  out.push(
+    `  ${bold(yellow("GIT WORKTREES"))}  ${dim(
+      `${plural(total, "worktree")} across ${plural(result.clusters.length, "repo")} · ${human(bytes)} apparent · ~${human(real)} real`
+    )}`
+  )
+  if (result.truncated) {
+    out.push(
+      `  ${dim("(list truncated — more worktrees exist than the budget allows)")}`
+    )
+  }
+
+  for (const cluster of result.clusters) {
+    out.push("")
+    out.push(
+      `    ${bold(cluster.mainRepo)}  ${dim(
+        `${plural(cluster.worktrees.length, "worktree")} · ${human(cluster.bytes)} apparent · ~${human(cluster.realBytes)} real`
+      )}`
+    )
+
+    for (const w of cluster.worktrees) {
+      const size = w.partial ? `≥${human(w.bytes)}` : human(w.bytes)
+      const shared = w.sharedBytes
+        ? dim(` (${human(w.sharedBytes)} shared with pnpm store)`)
+        : ""
+      const where = w.branch ? w.branch : w.detached ? "detached" : "—"
+      const when = w.ageDays >= 0 ? `${w.ageDays}d idle` : "unknown"
+      const state = w.state === "linked" ? dim(w.state) : yellow(w.state)
+      out.push(`    ${lpad(size, 10)}  ${w.name}${shared}`)
+      out.push(
+        `                ${dim(`${w.tool} · `)}${state}${dim(` · ${where} · ${when}${w.dirtyHint ? " · index touched after last commit" : ""}`)}`
+      )
+      out.push(`                ${cyan(w.hint)}`)
+    }
+  }
+
+  out.push("")
+  out.push(
+    `  ${dim(
+      "worktree remove refuses a dirty checkout and branch -d refuses an unmerged branch — that refusal is the safety net."
+    )}`
+  )
+
+  return out
 }

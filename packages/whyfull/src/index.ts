@@ -6,6 +6,8 @@ export { measure, volume, human } from "./size"
 export { TARGETS, TIERS, forPlatform, REPO_URL } from "./targets"
 export { TARGETS_RAW } from "./targets-data"
 export { discover } from "./discover"
+export { findWorktrees } from "./worktrees"
+export { storeVersions, sharedStore, readModulesStoreDir } from "./pnpm"
 export type {
   Tier,
   TierMeta,
@@ -24,4 +26,12 @@ export type {
   DiscoveredDir,
   DiscoverResult,
   DiscoverOptions,
+  StoreVersion,
+  SharedStoreInfo,
+  WorktreeTool,
+  WorktreeState,
+  WorktreeEntry,
+  WorktreeCluster,
+  WorktreeResult,
+  WorktreeOptions,
 } from "./types"

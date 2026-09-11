@@ -86,6 +86,45 @@ test("measure reports maxDepth truncation without throwing", () => {
   })
 })
 
+test("measure flags partial when maxDepth cuts off a real subtree", () => {
+  // The ~/.codex regression this guards: `depth: 2` under-reported an 85 GB
+  // tree as 9.8 GB because `worktrees/<id>/<repo>/…` sits three levels down,
+  // and the truncated walk was not flagged partial — it read as a complete,
+  // confidently wrong number. A fixture nested deeper than maxDepth must come
+  // back marked "≥", exactly like a budget cutoff does.
+  const root = mkdtempSync(join(tmpdir(), "whyfull-depth-"))
+  try {
+    // depth 0 = root, 1 = "a", 2 = "a/deep" (visited at maxDepth: 2), 3 =
+    // "a/deep/deeper" (never visited — beyond the limit).
+    mkdirSync(join(root, "a", "deep", "deeper"), { recursive: true })
+    writeFileSync(join(root, "a", "shallow.bin"), Buffer.alloc(65536, 1))
+    writeFileSync(
+      join(root, "a", "deep", "deeper", "hidden.bin"),
+      Buffer.alloc(65536, 2)
+    )
+
+    const limited = measure(root, { maxDepth: 2 })
+    assert.equal(
+      limited.partial,
+      true,
+      "a depth-limited walk that skips a real subtree must be marked partial"
+    )
+
+    const full = measure(root)
+    assert.equal(
+      full.partial,
+      false,
+      "an unlimited walk of the same tree is not partial"
+    )
+    assert.ok(
+      limited.bytes < full.bytes,
+      "the skipped subtree's bytes must be missing from the depth-limited total"
+    )
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
 test("measure flags a partial walk instead of guessing", () => {
   withFixture((root) => {
     const capped = measure(root, { budget: 1 })
@@ -201,6 +240,47 @@ function fakeReport() {
         children: [],
       },
       {
+        id: "pnpm-store",
+        label: "pnpm store",
+        group: "Package managers",
+        tier: "AUTO",
+        hint: "pnpm store prune",
+        present: true,
+        bytes: 22e9,
+        children: [
+          {
+            name: "v11",
+            bytes: 9e9,
+            atimeMs: 0,
+            sharedBytes: 4e9,
+          },
+        ],
+        storeVersions: [
+          {
+            name: "v11",
+            path: "/store/v11",
+            version: 11,
+            bytes: 9e9,
+            files: 10,
+            partial: false,
+            mtimeMs: Date.now(),
+            birthtimeMs: Date.now(),
+            stale: false,
+          },
+          {
+            name: "v3",
+            path: "/store/v3",
+            version: 3,
+            bytes: 4e9,
+            files: 10,
+            partial: false,
+            mtimeMs: 0,
+            birthtimeMs: 0,
+            stale: true,
+          },
+        ],
+      },
+      {
         id: "photos",
         label: "Photos library",
         group: "User data",
@@ -294,6 +374,114 @@ test("cli rejects invalid --top values and unknown flags", async () => {
     ["--top", "-1"],
     ["--top", "1.5"],
     ["--nope"],
+  ]) {
+    assert.throws(
+      () =>
+        execFileSync(process.execPath, ["dist/cli.mjs", ...args], {
+          cwd,
+          stdio: "pipe",
+        }),
+      `expected non-zero exit for ${args.join(" ")}`
+    )
+  }
+})
+
+function fakeWorktrees() {
+  return {
+    scannedAt: new Date().toISOString(),
+    truncated: false,
+    seeds: ["/Users/x/web"],
+    clusters: [
+      {
+        mainRepo: "/Users/x/web/kick-mono",
+        adminDir: "/Users/x/web/kick-mono/.git/worktrees",
+        bytes: 22e9,
+        realBytes: 8e9,
+        worktrees: [
+          {
+            path: "/Users/x/web/kick-mono/.claude/worktrees/agent-a",
+            name: "agent-a",
+            mainRepo: "/Users/x/web/kick-mono",
+            tool: "claude",
+            state: "linked",
+            branch: "worktree-agent-a",
+            detached: false,
+            lastActivityMs: Date.now() - 38 * 86400000,
+            dirtyHint: false,
+            bytes: 20e9,
+            files: 1000,
+            partial: false,
+            sharedBytes: 14e9,
+            ageDays: 38,
+            hint: "git -C /Users/x/web/kick-mono worktree remove /Users/x/web/kick-mono/.claude/worktrees/agent-a",
+          },
+          {
+            path: "/Users/x/web/kick-mono/.git/worktrees/gone",
+            name: "gone",
+            mainRepo: "/Users/x/web/kick-mono",
+            tool: "manual",
+            state: "stale",
+            branch: null,
+            detached: true,
+            lastActivityMs: -1,
+            dirtyHint: false,
+            bytes: 0,
+            files: 0,
+            partial: false,
+            sharedBytes: 0,
+            ageDays: -1,
+            hint: "git -C /Users/x/web/kick-mono worktree prune",
+          },
+        ],
+      },
+    ],
+  }
+}
+
+test("render shows pnpm store versions and names the dead one", () => {
+  const text = render(fakeReport())
+  assert.match(text, /v3/)
+  // The whole point of the routine: v3 is unreachable and prune will not go
+  // near it, so the report must say so explicitly.
+  assert.match(text, /stale — rm -rf \/store\/v3/)
+})
+
+test("render annotates pnpm-store-shared child bytes", () => {
+  const text = render(fakeReport())
+  assert.match(text, /shared with pnpm store/)
+})
+
+test("render lists worktrees per cluster with real vs apparent size", () => {
+  const text = render(fakeReport(), { worktrees: fakeWorktrees() })
+  assert.match(text, /GIT WORKTREES/)
+  assert.match(text, /kick-mono/)
+  assert.match(text, /apparent/)
+  assert.match(text, /real/)
+  assert.match(text, /agent-a/)
+  assert.match(text, /38d idle/)
+  assert.match(text, /shared with pnpm store/)
+  assert.match(text, /worktree remove/)
+  assert.match(text, /worktree prune/)
+})
+
+test("render omits the worktree section unless asked", () => {
+  assert.ok(!/GIT WORKTREES/.test(render(fakeReport())))
+})
+
+test("cli accepts the worktree flags and rejects a bad age", async () => {
+  const { execFileSync } = await import("node:child_process")
+  const cwd = new URL("..", import.meta.url).pathname
+  const help = execFileSync(process.execPath, ["dist/cli.mjs", "--help"], {
+    cwd,
+    encoding: "utf8",
+  })
+  assert.match(help, /--worktrees/)
+  assert.match(help, /--worktree-root/)
+  assert.match(help, /--worktree-age/)
+
+  for (const args of [
+    ["--worktree-age", "abc"],
+    ["--worktree-age", "-3"],
   ]) {
     assert.throws(
       () =>

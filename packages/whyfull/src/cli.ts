@@ -10,6 +10,7 @@
 import mri from "mri"
 import { scan } from "./scan"
 import { discover } from "./discover"
+import { findWorktrees } from "./worktrees"
 import { render, dim } from "./report"
 import { human } from "./size"
 
@@ -26,6 +27,9 @@ const HELP = `
     --no-drill        skip child breakdown (fastest)
     --exact           count every file in huge package stores (slow, precise)
     --discover        also scan Desktop/Downloads/Music for unknown hogs (>5 GB)
+    --worktrees       also find abandoned git worktrees left by agent tools
+    --worktree-root <dir>  extra directory to seed the worktree scan (repeatable)
+    --worktree-age <days>  only list worktrees idle this long (default 0 = all)
     -h, --help        this
 
   Reads a table of known cache and model locations, measures what exists, and
@@ -42,6 +46,9 @@ interface CliOptions {
   help: boolean
   exact: boolean
   discover: boolean
+  worktrees: boolean
+  worktreeRoots: string[]
+  worktreeAge: number
 }
 
 function parseArgs(argv: string[]): CliOptions {
@@ -50,8 +57,8 @@ function parseArgs(argv: string[]): CliOptions {
   const hasNoDrill = argvNoDrillFriendly.length !== argv.length
 
   const raw = mri(argvNoDrillFriendly, {
-    boolean: ["json", "all", "exact", "help", "discover"],
-    string: ["top"],
+    boolean: ["json", "all", "exact", "help", "discover", "worktrees"],
+    string: ["top", "worktree-root", "worktree-age"],
     // mri only rejects flags outside this map — every recognised flag needs an
     // entry here (self-aliased is fine) or it silently reads as "unknown".
     alias: {
@@ -60,8 +67,11 @@ function parseArgs(argv: string[]): CliOptions {
       exact: "exact",
       h: "help",
       discover: "discover",
+      worktrees: "worktrees",
+      "worktree-root": "worktree-root",
+      "worktree-age": "worktree-age",
     },
-    default: { top: "5" },
+    default: { top: "5", "worktree-age": "0" },
     unknown: (flag) => {
       unknown = flag
     },
@@ -83,6 +93,20 @@ function parseArgs(argv: string[]): CliOptions {
     process.exit(2)
   }
 
+  // mri collapses a repeated flag to a string or an array depending on count.
+  const rootArg = raw["worktree-root"]
+  const worktreeRoots = (
+    Array.isArray(rootArg) ? rootArg : rootArg ? [rootArg] : []
+  ).map(String)
+
+  const worktreeAge = Number(raw["worktree-age"])
+  if (!Number.isSafeInteger(worktreeAge) || worktreeAge < 0) {
+    process.stderr.write(
+      "whyfull: --worktree-age needs a non-negative integer\n"
+    )
+    process.exit(2)
+  }
+
   return {
     json: raw.json,
     top,
@@ -90,6 +114,9 @@ function parseArgs(argv: string[]): CliOptions {
     help: raw.help,
     exact: raw.exact,
     discover: raw.discover,
+    worktrees: raw.worktrees,
+    worktreeRoots,
+    worktreeAge,
   }
 }
 
@@ -126,13 +153,35 @@ const discovered = opts.discover
     })
   : null
 
+// Worktree discovery: seeds + metadata expansion, then a budgeted measure per
+// worktree. Off by default because it is the only part of the run that can
+// take seconds on a machine with dozens of abandoned checkouts.
+const worktrees = opts.worktrees
+  ? findWorktrees({
+      roots: opts.worktreeRoots,
+      minAgeDays: opts.worktreeAge,
+      exact: opts.exact,
+      onProgress: interactive
+        ? (label: string) => {
+            process.stderr.write(`\r\x1b[2K  worktree ${label}…`)
+          }
+        : null,
+    })
+  : null
+
 if (interactive) process.stderr.write("\r\x1b[2K")
 
 if (opts.json) {
-  const output = discovered ? { ...report, discovered } : report
+  const output = {
+    ...report,
+    ...(discovered ? { discovered } : {}),
+    ...(worktrees ? { worktrees } : {}),
+  }
   process.stdout.write(`${JSON.stringify(output, null, 2)}\n`)
 } else {
-  process.stdout.write(render(report, { showAll: opts.all, discovered }))
+  process.stdout.write(
+    render(report, { showAll: opts.all, discovered, worktrees })
+  )
   process.stdout.write(
     `  ${dim(`Scanned ${human(report.total)} in ${((Date.now() - started) / 1000).toFixed(1)}s`)}\n\n`
   )

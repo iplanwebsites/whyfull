@@ -1,61 +1,36 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/iplanwebsites/whyfull/main/assets/whyfull-banner.jpg" alt="whyfull scanning known developer clutter on a hard drive" width="100%">
+  <a href="https://github.com/iplanwebsites/whyfull">
+    <img src="https://raw.githubusercontent.com/iplanwebsites/whyfull/main/assets/whyfull-banner.jpg" alt="whyfull scanning known developer clutter on a hard drive" width="100%">
+  </a>
 </p>
 
-# whyfull
+# [whyfull](https://github.com/iplanwebsites/whyfull)
 
-Find the developer-tool clutter you can reclaim, without crawling your whole
-drive or deleting anything for you.
+Find the space your tools quietly consumed—without crawling your whole drive or
+deleting anything for you.
 
 ```bash
 npx whyfull
 ```
 
-I built whyfull after repeatedly finding the same kinds of dead weight on my
-own machine: model caches, package stores, browser binaries, simulator data,
-container images, and build output. The space was recoverable, but discovering
-it over and over with `du`, Finder, or an agent poking around at random was slow.
+## Why it exists
 
-whyfull starts with a maintained map of the places developer tools tend to put
-large files. It checks those known locations, measures what is actually there,
-and ranks the results by how safe they are to reclaim. You get the appropriate
-cleanup command or app instruction for each result. **whyfull never runs it.**
+I built whyfull while working with machine learning, where trying models across
+different apps can quietly leave hundreds of gigabytes in unrelated folders.
+The same problem appears in image, video, audio, and other media work through
+render caches, sample libraries, generated assets, and downloads.
 
-It is useful on its own in a terminal, and especially useful as a fast,
-structured first step for a coding agent asked to free disk space.
-
-## Why it is fast
-
-The normal scan is intentionally narrow. It visits a few dozen high-value
-locations for your operating system instead of recursively walking every file
-under your home directory or disk.
-
-1. Resolve the known locations for macOS, Linux, or Windows.
-2. Measure only the ones that exist.
-3. Account for allocated disk blocks and avoid double-counting hard links.
-4. Rank every finding by deletion risk and show the tool-native reclaim action.
-
-This is a map, not another cleanup implementation. Package managers, model
-tools, and desktop apps already know how to clean up their own data safely;
-whyfull helps you see which of them is worth opening first.
-
-If the known map does not explain the missing space, `--discover` adds a bounded
-scan of common user folders and reports unknown directories larger than 5 GB.
-That mode is slower, but still more purposeful than a full-drive crawl.
+General disk tools tell you which files are large. whyfull starts with a shared
+map of where popular tools tend to store them, then adds context: what created
+the files, how safe they are to reclaim, and the appropriate cleanup command.
+In the Unix tradition, it does one job and leaves the actual cleanup to the tool
+that owns the data.
 
 ## Read-only by design
 
-There is no `--clean` flag. The scanner imports no filesystem write APIs, starts
-no child processes, and makes no network requests. It only reports what it finds
-and suggests the native cleanup command or app workflow.
-
-Some recommendations still deserve judgement. An old model can be downloaded
-again, but that may be expensive. A Photos library may be the only copy of your
-data. That is why findings are grouped into explicit safety tiers instead of
-being presented as one giant delete list.
-
-> `npx` may download the npm package when it is not already cached. The whyfull
-> process itself remains local and read-only.
+There is no `--clean` flag. whyfull only reads and reports, ranking disposable
+caches separately from costly downloads and irreplaceable data. You decide what
+to reclaim with the tool that created it.
 
 ## Usage
 
@@ -72,16 +47,17 @@ npm install --global whyfull
 whyfull
 ```
 
-| Command              | What it does                                                    |
-| -------------------- | --------------------------------------------------------------- |
-| `whyfull`            | Print the ranked report and drill into large known locations.   |
-| `whyfull --json`     | Emit one machine-readable report and no presentation text.      |
-| `whyfull --top 10`   | Show the ten largest children of each large target.             |
-| `whyfull --no-drill` | Skip child breakdowns for the quickest known-location scan.     |
-| `whyfull --exact`    | Fully count huge package stores instead of using a file budget. |
-| `whyfull --discover` | Also look for unknown 5 GB+ directories in common user folders. |
-| `whyfull --all`      | Include known locations that were not found.                    |
-| `whyfull --help`     | Show command help.                                              |
+| Command               | What it does                                                           |
+| --------------------- | ---------------------------------------------------------------------- |
+| `whyfull`             | Print the ranked report and drill into large known locations.          |
+| `whyfull --json`      | Emit one machine-readable report and no presentation text.             |
+| `whyfull --top 10`    | Show the ten largest children of each large target.                    |
+| `whyfull --no-drill`  | Skip child breakdowns for the quickest known-location scan.            |
+| `whyfull --exact`     | Fully count huge package stores instead of using a file budget.        |
+| `whyfull --discover`  | Also look for unknown 5 GB+ directories in common user folders.        |
+| `whyfull --worktrees` | Find git worktrees left behind by Claude Code, Codex, and other tools. |
+| `whyfull --all`       | Include known locations that were not found.                           |
+| `whyfull --help`      | Show command help.                                                     |
 
 The command exits with `0` after a report or help output, and `2` for an invalid
 option or value. Permission-denied locations are marked as undercounts in the
@@ -97,8 +73,10 @@ report rather than treated as a failed run.
 | 4 · app-managed               | Quit or use the owning app so it does not immediately recreate. |
 | 5 · real data                 | May be the only copy. Never bulk-delete it.                     |
 
-The built-in map covers AI model stores, npm/pnpm/Yarn and other package caches,
-Xcode and browser build artifacts, Docker and WSL data, application caches, and
+The built-in map covers AI model stores, npm/pnpm/Yarn and other package caches
+(including pnpm's separate store, cache, Node runtime, and global-install
+sub-trees), Xcode and browser build artifacts, Docker and WSL data, application
+caches, AI coding agent app data (Codex, Claude Code, Cursor, and friends), and
 large user-data locations that should be protected rather than deleted.
 
 ## JSON and programmatic API
@@ -198,22 +176,6 @@ The monorepo uses pnpm and Turborepo. The npm package is in
 [`packages/whyfull`](https://github.com/iplanwebsites/whyfull/tree/main/packages/whyfull).
 Development currently requires Node 22.18 or newer; the published CLI supports
 Node 18.15 or newer.
-
-### README and publish-document contract
-
-The root `README.md` is canonical. npm displays the copy in
-`packages/whyfull/README.md`, so the two files are required to be byte-for-byte
-identical.
-
-Edit the root document, then mirror it with:
-
-```bash
-pnpm docs:sync
-```
-
-`pnpm docs:check`, the main `pnpm check`, CI, and the package's `prepack` hook
-all fail when the copies drift. The same small script mirrors `LICENSE` and
-`NOTICE` into the npm package so the published tarball contains its legal files.
 
 ## Native experiment
 
