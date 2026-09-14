@@ -36,7 +36,7 @@ export const TIERS: Record<Tier, TierMeta> = {
   JUDGEMENT: {
     rank: 3,
     label: "judgement call",
-    note: "Safe to delete but slow to restore. Decide per item.",
+    note: "Removable, but potentially expensive or slow to restore. Decide per item.",
   },
   APP: {
     rank: 4,
@@ -150,7 +150,7 @@ export const TARGETS_RAW = [
       ],
       win32: ["$PNPM_HOME/store", "$LOCALAPPDATA/pnpm/store"],
     },
-    hint: "pnpm store prune drops only unreferenced packages; old v* folders (v3, v10…) must be rm -rf'd by hand once no project links them",
+    hint: "pnpm store prune drops only unreferenced packages; inspect and move obsolete v* format folders to Trash only after confirming no project uses them",
     budget: 120000,
   },
   {
@@ -163,7 +163,7 @@ export const TARGETS_RAW = [
       linux: ["~/.pnpm-store"],
       win32: [],
     },
-    hint: "pnpm store prune; old v* folders must be rm -rf'd by hand",
+    hint: "pnpm store prune; inspect and move obsolete v* format folders to Trash only after confirming no project uses them",
     budget: 120000,
   },
   {
@@ -200,7 +200,7 @@ export const TARGETS_RAW = [
       linux: ["$PNPM_HOME/.tools", "~/.local/share/pnpm/.tools"],
       win32: ["$PNPM_HOME/.tools", "$LOCALAPPDATA/pnpm/.tools"],
     },
-    hint: "delete versions no packageManager field pins; pnpm re-downloads",
+    hint: "Inspect versions not pinned by a packageManager field; move unused ones to Trash. pnpm re-downloads them.",
   },
   {
     id: "pnpm-pm-store",
@@ -221,7 +221,7 @@ export const TARGETS_RAW = [
         "$LOCALAPPDATA/pnpm/package-manager-store",
       ],
     },
-    hint: "delete versions no packageManager field pins; pnpm re-downloads",
+    hint: "Inspect versions not pinned by a packageManager field; move unused ones to Trash. pnpm re-downloads them.",
   },
   {
     id: "pnpm-global",
@@ -401,7 +401,7 @@ export const TARGETS_RAW = [
       linux: ["~/.gradle/caches"],
       win32: ["~/.gradle/caches"],
     },
-    hint: "Delete build-cache-* subdirs; keeps wrapper dists.",
+    hint: "Move build-cache-* subdirs to Trash; keep wrapper distributions.",
   },
   {
     id: "homebrew",
@@ -427,7 +427,7 @@ export const TARGETS_RAW = [
       linux: [],
       win32: [],
     },
-    hint: "rm -rf ~/Library/Developer/Xcode/DerivedData/*",
+    hint: "Quit Xcode, then remove Derived Data from Xcode Settings > Locations; it rebuilds on demand.",
   },
   {
     id: "xcode-devicesupport",
@@ -439,7 +439,7 @@ export const TARGETS_RAW = [
       linux: [],
       win32: [],
     },
-    hint: "Safe to delete; re-created when you next attach that device.",
+    hint: "Quit Xcode and inspect old OS-version folders; move confirmed-unused folders to Trash. They are recreated when needed.",
   },
   {
     id: "coresimulator",
@@ -451,7 +451,19 @@ export const TARGETS_RAW = [
       linux: [],
       win32: [],
     },
-    hint: "xcrun simctl delete unavailable",
+    hint: "Preview with xcrun simctl list devices; then use xcrun simctl delete unavailable for devices whose runtimes are gone.",
+  },
+  {
+    id: "coresimulator-runtimes",
+    label: "iOS Simulator runtimes (system-wide)",
+    group: "Build output",
+    tier: "REBUILD" as Tier,
+    paths: {
+      darwin: ["/Library/Developer/CoreSimulator"],
+      linux: [],
+      win32: [],
+    },
+    hint: "Manage in Xcode > Settings > Components. CLI: xcrun simctl runtime list; always dry-run runtime delete first. If an asset is unregistered, use runtime scan-and-mount—never edit AssetsV2 manually.",
   },
   {
     id: "playwright",
@@ -501,8 +513,8 @@ export const TARGETS_RAW = [
       linux: ["/var/lib/docker"],
       win32: ["$LOCALAPPDATA/Docker/wsl"],
     },
-    hint: "docker system df, then prune. Shrinking the image needs a Desktop reset.",
-    depth: 3,
+    hint: "Allocated VM bytes are included. Start Docker Desktop, run docker system df, then prune; shrinking the image may need a Desktop reset.",
+    depth: 5,
   },
   {
     id: "wsl",
@@ -594,7 +606,7 @@ export const TARGETS_RAW = [
       linux: ["$CODEX_HOME", "~/.codex"],
       win32: ["$CODEX_HOME", "~/.codex"],
     },
-    hint: "worktrees/ via whyfull --worktrees; sessions/ are conversation logs, safe to prune by age",
+    hint: "worktrees/ via whyfull --worktrees; sessions/ and root *.sqlite files are conversation/history data — inspect before pruning",
     budget: 120000,
   },
   {
@@ -656,7 +668,7 @@ export const TARGETS_RAW = [
       linux: ["~/.windsurf/worktrees"],
       win32: ["~/.windsurf/worktrees"],
     },
-    hint: "LRU-capped at 20 per workspace; remove stale ones with git worktree remove",
+    hint: "LRU-capped at 20 per workspace; inspect stale checkouts, move them to Trash, then run git worktree prune",
   },
   {
     id: "conductor-workspaces",
@@ -668,7 +680,7 @@ export const TARGETS_RAW = [
       linux: [],
       win32: [],
     },
-    hint: "One checkout per workspace; remove finished ones by hand.",
+    hint: "One checkout per workspace; inspect finished ones and move them to the OS Trash/Recycle Bin.",
   },
 
   // ------------------------------------------------------------ real data ---

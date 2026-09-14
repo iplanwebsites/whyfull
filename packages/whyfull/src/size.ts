@@ -37,6 +37,41 @@ export function measure(
   let denied = false
   let truncated = false
 
+  // Targets and drill-down entries can be individual files (for example a
+  // multi-gigabyte SQLite database or VM image). Historically measure() only
+  // attempted readdir(), which made those files appear as zero bytes.
+  try {
+    const root = lstatSync(path)
+    if (root.isSymbolicLink()) {
+      return { bytes, files, denied, partial: false, pending: 0 }
+    }
+    if (!root.isDirectory()) {
+      if (root.nlink > 1) {
+        const key = `${root.dev}:${root.ino}`
+        if (seen.has(key)) {
+          return { bytes, files, denied, partial: false, pending: 0 }
+        }
+        seen.add(key)
+      }
+      return {
+        bytes: root.blocks * 512,
+        files: 1,
+        denied,
+        partial: false,
+        pending: 0,
+      }
+    }
+  } catch (err) {
+    if (
+      err instanceof Error &&
+      "code" in err &&
+      (err.code === "EACCES" || err.code === "EPERM")
+    ) {
+      denied = true
+    }
+    return { bytes, files, denied, partial: false, pending: 0 }
+  }
+
   const stack: Array<{ dir: string; depth: number }> = [{ dir: path, depth: 0 }]
 
   // Iterative, not recursive: a deep node_modules or venv tree can exceed the

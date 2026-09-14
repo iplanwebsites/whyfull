@@ -42,11 +42,15 @@ export interface ScannedTarget extends Omit<ResolvedTarget, "childrenDir"> {
   partial?: boolean
   childrenDir?: string
   children: ChildEntry[]
+  /** Strongest lower bound obtained from drill-down details, before top-N. */
+  detailBytesLowerBound?: number
+  /** True when one or more detail measurements stopped at their file budget. */
+  detailMeasurementsPartial?: boolean
   /** pnpm store only: the per-format `v*` folders inside it. */
   storeVersions?: StoreVersion[]
 }
 
-/** A child directory within a target. */
+/** A child file or directory within a target. */
 export interface ChildEntry {
   name: string
   path: string
@@ -114,19 +118,20 @@ export interface ScanOptions {
 export interface RenderOptions {
   showAll?: boolean
   discovered?: DiscoverResult | null
+  cacheHogs?: DiscoverResult | null
   worktrees?: WorktreeResult | null
 }
 
 // ------------------------------------------------------------ discovery ----
 
-/** A child directory within a discovered directory. */
+/** A child file or directory within a discovered entry. */
 export interface DiscoveredChild {
   name: string
   path: string
   bytes: number
 }
 
-/** A discovered large directory outside the known target set. */
+/** A discovered large file or directory outside the known target set. */
 export interface DiscoveredDir {
   name: string
   path: string
@@ -141,9 +146,19 @@ export interface DiscoverResult {
   threshold: number
 }
 
+/** One shallow root used by discovery. Public for deterministic callers/tests. */
+export interface DiscoverRoot {
+  path: string
+  label: string
+}
+
 /** Options for discover(). */
 export interface DiscoverOptions {
   platform?: NodeJS.Platform
+  /** Override the platform defaults with explicit shallow roots. */
+  roots?: DiscoverRoot[]
+  /** Override common source roots searched shallowly for project .cache dirs. */
+  projectRoots?: DiscoverRoot[]
   /** Minimum bytes to report (default 5 GB). */
   threshold?: number
   /** Maximum results to return (default 20). */
@@ -166,7 +181,7 @@ export interface StoreVersion {
   partial: boolean
   mtimeMs: number
   birthtimeMs: number
-  /** Written by a pnpm nobody runs any more — safe to `rm -rf`. */
+  /** Written by an older pnpm store format that no current store uses. */
   stale: boolean
 }
 
@@ -212,6 +227,13 @@ export interface WorktreeEntry {
   detached: boolean
   /** max(mtime of admin HEAD, admin index); -1 when neither is readable. */
   lastActivityMs: number
+  /** ISO-8601 form of lastActivityMs; null when Git metadata has no date. */
+  lastActivityAt: string | null
+  /** Which Git admin file supplied lastActivityMs. */
+  lastActivitySource: "head" | "index" | null
+  headMtimeMs: number
+  indexMtimeMs: number
+  gitdirMtimeMs: number
   /** index mtime > HEAD mtime: staged or checked out after the last commit. */
   dirtyHint: boolean
   bytes: number
@@ -219,8 +241,25 @@ export interface WorktreeEntry {
   partial: boolean
   /** Bytes of `node_modules` cloned/linked from a pnpm store. Upper bound. */
   sharedBytes: number
+  /** Observed bytes not attributed to a shared pnpm store. */
+  nonSharedBytes: number
   ageDays: number
   hint: string
+  recommendation: WorktreeRecommendation
+}
+
+export type WorktreeRecommendationAction =
+  "trash-worktree" | "prune-registration" | "review-locked" | "trash-orphan"
+
+/** Structured counterpart to the terminal worktree hint. */
+export interface WorktreeRecommendation {
+  action: WorktreeRecommendationAction
+  summary: string
+  /** Null when review is required before any command should be suggested. */
+  command: string | null
+  requiresReview: boolean
+  /** True when the proposed command is protected by Git's refusal checks. */
+  gitGuarded: boolean
 }
 
 /** Every worktree belonging to one main repo. */
@@ -240,6 +279,8 @@ export interface WorktreeResult {
   clusters: WorktreeCluster[]
   seeds: string[]
   truncated: boolean
+  /** Explains what "last activity" means to non-terminal renderers. */
+  activityBasis: string
   scannedAt: string
 }
 
@@ -263,4 +304,62 @@ export interface WorktreeOptions {
   /** Stop after this many worktrees and set `truncated` (default 500). */
   maxWorktrees?: number
   onProgress?: ((label: string) => void) | null
+}
+
+// ----------------------------------------------------------- JSON report ----
+
+export interface JsonReportOptions {
+  top: number
+  showAll: boolean
+  exact: boolean
+  discover: boolean
+  cacheScan: boolean
+  worktrees: boolean
+  worktreeRoots: string[]
+  worktreeAge: number
+}
+
+export interface JsonReportSummary {
+  knownBytesLowerBound: number
+  /** Total in tiers 1–3; these are candidates, not blanket-delete advice. */
+  reclaimCandidateBytesLowerBound: number
+  knownMeasurementsPartial: boolean
+  presentTargetCount: number
+  deniedTargetCount: number
+  untrackedCacheBytesLowerBound: number
+  discoveredBytesLowerBound: number
+  worktreeCount: number
+  worktreeApparentBytesLowerBound: number
+  worktreeNonSharedBytesLowerBound: number
+  worktreeMeasurementsPartial: boolean
+  worktreeCountsByTool: Partial<Record<WorktreeTool, number>>
+  /** Sections overlap; these values must not be added into a grand total. */
+  totalsMayOverlap: true
+}
+
+/** Versioned, renderer-independent report used by --json and --json-file. */
+export interface WhyfullJsonReport extends Report {
+  format: "whyfull-report"
+  schemaVersion: 1
+  completedAt: string
+  durationMs: number
+  runtime: {
+    nodeVersion: string
+    arch: string
+  }
+  options: JsonReportOptions
+  tierDefinitions: Record<Tier, TierMeta>
+  summary: JsonReportSummary
+  discovered?: DiscoverResult
+  cacheHogs?: DiscoverResult
+  worktrees?: WorktreeResult
+}
+
+export interface BuildJsonReportOptions {
+  report: Report
+  options: JsonReportOptions
+  durationMs: number
+  discovered?: DiscoverResult | null
+  cacheHogs?: DiscoverResult | null
+  worktrees?: WorktreeResult | null
 }

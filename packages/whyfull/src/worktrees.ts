@@ -28,6 +28,7 @@ import type {
   WorktreeCluster,
   WorktreeEntry,
   WorktreeOptions,
+  WorktreeRecommendation,
   WorktreeResult,
   WorktreeState,
   WorktreeTool,
@@ -304,30 +305,63 @@ function registrations(gitRoot: string): string[] {
   }
 }
 
-/**
- * `worktree remove` refuses a dirty checkout and `branch -d` refuses an
- * unmerged branch — that refusal is the safety net, which is exactly why
- * `--force` must never appear here: it is the one flag that switches off the
- * safety net this hint relies on.
- */
-function hintFor(e: {
+/** Quote one argument for copy/paste into a POSIX-compatible shell. */
+function shellQuote(value: string): string {
+  return `'${value.replaceAll("'", `'\\''`)}'`
+}
+
+/** Recoverable local deletion command where the OS provides one by default. */
+function trashCommand(path: string): string | null {
+  if (process.platform === "darwin") return `/usr/bin/trash ${shellQuote(path)}`
+  return null
+}
+
+function recommendationFor(e: {
   state: WorktreeState
   mainRepo: string
   path: string
   branch: string | null
-}): string {
+  dirtyHint?: boolean
+}): WorktreeRecommendation {
+  const repo = shellQuote(e.mainRepo)
   switch (e.state) {
     case "locked":
-      return `a tool session may be live — git -C ${e.mainRepo} worktree unlock ${e.path} first`
+      return {
+        action: "review-locked",
+        summary:
+          "A tool session may be live. Inspect it before unlocking or removing this worktree.",
+        command: null,
+        requiresReview: true,
+        gitGuarded: false,
+      }
     case "orphan":
-      return `nothing in git references this — rm -rf ${e.path}`
+      return {
+        action: "trash-orphan",
+        summary:
+          "Nothing in Git references this directory. Inspect it, then move it to the OS Trash/Recycle Bin.",
+        command: trashCommand(e.path),
+        requiresReview: true,
+        gitGuarded: false,
+      }
     case "stale":
-      return `git -C ${e.mainRepo} worktree prune`
+      return {
+        action: "prune-registration",
+        summary:
+          "Prune the stale Git worktree registration; no checkout directory remains.",
+        command: `git -C ${repo} worktree prune`,
+        requiresReview: false,
+        gitGuarded: true,
+      }
     default: {
-      const branch = e.branch
-        ? ` && git -C ${e.mainRepo} branch -d ${e.branch}`
-        : ""
-      return `git -C ${e.mainRepo} worktree remove ${e.path}${branch}`
+      const trash = trashCommand(e.path)
+      return {
+        action: "trash-worktree",
+        summary:
+          "Inspect for uncommitted files, then move the checkout to Trash. Prune only its stale Git registration afterward; the branch is kept.",
+        command: trash ? `${trash} && git -C ${repo} worktree prune` : null,
+        requiresReview: true,
+        gitGuarded: false,
+      }
     }
   }
 }
@@ -475,8 +509,8 @@ export function findWorktrees(opts: WorktreeOptions = {}): WorktreeResult {
 
     // A `.git`-only backup of a repo carries a full copy of the original's
     // worktree registry, so it claims every live checkout of the real repo.
-    // Reporting those as orphans would print `rm -rf` for worktrees that are
-    // perfectly healthy — the worst possible false positive for this tool. If
+    // Reporting those as orphans could produce unsafe direct-delete advice for
+    // perfectly healthy worktrees — the worst possible false positive. If
     // the checkout names a different admin dir that really exists, it belongs
     // to that repo and this registration is simply a stale copy.
     if (!ownedByThis && back !== null && isDir(back.adminDir)) continue
@@ -505,6 +539,12 @@ export function findWorktrees(opts: WorktreeOptions = {}): WorktreeResult {
     const indexMtime = mtimeOf(join(admin, "index"))
     const gitdirMtime = mtimeOf(join(admin, "gitdir"))
     const lastActivityMs = Math.max(headMtime, indexMtime)
+    const lastActivitySource =
+      lastActivityMs <= 0
+        ? null
+        : indexMtime >= headMtime
+          ? ("index" as const)
+          : ("head" as const)
     const ageDays =
       lastActivityMs > 0 ? Math.floor((now - lastActivityMs) / DAY_MS) : -1
 
@@ -563,6 +603,13 @@ export function findWorktrees(opts: WorktreeOptions = {}): WorktreeResult {
       partial = partial || m.partial
     }
 
+    const recommendation = recommendationFor({
+      state,
+      mainRepo,
+      path: wtPath ?? admin,
+      branch,
+      dirtyHint,
+    })
     const entry: WorktreeEntry = {
       path: wtPath ?? admin,
       name,
@@ -572,15 +619,24 @@ export function findWorktrees(opts: WorktreeOptions = {}): WorktreeResult {
       branch,
       detached,
       lastActivityMs,
+      lastActivityAt:
+        lastActivityMs > 0 ? new Date(lastActivityMs).toISOString() : null,
+      lastActivitySource,
+      headMtimeMs: headMtime,
+      indexMtimeMs: indexMtime,
+      gitdirMtimeMs: gitdirMtime,
       dirtyHint,
       bytes,
       files,
       partial,
       sharedBytes,
+      nonSharedBytes: bytes - sharedBytes,
       ageDays,
-      hint: "",
+      hint: recommendation.command
+        ? `${recommendation.summary} Then: ${recommendation.command}`
+        : recommendation.summary,
+      recommendation,
     }
-    entry.hint = hintFor(entry)
 
     const clusterKey = realOrRaw(mainRepo)
     if (!clusters.has(clusterKey)) {
@@ -611,6 +667,8 @@ export function findWorktrees(opts: WorktreeOptions = {}): WorktreeResult {
     clusters: out,
     seeds,
     truncated,
+    activityBasis:
+      "Maximum mtime of the Git worktree admin HEAD and index files; this approximates Git activity, not filesystem access or proof that a task is finished.",
     scannedAt: new Date().toISOString(),
   }
 }

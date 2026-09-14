@@ -4,7 +4,7 @@
  * This scans common locations (Desktop, Downloads, Documents, Applications,
  * Library/Application Support) for directories over a size threshold that
  * aren't already tracked by TARGETS. With --drill, it also reports the
- * largest children inside each discovered directory.
+ * largest entries inside each discovered directory.
  *
  * Useful for finding unexpected hogs like:
  * - Native Instruments sample libraries (10s of GB)
@@ -15,12 +15,13 @@
 
 import { existsSync, readdirSync, statSync } from "node:fs"
 import { homedir } from "node:os"
-import { join } from "node:path"
+import { basename, dirname, join, sep } from "node:path"
 import { measure } from "./size"
 import { forPlatform } from "./targets"
 import type {
   DiscoveredDir,
   DiscoveredChild,
+  DiscoverRoot,
   DiscoverOptions,
   DiscoverResult,
 } from "./types"
@@ -28,10 +29,7 @@ import type {
 const home = homedir()
 
 /** Directories to scan for unexpected hogs. Shallow: only immediate children. */
-const DISCOVERY_ROOTS: Record<
-  string,
-  Array<{ path: string; label: string }>
-> = {
+const DISCOVERY_ROOTS: Record<string, DiscoverRoot[]> = {
   darwin: [
     { path: `${home}/Desktop`, label: "Desktop" },
     { path: `${home}/Downloads`, label: "Downloads" },
@@ -54,6 +52,43 @@ const DISCOVERY_ROOTS: Record<
     { path: `${home}/Music`, label: "Music folder" },
     { path: `${home}/AppData/Local`, label: "AppData Local" },
     { path: `${home}/AppData/Roaming`, label: "AppData Roaming" },
+  ],
+}
+
+/** Cache roots are cheap enough to scan on every run. */
+const CACHE_ROOTS: Record<string, DiscoverRoot[]> = {
+  darwin: [
+    { path: `${home}/Library/Caches`, label: "Library cache" },
+    { path: `${home}/.cache`, label: "User cache" },
+  ],
+  linux: [{ path: `${home}/.cache`, label: "User cache" }],
+  // AppData/Local is mixed data, not a cache. Temp is the safe generic root.
+  win32: [
+    { path: `${home}/AppData/Local/Temp`, label: "Local temporary cache" },
+  ],
+}
+
+/** Common parents of source checkouts; walked only three levels deep. */
+const PROJECT_ROOTS: Record<string, DiscoverRoot[]> = {
+  darwin: [
+    { path: `${home}/web/git`, label: "Project cache" },
+    { path: `${home}/Developer`, label: "Project cache" },
+    { path: `${home}/Projects`, label: "Project cache" },
+    { path: `${home}/src`, label: "Project cache" },
+    { path: `${home}/code`, label: "Project cache" },
+    { path: `${home}/repos`, label: "Project cache" },
+  ],
+  linux: [
+    { path: `${home}/web/git`, label: "Project cache" },
+    { path: `${home}/Developer`, label: "Project cache" },
+    { path: `${home}/Projects`, label: "Project cache" },
+    { path: `${home}/src`, label: "Project cache" },
+    { path: `${home}/code`, label: "Project cache" },
+    { path: `${home}/repos`, label: "Project cache" },
+  ],
+  win32: [
+    { path: `${home}/source/repos`, label: "Project cache" },
+    { path: `${home}/Projects`, label: "Project cache" },
   ],
 }
 
@@ -85,7 +120,7 @@ const IGNORE_NAMES = new Set([
   "puppeteer",
 ])
 
-/** Get largest immediate children of a directory. */
+/** Get largest immediate entries of a directory. */
 function topChildren(
   dir: string,
   limit: number,
@@ -100,7 +135,7 @@ function topChildren(
 
   const out: DiscoveredChild[] = []
   for (const entry of entries) {
-    if (!entry.isDirectory() || entry.isSymbolicLink()) continue
+    if (entry.isSymbolicLink()) continue
     const full = join(dir, entry.name)
     const { bytes } = measure(full, { seen: new Set(), budget })
     if (bytes < 100e6) continue // skip children under 100 MB
@@ -111,25 +146,27 @@ function topChildren(
 }
 
 /**
- * Scan discovery roots for large directories not already known.
- * Returns directories over threshold, sorted by size descending.
+ * Scan discovery roots for large entries not already known.
+ * Returns entries over threshold, sorted by size descending.
  */
-export function discover(opts: DiscoverOptions = {}): DiscoverResult {
+function scanRoots(
+  opts: DiscoverOptions,
+  defaults: Record<string, DiscoverRoot[]>,
+  defaultThreshold: number
+): DiscoverResult {
   const {
     platform = process.platform,
-    threshold = 5e9, // 5 GB default
+    roots = defaults[platform] || [],
+    threshold = defaultThreshold,
     maxResults = 20,
     drill = 3, // top N children to show per discovered dir
     onProgress = null,
   } = opts
 
-  const roots = DISCOVERY_ROOTS[platform] || []
-  const knownPaths = new Set(
-    forPlatform(platform)
-      .flatMap((t) => t.candidates)
-      .filter(Boolean)
-      .map((p) => p!.toLowerCase())
-  )
+  const knownPaths = forPlatform(platform)
+    .flatMap((t) => t.candidates)
+    .filter(Boolean)
+    .map((p) => p!.toLowerCase())
 
   const found: DiscoveredDir[] = []
   const seen = new Set<string>()
@@ -145,12 +182,21 @@ export function discover(opts: DiscoverOptions = {}): DiscoverResult {
     }
 
     for (const entry of entries) {
-      if (!entry.isDirectory() || entry.isSymbolicLink()) continue
+      if (entry.isSymbolicLink()) continue
       if (entry.name.startsWith(".") && entry.name !== ".Trash") continue
       if (IGNORE_NAMES.has(entry.name)) continue
 
       const full = join(root.path, entry.name)
-      if (knownPaths.has(full.toLowerCase())) continue
+      const normalized = full.toLowerCase()
+      // Skip exact known targets and wrapper directories whose only large
+      // child is already known (for example ~/.cache/node/corepack).
+      if (
+        knownPaths.some(
+          (known) =>
+            known === normalized || known.startsWith(`${normalized}${sep}`)
+        )
+      )
+        continue
 
       if (onProgress) onProgress(entry.name)
 
@@ -181,5 +227,74 @@ export function discover(opts: DiscoverOptions = {}): DiscoverResult {
   return {
     dirs: found.sort((a, b) => b.bytes - a.bytes).slice(0, maxResults),
     threshold,
+  }
+}
+
+/** Find project-local .cache directories without crawling source trees. */
+function projectCacheRoots(roots: DiscoverRoot[]): DiscoverRoot[] {
+  const found = new Map<string, DiscoverRoot>()
+  const skip = new Set(["node_modules", ".git", "vendor", "dist", "build"])
+  let visited = 0
+
+  for (const root of roots) {
+    if (!existsSync(root.path)) continue
+    const stack = [{ dir: root.path, depth: 0 }]
+    while (stack.length > 0 && visited < 20000) {
+      const { dir, depth } = stack.pop()!
+      let entries
+      try {
+        entries = readdirSync(dir, { withFileTypes: true })
+      } catch {
+        continue
+      }
+      visited += 1
+
+      for (const entry of entries) {
+        if (!entry.isDirectory() || entry.isSymbolicLink()) continue
+        const full = join(dir, entry.name)
+        if (entry.name === ".cache") {
+          const project = basename(dirname(full))
+          found.set(full, {
+            path: full,
+            label: `${root.label} (${project})`,
+          })
+          continue
+        }
+        if (depth >= 2 || entry.name.startsWith(".") || skip.has(entry.name)) {
+          continue
+        }
+        stack.push({ dir: full, depth: depth + 1 })
+      }
+    }
+  }
+
+  return [...found.values()]
+}
+
+/** Scan broad user/data roots when explicitly requested with --discover. */
+export function discover(opts: DiscoverOptions = {}): DiscoverResult {
+  return scanRoots(opts, DISCOVERY_ROOTS, 5e9)
+}
+
+/** Find large, untracked top-level cache directories. Enabled by default. */
+export function discoverCaches(opts: DiscoverOptions = {}): DiscoverResult {
+  const platform = opts.platform ?? process.platform
+  const ordinary = scanRoots(opts, CACHE_ROOTS, 250e6)
+  const bases =
+    opts.projectRoots ??
+    (opts.roots === undefined ? PROJECT_ROOTS[platform] : [])
+  if (!bases || bases.length === 0) return ordinary
+
+  const project = scanRoots(
+    { ...opts, roots: projectCacheRoots(bases) },
+    {},
+    250e6
+  )
+  const maxResults = opts.maxResults ?? 20
+  return {
+    dirs: [...ordinary.dirs, ...project.dirs]
+      .sort((a, b) => b.bytes - a.bytes)
+      .slice(0, maxResults),
+    threshold: ordinary.threshold,
   }
 }

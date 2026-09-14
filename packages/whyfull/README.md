@@ -30,7 +30,8 @@ that owns the data.
 
 There is no `--clean` flag. whyfull only reads and reports, ranking disposable
 caches separately from costly downloads and irreplaceable data. You decide what
-to reclaim with the tool that created it.
+to reclaim with the tool that created it. The only optional write is the report
+file explicitly requested with `--json-file`; it never changes scanned data.
 
 ## Usage
 
@@ -47,17 +48,20 @@ npm install --global whyfull
 whyfull
 ```
 
-| Command               | What it does                                                           |
-| --------------------- | ---------------------------------------------------------------------- |
-| `whyfull`             | Print the ranked report and drill into large known locations.          |
-| `whyfull --json`      | Emit one machine-readable report and no presentation text.             |
-| `whyfull --top 10`    | Show the ten largest children of each large target.                    |
-| `whyfull --no-drill`  | Skip child breakdowns for the quickest known-location scan.            |
-| `whyfull --exact`     | Fully count huge package stores instead of using a file budget.        |
-| `whyfull --discover`  | Also look for unknown 5 GB+ directories in common user folders.        |
-| `whyfull --worktrees` | Find git worktrees left behind by Claude Code, Codex, and other tools. |
-| `whyfull --all`       | Include known locations that were not found.                           |
-| `whyfull --help`      | Show command help.                                                     |
+| Command                           | What it does                                                    |
+| --------------------------------- | --------------------------------------------------------------- |
+| `whyfull`                         | Report known locations, untracked caches, and git worktrees.    |
+| `whyfull --json`                  | Emit one machine-readable report and no presentation text.      |
+| `whyfull --json-file report.json` | Save the JSON report without replacing an existing file.        |
+| `whyfull --top 10`                | Show the ten largest children of each large target.             |
+| `whyfull --no-drill`              | Skip child breakdowns for a quicker scan.                       |
+| `whyfull --exact`                 | Fully count huge package stores instead of using a file budget. |
+| `whyfull --discover`              | Also look for unknown 5 GB+ directories in common user folders. |
+| `whyfull --no-cache-scan`         | Skip the default scan for unknown 250 MB+ user/project caches.  |
+| `whyfull --no-worktrees`          | Skip the default git worktree scan.                             |
+| `whyfull --worktree-age 7`        | Only show worktrees idle for at least seven days.               |
+| `whyfull --all`                   | Include known locations that were not found.                    |
+| `whyfull --help`                  | Show command help.                                              |
 
 The command exits with `0` after a report or help output, and `2` for an invalid
 option or value. Permission-denied locations are marked as undercounts in the
@@ -81,14 +85,32 @@ large user-data locations that should be protected rather than deleted.
 
 ## JSON and programmatic API
 
-`whyfull --json` is the interface intended for agents and automation. Each
-target has a stable `id`, display metadata, resolved `path`, byte and file
-counts, safety `tier`, reclaim `hint`, and flags for missing, denied, or partial
-measurements. A partial byte count is a lower bound; use `--exact` when you need
-the full count.
+`whyfull --json` is the canonical interface for agents, automation, and future
+renderers. `--json-file <path>` saves that same payload with owner-only file
+permissions and refuses to overwrite an existing report:
+
+```bash
+npx --no-install whyfull --json-file ./whyfull-report.json
+```
+
+The payload has `format: "whyfull-report"` and a numeric `schemaVersion` so a UI
+can evolve independently from the terminal renderer. It includes scan options,
+runtime and timing metadata, tier definitions, lower-bound summaries, the full
+known-target measurements, untracked cache results, and worktree clusters.
+Worktree entries retain exact ISO dates and raw Git HEAD/index/gitdir mtimes,
+the timestamp source, apparent and non-shared byte counts, state/tool/branch
+metadata, and structured recommendations with review and Git-safety flags.
+On macOS, worktree cleanup recommendations are Trash-first: they use the system
+`/usr/bin/trash`, preserve the branch, and only then prune stale Git metadata.
+
+“Last activity” is the newest Git worktree-admin HEAD or index modification. It
+is a useful Git-activity proxy, not filesystem access time and not proof that an
+agent task is finished. A partial byte count is a lower bound; use `--exact`
+when you need the full count. Report files contain absolute local paths, so
+handle them as private machine inventory.
 
 ```js
-import { byTier, human, render, scan } from "whyfull"
+import { buildJsonReport, byTier, human, render, scan } from "whyfull"
 
 const report = scan({ top: 5 })
 
@@ -97,10 +119,27 @@ for (const tier of byTier(report)) {
 }
 
 console.log(render(report))
+
+const data = buildJsonReport({
+  report,
+  durationMs: 0,
+  options: {
+    top: 5,
+    showAll: false,
+    exact: false,
+    discover: false,
+    cacheScan: false,
+    worktrees: false,
+    worktreeRoots: [],
+    worktreeAge: 0,
+  },
+})
 ```
 
-The package also exports `measure`, `volume`, `discover`, `TARGETS`, `TIERS`,
-`TARGETS_RAW`, `forPlatform`, and the corresponding TypeScript types.
+The package also exports `measure`, `measureSimulatorRuntimes`, `volume`,
+`discover`, `discoverCaches`, `findWorktrees`, `buildJsonReport`,
+`saveJsonReport`, `JSON_SCHEMA_VERSION`, `TARGETS`, `TIERS`, `TARGETS_RAW`,
+`forPlatform`, and the corresponding TypeScript types.
 
 ## Add a private target
 
@@ -170,10 +209,13 @@ corepack enable
 pnpm install
 pnpm build
 pnpm check
+pnpm whyfull
 ```
 
 The monorepo uses pnpm and Turborepo. The npm package is in
 [`packages/whyfull`](https://github.com/iplanwebsites/whyfull/tree/main/packages/whyfull).
+The root workspace links that package locally, so `npx --no-install whyfull`
+also runs this checkout's built CLI and cannot fall back to the hosted package.
 Development currently requires Node 22.18 or newer; the published CLI supports
 Node 18.15 or newer.
 

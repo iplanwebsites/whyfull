@@ -59,14 +59,14 @@ export function render(report: Report, opts: RenderOptions = {}): string {
     )
     if (usedFrac > 0.95) {
       out.push(
-        `  ${red("Critically full.")} ${dim("Deleting real files is the only fix at this level.")}`
+        `  ${red("Critically full.")} ${dim("Reclaim space before builds, containers, or virtual-memory growth fill the remainder.")}`
       )
     }
   }
 
   // ------------------------------------------------------- ranked by tier ---
   const tiers = byTier(report)
-  const reclaimable = tiers
+  const reclaimCandidates = tiers
     .filter((t) => t.rank <= 3)
     .reduce((sum, t) => sum + t.bytes, 0)
 
@@ -74,7 +74,7 @@ export function render(report: Report, opts: RenderOptions = {}): string {
   out.push(
     `  ${bold("Found")} ${bold(human(report.total))} across ${
       report.targets.filter((t) => t.present && t.bytes).length
-    } known locations · ${green(human(reclaimable))} safely reclaimable`
+    } known locations · ${green(human(reclaimCandidates))} in reclaim tiers 1–3`
   )
 
   for (const tier of tiers) {
@@ -94,7 +94,9 @@ export function render(report: Report, opts: RenderOptions = {}): string {
         `    ${lpad(size, 10)}  ${pad(item.label, 30)} ${dim(item.group)}`
       )
 
-      for (const child of item.children || []) {
+      // pnpm's storeVersions is the richer view of the same immediate v*
+      // children. Never print both representations of the same bytes.
+      for (const child of item.storeVersions ? [] : item.children || []) {
         if (child.bytes < 1e8) continue
         const when =
           child.atimeMs >= 0 ? dim(` · used ${age(child.atimeMs)}`) : ""
@@ -111,7 +113,7 @@ export function render(report: Report, opts: RenderOptions = {}): string {
       for (const v of item.storeVersions || []) {
         const size = v.partial ? `≥${human(v.bytes)}` : human(v.bytes)
         const note = v.stale
-          ? cyan(` stale — rm -rf ${v.path}`)
+          ? cyan(` stale — inspect and move to Trash: ${v.path}`)
           : dim(` · written ${age(v.mtimeMs)}`)
         out.push(`    ${lpad(size, 10)}    ${dim("↳")} ${v.name}${note}`)
       }
@@ -178,10 +180,43 @@ export function render(report: Report, opts: RenderOptions = {}): string {
     out.push(`  ${cyan(`${REPO_URL}/issues/new`)}`)
   }
 
+  // ----------------------------------------------- unknown cache growth ----
+  const { cacheHogs } = opts
+  if (cacheHogs && cacheHogs.dirs.length > 0) {
+    out.push("")
+    out.push(
+      `  ${bold(yellow("UNTRACKED CACHES"))}  ${dim(
+        `>${human(cacheHogs.threshold)} — large cache-root entries not in the database`
+      )}`
+    )
+    for (const d of cacheHogs.dirs) {
+      out.push(
+        `    ${lpad(human(d.bytes), 10)}  ${pad(d.name, 30)} ${dim(d.root)}`
+      )
+      for (const child of d.children || []) {
+        out.push(
+          `    ${lpad(human(child.bytes), 10)}    ${dim("↳")} ${child.name}`
+        )
+      }
+    }
+    out.push("")
+    out.push(
+      `  ${dim("These are cache locations, but quit the owning app and inspect unfamiliar names before removal.")}`
+    )
+  }
+
   // ------------------------------------------------------- git worktrees ----
   const { worktrees } = opts
   if (worktrees) out.push(...renderWorktrees(worktrees))
 
+  out.push("")
+  out.push(
+    `  ${dim(
+      report.platform === "darwin"
+        ? "For direct filesystem cleanup, prefer /usr/bin/trash <path> so files remain recoverable; use owning-app cleanup where available."
+        : "For direct filesystem cleanup, prefer the OS Trash/Recycle Bin so files remain recoverable; use owning-app cleanup where available."
+    )}`
+  )
   out.push("")
   out.push(`  ${dim("Read-only report. whyfull never deletes anything.")}`)
   out.push("")
@@ -201,6 +236,18 @@ function renderWorktrees(result: WorktreeResult): string[] {
 
   const plural = (n: number, word: string) =>
     `${n} ${word}${n === 1 ? "" : "s"}`
+  const toolCounts = (
+    worktrees: WorktreeResult["clusters"][number]["worktrees"]
+  ) => {
+    const counts = new Map<string, number>()
+    for (const worktree of worktrees) {
+      counts.set(worktree.tool, (counts.get(worktree.tool) ?? 0) + 1)
+    }
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .map(([tool, count]) => `${count} ${tool}`)
+      .join(", ")
+  }
   const total = result.clusters.reduce((sum, c) => sum + c.worktrees.length, 0)
   out.push("")
   if (total === 0) {
@@ -210,9 +257,14 @@ function renderWorktrees(result: WorktreeResult): string[] {
 
   const bytes = result.clusters.reduce((sum, c) => sum + c.bytes, 0)
   const real = result.clusters.reduce((sum, c) => sum + c.realBytes, 0)
+  const partial = result.clusters.some((c) =>
+    c.worktrees.some((w) => w.partial)
+  )
+  const bound = partial ? "≥" : ""
+  const allWorktrees = result.clusters.flatMap((c) => c.worktrees)
   out.push(
     `  ${bold(yellow("GIT WORKTREES"))}  ${dim(
-      `${plural(total, "worktree")} across ${plural(result.clusters.length, "repo")} · ${human(bytes)} apparent · ~${human(real)} real`
+      `${plural(total, "worktree")} (${toolCounts(allWorktrees)}) across ${plural(result.clusters.length, "repo")} · ${bound}${human(bytes)} apparent · ${bound}${human(real)} non-shared observed`
     )}`
   )
   if (result.truncated) {
@@ -222,10 +274,11 @@ function renderWorktrees(result: WorktreeResult): string[] {
   }
 
   for (const cluster of result.clusters) {
+    const clusterBound = cluster.worktrees.some((w) => w.partial) ? "≥" : ""
     out.push("")
     out.push(
       `    ${bold(cluster.mainRepo)}  ${dim(
-        `${plural(cluster.worktrees.length, "worktree")} · ${human(cluster.bytes)} apparent · ~${human(cluster.realBytes)} real`
+        `${plural(cluster.worktrees.length, "worktree")} (${toolCounts(cluster.worktrees)}) · ${clusterBound}${human(cluster.bytes)} apparent · ${clusterBound}${human(cluster.realBytes)} non-shared observed`
       )}`
     )
 
@@ -235,7 +288,14 @@ function renderWorktrees(result: WorktreeResult): string[] {
         ? dim(` (${human(w.sharedBytes)} shared with pnpm store)`)
         : ""
       const where = w.branch ? w.branch : w.detached ? "detached" : "—"
-      const when = w.ageDays >= 0 ? `${w.ageDays}d idle` : "unknown"
+      const activityDate = w.lastActivityAt?.slice(0, 10)
+      const activitySource = w.lastActivitySource
+        ? `Git ${w.lastActivitySource.toUpperCase()}`
+        : null
+      const when =
+        w.ageDays >= 0
+          ? `${w.ageDays}d idle${activityDate ? ` · ${activityDate}` : ""}${activitySource ? ` · ${activitySource}` : ""}`
+          : "activity unknown"
       const state = w.state === "linked" ? dim(w.state) : yellow(w.state)
       out.push(`    ${lpad(size, 10)}  ${w.name}${shared}`)
       out.push(
@@ -248,9 +308,10 @@ function renderWorktrees(result: WorktreeResult): string[] {
   out.push("")
   out.push(
     `  ${dim(
-      "worktree remove refuses a dirty checkout and branch -d refuses an unmerged branch — that refusal is the safety net."
+      "Worktree advice is Trash-first: inspect before running it, keep the branch, then prune only the stale Git registration."
     )}`
   )
+  out.push(`  ${dim(`Idle age: ${result.activityBasis}`)}`)
 
   return out
 }

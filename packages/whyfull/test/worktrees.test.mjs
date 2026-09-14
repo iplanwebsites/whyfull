@@ -25,7 +25,8 @@ const DAY = 86400
  * git would have written, and the suite stays hermetic and fast.
  */
 function worktreeFixture() {
-  const root = mkdtempSync(join(tmpdir(), "whyfull-wt-"))
+  // Keep a space in the path so every suggested command has to quote safely.
+  const root = mkdtempSync(join(tmpdir(), "whyfull wt-"))
   const main = join(root, "main")
   const admin = join(main, ".git", "worktrees")
   mkdirSync(admin, { recursive: true })
@@ -162,8 +163,8 @@ test("a .git-only backup's stale registry must not condemn live worktrees", () =
   // The real-machine case this guards: `kick-mono-gitonly-11aug2026` is a
   // backup of `kick-mono`'s .git, so it carries a full copy of the worktree
   // registry and claims all 33 of the ORIGINAL repo's live checkouts. Reporting
-  // those as orphans prints `rm -rf` for healthy worktrees — the worst possible
-  // false positive for a tool whose whole promise is that it is safe to follow.
+  // those as orphans could produce unsafe direct-delete advice for healthy
+  // worktrees — the worst possible false positive for a safety-first tool.
   const root = mkdtempSync(join(tmpdir(), "whyfull-backup-"))
   try {
     const live = join(root, "repo")
@@ -275,6 +276,9 @@ test("findWorktrees ages from the admin HEAD, not the directory mtime", () => {
     // the honest last-activity date, which is the whole point of 2.2.
     assert.ok(byName(r, "dirty-one").ageDays >= 39)
     assert.ok(byName(r, "normal").ageDays <= 2)
+    assert.match(byName(r, "normal").lastActivityAt, /^\d{4}-\d{2}-\d{2}T/)
+    assert.equal(byName(r, "normal").lastActivitySource, "head")
+    assert.match(r.activityBasis, /Git worktree admin HEAD and index/)
   })
 })
 
@@ -298,24 +302,56 @@ test("findWorktrees reports pnpm-store-shared node_modules separately", () => {
 test("findWorktrees suggests the right command per state", () => {
   withWorktrees((fx) => {
     const r = scanFixture(fx)
-    assert.match(byName(r, "normal").hint, /worktree remove/)
-    assert.match(byName(r, "locked-one").hint, /unlock/)
-    assert.match(byName(r, "orphan-one").hint, /rm -rf/)
-    assert.match(byName(r, "stale-one").hint, /worktree prune/)
+    const normal = byName(r, "normal")
+    assert.match(normal.hint, /move the checkout to Trash/i)
+    assert.equal(normal.recommendation.action, "trash-worktree")
+    assert.equal(normal.recommendation.requiresReview, true)
+    assert.equal(normal.recommendation.gitGuarded, false)
+    assert.ok(!normal.hint.includes("worktree remove"))
+    if (process.platform === "darwin") {
+      assert.match(normal.recommendation.command, /\/usr\/bin\/trash/)
+      assert.match(normal.recommendation.command, /'\/.*whyfull wt-/)
+      assert.match(normal.recommendation.command, /worktree prune/)
+    } else {
+      assert.equal(normal.recommendation.command, null)
+    }
+
+    const locked = byName(r, "locked-one")
+    assert.match(locked.hint, /session may be live/i)
+    assert.equal(locked.recommendation.action, "review-locked")
+    assert.equal(locked.recommendation.command, null)
+    assert.equal(locked.recommendation.requiresReview, true)
+
+    const orphan = byName(r, "orphan-one")
+    assert.match(orphan.hint, /Trash\/Recycle Bin/i)
+    assert.equal(orphan.recommendation.action, "trash-orphan")
+    if (process.platform === "darwin") {
+      assert.match(orphan.recommendation.command, /\/usr\/bin\/trash/)
+    } else {
+      assert.equal(orphan.recommendation.command, null)
+    }
+    assert.ok(!orphan.hint.includes("rm -rf"))
+
+    const stale = byName(r, "stale-one")
+    assert.match(stale.hint, /worktree prune/)
+    assert.equal(stale.recommendation.action, "prune-registration")
   })
 })
 
 test("findWorktrees never suggests --force, even for a dirty worktree", () => {
-  // `git worktree remove --force` bypasses the exact safety net that makes it
-  // safe to follow these hints blindly. `worktree remove` on its own refuses a
-  // dirty checkout, and `branch -d` refuses an unmerged branch — that refusal
-  // is the safety net, so --force can never appear here.
+  // Worktree cleanup is recoverable and preserves branches. `--force` would be
+  // an especially dangerous regression, so it can never appear in prose or in
+  // the structured recommendation.
   withWorktrees((fx) => {
     const r = scanFixture(fx)
     for (const w of flat(r)) {
       assert.ok(
         !w.hint.includes("--force"),
         `hint for ${w.name} must never include --force: ${w.hint}`
+      )
+      assert.ok(
+        !w.recommendation.command?.includes("--force"),
+        `structured recommendation for ${w.name} must never include --force`
       )
     }
   })

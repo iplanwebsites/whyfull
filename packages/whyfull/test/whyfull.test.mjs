@@ -3,6 +3,8 @@ import assert from "node:assert/strict"
 import {
   mkdtempSync,
   mkdirSync,
+  readFileSync,
+  statSync,
   writeFileSync,
   symlinkSync,
   linkSync,
@@ -24,6 +26,11 @@ import {
   scan,
   byTier,
   render,
+  discoverCaches,
+  measureSimulatorRuntimes,
+  buildJsonReport,
+  saveJsonReport,
+  JSON_SCHEMA_VERSION,
 } from "../dist/index.mjs"
 
 function fixture() {
@@ -53,6 +60,20 @@ test("measure sums nested files", () => {
     assert.equal(files, 3)
     assert.ok(bytes >= 3 * 65536, `expected >=196608, got ${bytes}`)
   })
+})
+
+test("measure supports an individual file target", () => {
+  const root = mkdtempSync(join(tmpdir(), "whyfull-file-test-"))
+  try {
+    const file = join(root, "history.sqlite")
+    writeFileSync(file, Buffer.alloc(65536, 1))
+    const result = measure(file)
+    assert.equal(result.files, 1)
+    assert.ok(result.bytes > 0)
+    assert.equal(result.partial, false)
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
 })
 
 test("measure does not follow symlinks", () => {
@@ -164,6 +185,10 @@ test("every target declares a known tier and a hint", () => {
     assert.ok(
       t.paths.darwin && t.paths.linux && t.paths.win32,
       `${t.id} missing a platform key`
+    )
+    assert.ok(
+      !t.hint.includes("rm -rf"),
+      `${t.id} must not recommend an unrecoverable raw deletion`
     )
   }
 })
@@ -311,6 +336,49 @@ test("scan returns a renderable report", () => {
   assert.equal(typeof report.generatedAt, "string")
 })
 
+test("simulator storage counts backing assets, not expanded mounted volumes", () => {
+  const root = mkdtempSync(join(tmpdir(), "whyfull-simulator-"))
+  try {
+    const core = join(root, "CoreSimulator")
+    const assets = join(root, "MobileAssets")
+    const asset = join(assets, "abc.asset")
+    mkdirSync(join(asset, "AssetData"), { recursive: true })
+    mkdirSync(join(core, "Caches", "dyld", "build"), { recursive: true })
+    mkdirSync(join(core, "Volumes", "iOS_EXPANDED"), { recursive: true })
+    writeFileSync(
+      join(asset, "Info.plist"),
+      "<plist><dict><key>Build</key><string>22A1</string><key>SimulatorVersion</key><string>18.0</string></dict></plist>"
+    )
+    writeFileSync(
+      join(asset, "AssetData", "runtime.dmg"),
+      Buffer.alloc(65536, 1)
+    )
+    writeFileSync(
+      join(core, "Caches", "dyld", "build", "cache.bin"),
+      Buffer.alloc(65536, 2)
+    )
+    // This represents the expanded read-only mount. It must not be counted in
+    // addition to the host-side backing image.
+    writeFileSync(
+      join(core, "Volumes", "iOS_EXPANDED", "system.bin"),
+      Buffer.alloc(2 * 1024 * 1024, 3)
+    )
+
+    const result = measureSimulatorRuntimes(core, assets)
+    assert.ok(
+      result.children.some((child) => /iOS 18\.0 · build 22A1/.test(child.name))
+    )
+    assert.ok(result.children.some((child) => child.name === "dyld caches"))
+    assert.ok(result.measurement.bytes >= 2 * 65536)
+    assert.ok(
+      result.measurement.bytes < 1024 * 1024,
+      "expanded mount bytes must not inflate the reclaimable total"
+    )
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
 test("render includes the read-only guarantee and tier ordering", () => {
   const text = render(fakeReport(), { showAll: true })
   assert.match(text, /never deletes anything/)
@@ -349,6 +417,81 @@ test("byTier orders groups by safety rank", () => {
   assert.ok(!tiers.some((t) => t.items.some((i) => i.id === "gone")))
 })
 
+test("discoverCaches finds large children in explicit cache roots", () => {
+  const root = mkdtempSync(join(tmpdir(), "whyfull-cache-test-"))
+  try {
+    mkdirSync(join(root, "new-tool-cache"))
+    writeFileSync(
+      join(root, "new-tool-cache", "artifact.bin"),
+      Buffer.alloc(65536, 1)
+    )
+    const result = discoverCaches({
+      roots: [{ path: root, label: "Test cache" }],
+      threshold: 1,
+      drill: 1,
+    })
+    assert.equal(result.dirs.length, 1)
+    assert.equal(result.dirs[0].name, "new-tool-cache")
+    assert.equal(result.dirs[0].root, "Test cache")
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test("discoverCaches finds a large file directly in a cache root", () => {
+  const root = mkdtempSync(join(tmpdir(), "whyfull-cache-file-test-"))
+  try {
+    writeFileSync(join(root, "runaway.cache"), Buffer.alloc(65536, 1))
+    const result = discoverCaches({
+      roots: [{ path: root, label: "Test cache" }],
+      threshold: 1,
+      drill: 0,
+    })
+    assert.equal(result.dirs.length, 1)
+    assert.equal(result.dirs[0].name, "runaway.cache")
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test("discoverCaches finds shallow project-local caches", () => {
+  const root = mkdtempSync(join(tmpdir(), "whyfull-project-cache-test-"))
+  try {
+    const cache = join(root, "group", "app", ".cache", "release-checks")
+    mkdirSync(cache, { recursive: true })
+    writeFileSync(join(cache, "checkout.bin"), Buffer.alloc(65536, 1))
+    const result = discoverCaches({
+      roots: [],
+      projectRoots: [{ path: root, label: "Project cache" }],
+      threshold: 1,
+      drill: 0,
+    })
+    assert.equal(result.dirs.length, 1)
+    assert.equal(result.dirs[0].name, "release-checks")
+    assert.equal(result.dirs[0].root, "Project cache (app)")
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test("render lists untracked cache hogs separately", () => {
+  const cacheHogs = {
+    threshold: 250e6,
+    dirs: [
+      {
+        name: "new-tool-cache",
+        path: "/Users/x/Library/Caches/new-tool-cache",
+        bytes: 3e9,
+        root: "Library cache",
+        children: [],
+      },
+    ],
+  }
+  const text = render(fakeReport(), { cacheHogs })
+  assert.match(text, /UNTRACKED CACHES/)
+  assert.match(text, /new-tool-cache/)
+})
+
 test("cli emits no ansi codes when NO_COLOR is set", async () => {
   // useColor is decided at import time, so this must be asserted in a child.
   // Piping stdout already makes isTTY false; NO_COLOR must hold even so.
@@ -373,6 +516,7 @@ test("cli rejects invalid --top values and unknown flags", async () => {
     ["--top", "12oops"],
     ["--top", "-1"],
     ["--top", "1.5"],
+    ["--json-file"],
     ["--nope"],
   ]) {
     assert.throws(
@@ -390,6 +534,8 @@ function fakeWorktrees() {
   return {
     scannedAt: new Date().toISOString(),
     truncated: false,
+    activityBasis:
+      "Maximum mtime of the Git worktree admin HEAD and index files.",
     seeds: ["/Users/x/web"],
     clusters: [
       {
@@ -410,10 +556,10 @@ function fakeWorktrees() {
             dirtyHint: false,
             bytes: 20e9,
             files: 1000,
-            partial: false,
+            partial: true,
             sharedBytes: 14e9,
             ageDays: 38,
-            hint: "git -C /Users/x/web/kick-mono worktree remove /Users/x/web/kick-mono/.claude/worktrees/agent-a",
+            hint: "Inspect first. Then: /usr/bin/trash '/Users/x/web/kick-mono/.claude/worktrees/agent-a' && git -C '/Users/x/web/kick-mono' worktree prune",
           },
           {
             path: "/Users/x/web/kick-mono/.git/worktrees/gone",
@@ -441,13 +587,99 @@ function fakeWorktrees() {
 test("render shows pnpm store versions and names the dead one", () => {
   const text = render(fakeReport())
   assert.match(text, /v3/)
+  assert.equal(text.match(/↳ v3\b/g)?.length, 1, "store versions print once")
   // The whole point of the routine: v3 is unreachable and prune will not go
   // near it, so the report must say so explicitly.
-  assert.match(text, /stale — rm -rf \/store\/v3/)
+  assert.match(text, /stale — inspect and move to Trash: \/store\/v3/)
+})
+
+test("buildJsonReport emits a versioned renderer-independent data contract", () => {
+  const cacheHogs = {
+    threshold: 250e6,
+    dirs: [
+      {
+        name: "new-tool-cache",
+        path: "/Users/x/Library/Caches/new-tool-cache",
+        bytes: 3e9,
+        root: "Library cache",
+        children: [],
+      },
+    ],
+  }
+  const source = fakeReport()
+  const json = buildJsonReport({
+    report: source,
+    cacheHogs,
+    worktrees: fakeWorktrees(),
+    durationMs: 1234,
+    options: {
+      top: 5,
+      showAll: false,
+      exact: false,
+      discover: false,
+      cacheScan: true,
+      worktrees: true,
+      worktreeRoots: [],
+      worktreeAge: 0,
+    },
+  })
+
+  assert.equal(json.format, "whyfull-report")
+  assert.equal(json.schemaVersion, JSON_SCHEMA_VERSION)
+  assert.equal(json.durationMs, 1234)
+  assert.match(json.completedAt, /^\d{4}-\d{2}-\d{2}T/)
+  assert.equal(json.options.cacheScan, true)
+  assert.equal(json.summary.worktreeCount, 2)
+  assert.deepEqual(json.summary.worktreeCountsByTool, {
+    claude: 1,
+    manual: 1,
+  })
+  assert.equal(json.summary.untrackedCacheBytesLowerBound, 3e9)
+  assert.equal(json.summary.totalsMayOverlap, true)
+  assert.match(json.worktrees.activityBasis, /HEAD and index/)
+  assert.deepEqual(json.targets, source.targets)
+})
+
+test("saveJsonReport creates a private file and refuses to overwrite it", () => {
+  const root = mkdtempSync(join(tmpdir(), "whyfull-json-save-"))
+  try {
+    const path = join(root, "report.json")
+    const json = buildJsonReport({
+      report: fakeReport(),
+      durationMs: 1,
+      options: {
+        top: 5,
+        showAll: false,
+        exact: false,
+        discover: false,
+        cacheScan: false,
+        worktrees: false,
+        worktreeRoots: [],
+        worktreeAge: 0,
+      },
+    })
+
+    assert.equal(saveJsonReport(path, json), path)
+    assert.equal(JSON.parse(readFileSync(path, "utf8")).schemaVersion, 1)
+    assert.equal(statSync(path).mode & 0o777, 0o600)
+    assert.throws(() => saveJsonReport(path, json), { code: "EEXIST" })
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
 })
 
 test("render annotates pnpm-store-shared child bytes", () => {
-  const text = render(fakeReport())
+  const report = fakeReport()
+  report.targets.find((target) => target.id === "npm").children = [
+    {
+      name: "node_modules",
+      path: "/project/node_modules",
+      bytes: 4e9,
+      atimeMs: Date.now(),
+      sharedBytes: 3e9,
+    },
+  ]
+  const text = render(report)
   assert.match(text, /shared with pnpm store/)
 })
 
@@ -455,12 +687,14 @@ test("render lists worktrees per cluster with real vs apparent size", () => {
   const text = render(fakeReport(), { worktrees: fakeWorktrees() })
   assert.match(text, /GIT WORKTREES/)
   assert.match(text, /kick-mono/)
-  assert.match(text, /apparent/)
-  assert.match(text, /real/)
+  assert.match(text, /2 worktrees \(1 claude, 1 manual\)/)
+  assert.match(text, /≥20\.5 GB apparent/)
+  assert.match(text, /≥7\.45 GB non-shared observed/)
   assert.match(text, /agent-a/)
   assert.match(text, /38d idle/)
   assert.match(text, /shared with pnpm store/)
-  assert.match(text, /worktree remove/)
+  assert.match(text, /\/usr\/bin\/trash/)
+  assert.doesNotMatch(text, /worktree remove/)
   assert.match(text, /worktree prune/)
 })
 
@@ -476,8 +710,11 @@ test("cli accepts the worktree flags and rejects a bad age", async () => {
     encoding: "utf8",
   })
   assert.match(help, /--worktrees/)
+  assert.match(help, /--no-worktrees/)
+  assert.match(help, /--no-cache-scan/)
   assert.match(help, /--worktree-root/)
   assert.match(help, /--worktree-age/)
+  assert.match(help, /--json-file/)
 
   for (const args of [
     ["--worktree-age", "abc"],

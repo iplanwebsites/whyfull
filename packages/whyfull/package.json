@@ -1,6 +1,6 @@
 {
   "name": "whyfull",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": false,
   "description": "Find where disk space went on a dev machine (AI caches, package stores, build output), ranked by how safe each is to delete. Read-only.",
   "author": "Felix Menard",
