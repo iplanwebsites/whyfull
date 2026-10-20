@@ -553,6 +553,13 @@ export async function startViewer(options: ViewerOptions) {
           offset,
           ownFiles: node.ownFiles,
           retainedFiles: node.topFiles.length,
+          ownBytes: node.ownBytes,
+          largestFileBytes: Math.max(
+            0,
+            ...node.topFiles.map((file) => file.bytes)
+          ),
+          fileScope:
+            url.searchParams.get("files") === "all" ? "all" : "largest",
         })
         return
       }
@@ -785,6 +792,17 @@ export async function startViewer(options: ViewerOptions) {
           switching = false
           if (folder) await rm(folder, { recursive: true, force: true })
         }
+        return
+      }
+      if (req.method === "POST" && url.pathname === "/api/scan-folder") {
+        const input = await body(req)
+        if (typeof input.id !== "string" || !/^d\d+$/.test(input.id))
+          throw new Error("Select a directory from this inventory")
+        const node = snapshot.directories[Number(input.id.slice(1))]
+        if (!node || !pathWithin(node.path, snapshot.root))
+          throw new Error("Unknown directory")
+        startScan(node.path)
+        json(res, summary())
         return
       }
       if (req.method === "POST" && url.pathname === "/api/scan-root") {

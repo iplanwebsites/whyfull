@@ -36,6 +36,9 @@ export interface DirectoryView {
   offset: number
   ownFiles: number
   retainedFiles: number
+  ownBytes: number
+  largestFileBytes: number
+  fileScope: "largest" | "all"
 }
 
 export interface ViewerStatus extends Omit<

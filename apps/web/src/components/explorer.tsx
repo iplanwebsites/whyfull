@@ -158,6 +158,10 @@ export function Explorer() {
     refetchInterval: s?.status === "scanning" ? 2500 : false,
   })
   const d = directory.data
+  const manyFiles = !!d && d.ownFiles > d.retainedFiles
+  const limitedFiles = manyFiles && d?.fileScope === "largest"
+  const largestShare =
+    d && d.ownBytes > 0 ? d.largestFileBytes / d.ownBytes : null
   const dark =
     s?.viewer.theme === "dark" ||
     (s?.viewer.theme === "system" &&
@@ -331,6 +335,10 @@ export function Explorer() {
     )
       url({ path: s.viewer.lastPath })
   }, [s])
+  useEffect(() => {
+    if (s?.source.kind === "live" && s.status !== "scanning")
+      void client.invalidateQueries({ queryKey: ["directory", s.documentId] })
+  }, [s?.status, s?.documentId, s?.source.kind, client])
   useEffect(() => {
     if (s?.status === "failed")
       toast.error(s.saveError ?? "The scan could not finish", {
@@ -698,8 +706,14 @@ export function Explorer() {
                   <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
                   <Input
                     ref={input}
-                    aria-label="Search this folder"
-                    placeholder="Search…"
+                    aria-label={
+                      limitedFiles
+                        ? "Search listed entries"
+                        : "Search this folder"
+                    }
+                    placeholder={
+                      limitedFiles ? "Search listed entries…" : "Search…"
+                    }
                     className="pl-9"
                     value={search.q ?? ""}
                     onChange={(e) =>
@@ -720,6 +734,63 @@ export function Explorer() {
                   </label>
                 )}
               </div>
+              {manyFiles && d && (
+                <div className="space-y-1 border-b px-3 py-2 text-xs text-muted-foreground">
+                  <p className="font-medium text-foreground">
+                    {d.ownFiles.toLocaleString()} files ·{" "}
+                    {limitedFiles
+                      ? `${search.q ? "searching" : "showing"} largest ${d.retainedFiles}`
+                      : "live listing"}
+                  </p>
+                  {largestShare !== null &&
+                  largestShare < 0.01 &&
+                  d.node.state === "scanned" &&
+                  !d.node.issues ? (
+                    <p>
+                      No single file dominates. Largest:{" "}
+                      {formatSize(d.largestFileBytes, d.ownBytes)} (&lt;1% of
+                      file space).
+                    </p>
+                  ) : (
+                    <p>
+                      {limitedFiles
+                        ? "Other filenames are not included in this list."
+                        : "All-file browsing uses the current folder on disk."}
+                    </p>
+                  )}
+                  {limitedFiles && (
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="h-auto p-0 text-xs"
+                      disabled={busy}
+                      onClick={() => {
+                        if (!s.snapshotMode) url({ files: true, q: undefined })
+                        else
+                          void run(async () => {
+                            const next = await api<ViewerStatus>(
+                              "scan-folder",
+                              {
+                                id: d.node.id,
+                              }
+                            )
+                            await documentChanged(next)
+                            url({
+                              files: true,
+                              q: undefined,
+                              id: 0,
+                              path: next.root,
+                            })
+                          })
+                      }}
+                    >
+                      {s.snapshotMode
+                        ? "Scan folder & list all files"
+                        : "List all files"}
+                    </Button>
+                  )}
+                </div>
+              )}
               <div className="ranked-list min-h-0 flex-1 overflow-y-auto">
                 {d?.entries.map((entry) => (
                   <div
@@ -773,7 +844,14 @@ export function Explorer() {
                 )}
               </div>
               <div className="flex items-center justify-between border-t px-4 py-2 text-xs text-muted-foreground">
-                <span>{d?.total.toLocaleString() ?? 0} entries</span>
+                <span>
+                  {d?.total.toLocaleString() ?? 0}{" "}
+                  {limitedFiles
+                    ? "listed"
+                    : d?.total === 1
+                      ? "entry"
+                      : "entries"}
+                </span>
                 <div className="flex gap-1">
                   <Button
                     variant="ghost"

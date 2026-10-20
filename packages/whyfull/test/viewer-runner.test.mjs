@@ -191,3 +191,69 @@ test("runner imports reports atomically, exports original data, and scans select
     rmSync(other, { recursive: true, force: true })
   }
 })
+
+test("large file directories report the true count and can start a scoped live listing from a snapshot", async () => {
+  const root = fixture(),
+    photos = join(root, "photos")
+  let viewer
+  try {
+    mkdirSync(photos)
+    for (let i = 0; i < 150; i++)
+      writeFileSync(join(photos, `${i}.bin`), Buffer.alloc(8192))
+    const snapshot = await scanFilesystem({ root, workers: 1 })
+    const node = snapshot.directories.find((entry) => entry.path === photos)
+    viewer = await startViewer({
+      root,
+      snapshot,
+      workers: 1,
+      open: false,
+      policyFile: join(root, "config.json"),
+    })
+    const url = new URL(viewer.url),
+      headers = {
+        Authorization: `Bearer ${url.hash.slice(1)}`,
+        "Content-Type": "application/json",
+      }
+    const get = async (path) =>
+      (await fetch(`${url.origin}/api/${path}`, { headers })).json()
+    const post = (body) =>
+      fetch(`${url.origin}/api/scan-folder`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+      })
+    const listed = await get(`directory?id=${node.id}`)
+    assert.equal(listed.total, 32)
+    assert.equal(listed.ownFiles, 150)
+    assert.equal(listed.retainedFiles, 32)
+    assert.equal(listed.fileScope, "largest")
+    assert.ok(listed.largestFileBytes > 0)
+    assert.ok(
+      listed.largestFileBytes / listed.ownBytes < 0.01,
+      "largest file is under 1% of direct file space"
+    )
+    assert.equal((await post({ id: "f1", path: photos })).status, 400)
+    assert.equal((await post({ id: "d999999" })).status, 400)
+    const switched = await post({ id: `d${node.id}`, path: "/etc" })
+    assert.equal(switched.status, 200)
+    const status = await switched.json()
+    assert.equal(
+      status.root,
+      photos,
+      "scope comes from inventory ID, not a client-supplied path"
+    )
+    assert.equal(status.snapshotMode, false)
+    assert.equal(status.cleanup.mode, "demo")
+    for (let i = 0; i < 100 && viewer.snapshot.status === "scanning"; i++)
+      await new Promise((resolve) => setTimeout(resolve, 10))
+    const all = await get("directory?id=0&files=all")
+    assert.equal(all.fileScope, "all")
+    assert.equal(all.total, 150)
+    assert.equal(all.entries.length, 100)
+    const next = await get("directory?id=0&files=all&offset=100")
+    assert.equal(next.entries.length, 50)
+  } finally {
+    await viewer?.close()
+    rmSync(root, { recursive: true, force: true })
+  }
+})

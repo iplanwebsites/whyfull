@@ -57,6 +57,14 @@ Saved snapshots support demo only. Keep and exclude rules also block moves of
 ancestors that contain protected paths. Root/system locations and changed or
 symlinked paths are rejected. The inventory is refreshed by an explicit rescan.
 
+For large direct-file lists, the sidebar shows the true file count and labels the
+32-filename limit instead of calling it the folder total. When the largest measured
+file uses less than 1% of direct-file space and the scan has no issues, it explains
+that no single file dominates. **List all files** reads live filenames with paging;
+**Scan folder & list all files** starts a fresh, scoped live scan from a saved
+inventory without rescanning the whole drive. Search explicitly names its limited
+scope while only the largest filenames are available.
+
 File groups use compact counts such as **14k files**, with allocated size beneath.
 Large treemap blocks scale up the count for readability. Tooltips and accessible
 labels retain exact counts; file-only groups preserve counts across chart limits.
