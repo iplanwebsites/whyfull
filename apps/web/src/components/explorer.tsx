@@ -1,3 +1,4 @@
+import { MinimumFileSize } from "./minimum-file-size"
 import { toast } from "@workspace/ui/components/sonner"
 import { RunnerControls, useDrives } from "./runner-controls"
 import { DiagnosticsDialog } from "./diagnostics-dialog"
@@ -356,6 +357,7 @@ export function Explorer() {
     if (s?.needsRescan)
       toast.info("Rescan to refresh sizes", { id: `rescan-${s.documentId}` })
   }, [s?.needsRescan, s?.documentId])
+  useEffect(() => setPage(0), [s?.viewer.minFileBytes])
   useEffect(() => {
     const theme = s?.viewer.theme ?? "light"
     document.documentElement.classList.toggle(
@@ -581,6 +583,7 @@ export function Explorer() {
                   </DropdownMenuRadioGroup>
                 </div>
               </DropdownMenuGroup>
+              <MinimumFileSize value={s.viewer.minFileBytes} />
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
                 <DropdownMenuLabel className="max-w-56 truncate">

@@ -1,10 +1,11 @@
+import { MinimumFileSize } from "./minimum-file-size"
 import {
   ContextMenu,
   ContextMenuTrigger,
   ContextMenuContent,
   ContextMenuItem,
 } from "@workspace/ui/components/context-menu"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   Download,
@@ -113,6 +114,7 @@ export function ReportViewer({
     [query, setQuery] = useState(""),
     [page, setPage] = useState(0),
     [expanded, setExpanded] = useState<string | null>(null)
+  useEffect(() => setPage(0), [status.viewer.minFileBytes])
   const result = useQuery({
     queryKey: ["report", status.documentId],
     queryFn: ({ signal }) =>
@@ -170,7 +172,9 @@ export function ReportViewer({
                   .toLocaleLowerCase()
                   .includes(query.toLocaleLowerCase())
               )) &&
-            (query || row.bytes === null || !isSmallEntry(row.bytes)) &&
+            (query ||
+              row.bytes === null ||
+              !isSmallEntry(row.bytes, status.viewer.minFileBytes)) &&
             (tier === "all" || row.tier === tier) &&
             (!markedOnly ||
               !!locations.data?.find((item) => item.path === row.path)?.mark ||
@@ -181,7 +185,7 @@ export function ReportViewer({
               ))
         )
         .sort((a, b) => (b.bytes ?? 0) - (a.bytes ?? 0)),
-    [rows, query, tier, markedOnly, locations.data]
+    [rows, query, tier, markedOnly, locations.data, status.viewer.minFileBytes]
   )
   return (
     <div className="disk-workspace">
@@ -247,6 +251,7 @@ export function ReportViewer({
             <Ellipsis />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <MinimumFileSize value={status.viewer.minFileBytes} />
             <DropdownMenuItem
               onClick={() => {
                 setReportRun(false)
@@ -360,7 +365,11 @@ export function ReportViewer({
                     children: query
                       ? row.children
                       : row.children.filter(
-                          (child) => !isSmallEntry(child.bytes)
+                          (child) =>
+                            !isSmallEntry(
+                              child.bytes,
+                              status.viewer.minFileBytes
+                            )
                         ),
                   }}
                   upperLimit={Math.max(...rows.map((item) => item.bytes ?? 0))}

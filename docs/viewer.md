@@ -303,10 +303,14 @@ results. The current document stays open until that action is chosen. Report
 output is bounded to 64 MiB, and traces remain bounded to 256 KiB. Options from
 the open report are used as the starting point for another run.
 
-Files smaller than 1 MiB are hidden from default filesystem lists and individual
+The ellipsis menu’s **Minimum file size** setting offers **Show everything**,
+**1 MiB** (default), **10 MiB**, and **100 MiB**. It is shared by the explorer and
+report viewer and persists in the CLI configuration across restarts.
+
+Files below the selected minimum are hidden from default filesystem lists and individual
 chart slices, regardless of filename or the folder's size. Their bytes and counts
 still contribute to the inventory; charts combine hidden files into the file
 aggregate. Search explicitly or choose **All files** to reveal them in the list.
 Report locations and child entries below the same threshold are hidden unless
-searching. Entries of exactly 1 MiB remain visible; unknown report sizes remain
+searching. Entries exactly at the selected minimum remain visible; unknown report sizes remain
 visible. Filtering never changes measurements or deletes anything.

@@ -514,6 +514,60 @@ test("viewer hides negligible files by default, preserves chart totals and IDs, 
       0,
       "the 1 MiB threshold also applies in small folders"
     )
+    const prefs = (minFileBytes) =>
+      fetch(`${url.origin}/api/preferences`, {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ minFileBytes }),
+      })
+    assert.equal((await get("status")).viewer.minFileBytes, 1024 ** 2)
+    assert.equal((await prefs(0)).status, 200)
+    assert.equal(
+      (await get("directory?id=0")).entries.length,
+      10,
+      "show everything reveals all retained files"
+    )
+    assert.equal(
+      (await get("directory?id=0")).chart.children.filter(
+        (entry) => entry.kind === "file"
+      ).length,
+      9
+    )
+    assert.equal((await prefs(10 * 1024 ** 2)).status, 200)
+    const largerOnly = await get("directory?id=0")
+    assert.deepEqual(
+      largerOnly.entries
+        .filter((entry) => entry.kind === "file")
+        .map((entry) => entry.name),
+      ["movie.bin"]
+    )
+    assert.equal(largerOnly.node.value, normal.node.value)
+    for (const invalid of [-1, 1.5, "1MB", null, 1024 ** 4 + 1])
+      assert.equal((await prefs(invalid)).status, 400)
+    assert.equal(
+      JSON.parse(readFileSync(join(root, "config.json"), "utf8")).viewer
+        .minFileBytes,
+      10 * 1024 ** 2
+    )
+    const snapshot = viewer.snapshot
+    await viewer.close()
+    viewer = await startViewer({
+      root,
+      snapshot,
+      open: false,
+      policyFile: join(root, "config.json"),
+    })
+    const restarted = new URL(viewer.url)
+    const persisted = await (
+      await fetch(`${restarted.origin}/api/status`, {
+        headers: { Authorization: `Bearer ${restarted.hash.slice(1)}` },
+      })
+    ).json()
+    assert.equal(
+      persisted.viewer.minFileBytes,
+      10 * 1024 ** 2,
+      "minimum size survives runner restarts"
+    )
   } finally {
     await viewer?.close()
     rmSync(root, { recursive: true, force: true })

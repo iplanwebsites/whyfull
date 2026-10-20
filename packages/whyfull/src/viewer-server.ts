@@ -226,7 +226,9 @@ export async function startViewer(options: ViewerOptions) {
     }))
     const visibleFiles = node.topFiles
       .map((file, i) => ({ file, i }))
-      .filter(({ file }) => !isSmallEntry(file.bytes))
+      .filter(
+        ({ file }) => !isSmallEntry(file.bytes, viewerPreferences.minFileBytes)
+      )
     children.push(
       ...visibleFiles.map(({ file, i }) => ({
         id: `f${node.id}-${i}`,
@@ -616,7 +618,7 @@ export async function startViewer(options: ViewerOptions) {
               search ||
               url.searchParams.get("files") === "all" ||
               entry.kind !== "file" ||
-              !isSmallEntry(Number(entry.value))
+              !isSmallEntry(Number(entry.value), viewerPreferences.minFileBytes)
           )
           .filter((e) => String(e.name).toLowerCase().includes(search))
           .sort(

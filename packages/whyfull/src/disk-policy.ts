@@ -119,6 +119,7 @@ export interface ViewerPreferences {
   theme: "light" | "dark" | "system"
   lastPath: string | null
   sidebarOpen: boolean
+  minFileBytes: number
 }
 
 export function loadViewerPreferences(
@@ -146,6 +147,13 @@ export function loadViewerPreferences(
         : "light",
     lastPath: typeof value.lastPath === "string" ? value.lastPath : null,
     sidebarOpen: value.sidebarOpen !== false,
+    minFileBytes:
+      typeof value.minFileBytes === "number" &&
+      Number.isSafeInteger(value.minFileBytes) &&
+      value.minFileBytes >= 0 &&
+      value.minFileBytes <= 1024 ** 4
+        ? value.minFileBytes
+        : 1024 ** 2,
   }
 }
 
@@ -154,6 +162,16 @@ export function saveViewerPreferences(
   path = defaultPolicyPath()
 ): ViewerPreferences {
   const next = loadViewerPreferences(path)
+  if (patch.minFileBytes !== undefined) {
+    if (
+      typeof patch.minFileBytes !== "number" ||
+      !Number.isSafeInteger(patch.minFileBytes) ||
+      patch.minFileBytes < 0 ||
+      patch.minFileBytes > 1024 ** 4
+    )
+      throw new Error("Invalid minimum file size")
+    next.minFileBytes = patch.minFileBytes
+  }
   if (patch.view !== undefined) {
     if (patch.view !== "sunburst" && patch.view !== "treemap")
       throw new Error("Invalid map view")
