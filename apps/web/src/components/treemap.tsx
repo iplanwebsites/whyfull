@@ -14,7 +14,7 @@ export function Treemap({
   onOpen,
   onSelect,
   onHover,
-  hovered,
+  hovered = null,
   onContext,
 }: {
   colors: ChartColors
@@ -23,7 +23,7 @@ export function Treemap({
   onOpen: (node: ViewEntry) => void
   onSelect: (node: ViewEntry) => void
   onHover: (node: ViewEntry | null) => void
-  hovered: ViewEntry | null
+  hovered?: ViewEntry | null
   onContext: (node: ViewEntry) => void
 }) {
   const container = useRef<HTMLDivElement>(null)

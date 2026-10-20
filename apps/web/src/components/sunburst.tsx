@@ -15,7 +15,7 @@ export default function Sunburst({
   onOpen,
   onSelect,
   onHover,
-  hovered,
+  hovered = null,
   onContext,
   onUp,
 }: {
@@ -25,7 +25,7 @@ export default function Sunburst({
   onOpen: (node: ViewEntry) => void
   onSelect: (node: ViewEntry) => void
   onHover: (node: ViewEntry | null) => void
-  hovered: ViewEntry | null
+  hovered?: ViewEntry | null
   onContext: (node: ViewEntry) => void
   onUp: () => void
 }) {
@@ -58,6 +58,9 @@ export default function Sunburst({
     }
   }, [])
   useLayoutEffect(() => {
+    const singleRing = (root.children ?? []).every(
+      (node) => !node.children?.some((child) => child.value > 0)
+    )
     const prepare = (node: ViewEntry): Record<string, unknown> => {
       const paint = colorFor(colors, node, dark)
       return {
@@ -77,6 +80,7 @@ export default function Sunburst({
         },
         label: {
           color: paint.text,
+          ...(singleRing ? { rotate: 0, fontSize: 16 } : {}),
           formatter: () =>
             `${node.mark ? "⚑ " : ""}${(node.kind === "remainder" || node.kind === "group") && node.files !== undefined ? `${formatCount(node.files)} ${node.files === 1 ? "file" : "files"}` : node.name}`,
         },
@@ -105,7 +109,7 @@ export default function Sunburst({
             },
             levels: [
               {},
-              { r0: "35%", r: "58%" },
+              { r0: "35%", r: singleRing ? "94%" : "58%" },
               {
                 r0: "58%",
                 r: "78%",

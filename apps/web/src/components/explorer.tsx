@@ -1,3 +1,4 @@
+import { fileSummaryChart } from "@/lib/file-summary-chart"
 import { isHoveredEntry } from "@/lib/chart-hover"
 import {
   Select,
@@ -96,7 +97,13 @@ import {
   DropdownMenuCheckboxItem,
 } from "@workspace/ui/components/dropdown-menu"
 import { Route } from "@/routes/index"
-import { api, formatSize, exportSnapshot, hasToken } from "@/lib/api"
+import {
+  api,
+  formatSize,
+  formatCount,
+  exportSnapshot,
+  hasToken,
+} from "@/lib/api"
 import type {
   ViewerStatus,
   DirectoryView,
@@ -131,7 +138,7 @@ export function Explorer() {
     [plan, setPlan] = useState<TrashPlan | null>(null),
     [enable, setEnable] = useState(false),
     [exclude, setExclude] = useState<ViewEntry | null>(null)
-  const [mapForPath, setMapForPath] = useState<string | null>(null)
+  const [fileDetails, setFileDetails] = useState(false)
   const [Sunburst, setSunburst] = useState<SunburstComponent | null>(null)
   const busy = working || changing
   const restored = useRef(false),
@@ -197,7 +204,11 @@ export function Explorer() {
     (s?.viewer.theme === "system" &&
       typeof window !== "undefined" &&
       matchMedia("(prefers-color-scheme: dark)").matches)
-  const colors = useMemo(() => chartColors(d?.chart, dark), [d?.chart, dark])
+  const displayChart = useMemo(() => (d ? fileSummaryChart(d) : undefined), [d])
+  const colors = useMemo(
+    () => chartColors(displayChart, dark),
+    [displayChart, dark]
+  )
   const directoryIndex = useMemo(() => {
     const index = new Map<string, ViewEntry>()
     d?.crumbs.forEach((crumb) =>
@@ -559,7 +570,6 @@ export function Explorer() {
                           const module = await loadSunburst()
                           setSunburst(() => module.default)
                         }
-                        setMapForPath(d?.node.path ?? null)
                         url({ view: next })
                         await prefs({ view: next })
                       })
@@ -684,6 +694,7 @@ export function Explorer() {
               defaultSize={isMobile ? "50%" : "70%"}
               minSize={isMobile ? 220 : 320}
               className="explorer-chart flex min-h-0 min-w-0 flex-col"
+              style={{ overflow: "hidden" }}
             >
               <section className="flex min-h-0 min-w-0 flex-1 flex-col">
                 <div className="relative min-h-0 flex-1">
@@ -697,28 +708,11 @@ export function Explorer() {
                         Back to root
                       </Button>
                     </div>
-                  ) : d && fileHeavy && mapForPath !== d.node.path ? (
-                    <FileDistribution
-                      key={`${s.documentId}:${d.node.id}`}
-                      directory={d}
-                      documentId={s.documentId}
-                      onMap={() => setMapForPath(d.node.path ?? null)}
-                    />
                   ) : d ? (
                     <>
-                      {fileHeavy && (
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          className="absolute right-3 top-3 z-10"
-                          onClick={() => setMapForPath(null)}
-                        >
-                          File sizes
-                        </Button>
-                      )}
                       {view === "treemap" ? (
                         <Treemap
-                          root={d.chart}
+                          root={displayChart!}
                           colors={colors}
                           dark={dark}
                           onOpen={open}
@@ -729,7 +723,7 @@ export function Explorer() {
                         />
                       ) : Sunburst ? (
                         <Sunburst
-                          root={d.chart}
+                          root={displayChart!}
                           colors={colors}
                           dark={dark}
                           onOpen={open}
@@ -826,8 +820,45 @@ export function Explorer() {
                 </div>
                 {manyFiles && d && (
                   <div className="space-y-1 border-b px-3 py-2 text-xs text-muted-foreground">
+                    {fileHeavy && (
+                      <div
+                        className="grid grid-cols-2 gap-x-4 gap-y-3 py-2"
+                        title="Space used on disk by files directly in this folder"
+                      >
+                        <div>
+                          <div
+                            className="text-2xl font-semibold text-foreground tabular-nums"
+                            title={`${d.ownFiles.toLocaleString()} files`}
+                          >
+                            {formatCount(d.ownFiles)} files
+                          </div>
+                          <div>In this folder</div>
+                        </div>
+                        <div>
+                          <div className="text-2xl font-semibold text-foreground tabular-nums">
+                            {formatSize(d.ownBytes)}
+                          </div>
+                          <div>Space used</div>
+                        </div>
+                        <div>
+                          <div className="font-medium text-foreground tabular-nums">
+                            {formatSize(d.ownBytes / d.ownFiles)}
+                          </div>
+                          <div>Average file</div>
+                        </div>
+                        <div>
+                          <div className="font-medium text-foreground tabular-nums">
+                            {formatSize(d.largestFileBytes)}
+                          </div>
+                          <div>Largest file</div>
+                        </div>
+                      </div>
+                    )}
                     <p className="font-medium text-foreground">
-                      {d.ownFiles.toLocaleString()} files ·{" "}
+                      {fileHeavy
+                        ? "Filenames"
+                        : `${d.ownFiles.toLocaleString()} files`}{" "}
+                      ·{" "}
                       {limitedFiles
                         ? `${search.q ? "searching" : "showing"} largest ${d.retainedFiles}`
                         : "live listing"}
@@ -847,6 +878,16 @@ export function Explorer() {
                           ? "Other filenames are not included in this list."
                           : "All-file browsing uses the current folder on disk."}
                       </p>
+                    )}
+                    {fileHeavy && (
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="mr-3 h-auto p-0 text-xs"
+                        onClick={() => setFileDetails(true)}
+                      >
+                        File size breakdown…
+                      </Button>
                     )}
                     {limitedFiles && (
                       <Button
@@ -1071,6 +1112,15 @@ export function Explorer() {
             </ResizablePanel>
           </ResizablePanelGroup>
         </main>
+        <Dialog open={fileDetails} onOpenChange={setFileDetails}>
+          <DialogContent className="max-h-[85vh] overflow-auto sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>File size breakdown</DialogTitle>
+              <DialogDescription>{d?.node.name}</DialogDescription>
+            </DialogHeader>
+            {d && <FileDistribution directory={d} documentId={s.documentId} />}
+          </DialogContent>
+        </Dialog>
         <DiagnosticsDialog
           open={diagnostics}
           onOpenChange={setDiagnostics}

@@ -1,6 +1,6 @@
 import { useEffect } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { BarChart3, RefreshCw, LayoutGrid } from "lucide-react"
+import { RefreshCw } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
 import { toast } from "@workspace/ui/components/sonner"
 import { api, formatCount, formatSize } from "@/lib/api"
@@ -21,11 +21,9 @@ function fraction(value: number, total: number) {
 export function FileDistribution({
   directory,
   documentId,
-  onMap,
 }: {
   directory: DirectoryView
   documentId: string
-  onMap: () => void
 }) {
   const result = useQuery({
     queryKey: ["file-distribution", documentId, directory.node.id],
@@ -36,6 +34,9 @@ export function FileDistribution({
     staleTime: Infinity,
   })
   const data = result.data
+  useEffect(() => {
+    if (result.error) toast.error(result.error.message)
+  }, [result.error])
   useEffect(() => {
     if (data?.unreadable)
       toast.error(
@@ -49,10 +50,6 @@ export function FileDistribution({
     >
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <h2 className="flex-1 text-sm font-medium">File sizes</h2>
-        <Button variant="ghost" size="sm" onClick={onMap}>
-          <LayoutGrid />
-          Show map
-        </Button>
         <Button
           variant="outline"
           size="sm"
@@ -70,7 +67,7 @@ export function FileDistribution({
       <div className="mb-5 flex flex-wrap gap-x-8 gap-y-3">
         <div>
           <div className="text-xs text-muted-foreground">
-            {data ? "Measured files" : "Files in report"}
+            {data ? "Measured files" : "Files"}
           </div>
           <div
             className="text-2xl font-semibold tabular-nums"
@@ -81,7 +78,7 @@ export function FileDistribution({
         </div>
         <div>
           <div className="text-xs text-muted-foreground">
-            {data ? "Average file size" : "Average allocated (report)"}
+            {data ? "Average file size" : "Average file on disk"}
           </div>
           <div className="text-2xl font-semibold tabular-nums">
             {formatSize(
@@ -92,7 +89,7 @@ export function FileDistribution({
         </div>
         <div>
           <div className="text-xs text-muted-foreground">
-            {data ? "Largest file" : "Largest allocated (report)"}
+            {data ? "Largest file" : "Largest file on disk"}
           </div>
           <div className="text-2xl font-semibold tabular-nums">
             {formatSize(data?.largestBytes ?? directory.largestFileBytes)}
@@ -159,15 +156,7 @@ export function FileDistribution({
         </div>
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center text-sm text-muted-foreground">
-          <BarChart3 className="size-8" />
-          <p>
-            Measure this folder to separate tiny files, typical files and large
-            outliers.
-          </p>
-          <p className="max-w-md text-xs">
-            The report keeps only the largest filenames. A distribution needs
-            metadata for every direct file; file contents stay untouched.
-          </p>
+          <p>Measure file sizes to see how many are small, medium, or large.</p>
         </div>
       )}
     </div>
