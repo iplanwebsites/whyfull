@@ -15,6 +15,36 @@ import { toast } from "@workspace/ui/components/sonner"
 import { api, formatSize } from "@/lib/api"
 import type { ShortlistEntry } from "@/lib/api"
 
+export function TrashShortlistButton({
+  documentId,
+  onClick,
+}: {
+  documentId: string
+  onClick: () => void
+}) {
+  const result = useQuery({
+    queryKey: ["shortlist", documentId],
+    queryFn: ({ signal }) =>
+      api<ShortlistEntry[]>("shortlist", undefined, signal),
+    refetchInterval: 5000,
+  })
+  const count =
+    result.data?.filter((entry) => entry.mark === "trash").length ?? 0
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className={count ? "text-destructive" : undefined}
+      aria-label={`Trash shortlist (${count})`}
+      title="Trash shortlist"
+      onClick={onClick}
+    >
+      <Trash2 />
+      <span className="tabular-nums">{count}</span>
+    </Button>
+  )
+}
+
 export function CleanupShortlist({
   open,
   onOpenChange,
@@ -39,9 +69,11 @@ export function CleanupShortlist({
     enabled: open,
     refetchInterval: open ? 5000 : false,
   })
-  const entries = (result.data ?? []).filter((entry) =>
-    entry.path.toLocaleLowerCase().includes(query.toLocaleLowerCase())
-  )
+  const entries = (result.data ?? [])
+    .filter((entry) =>
+      entry.path.toLocaleLowerCase().includes(query.toLocaleLowerCase())
+    )
+    .sort((a, b) => Number(b.mark === "trash") - Number(a.mark === "trash"))
   async function action(entry: ShortlistEntry, action: "finder" | "clear") {
     setBusy(true)
     try {
@@ -58,7 +90,7 @@ export function CleanupShortlist({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] overflow-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Cleanup shortlist</DialogTitle>
+          <DialogTitle>Trash shortlist</DialogTitle>
           <DialogDescription>
             Saved marks across scans. Nothing moves until you review a Trash
             action. Sizes can overlap.
@@ -99,7 +131,15 @@ export function CleanupShortlist({
               )}
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2 text-xs">
-                  <span className="font-medium">{entry.name}</span>
+                  <span
+                    className={
+                      entry.mark === "trash"
+                        ? "font-medium text-destructive line-through"
+                        : "font-medium"
+                    }
+                  >
+                    {entry.name}
+                  </span>
                   <span className="text-muted-foreground">
                     {entry.mark === "trash"
                       ? "Marked for Trash"

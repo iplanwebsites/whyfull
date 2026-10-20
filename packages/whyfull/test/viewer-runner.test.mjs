@@ -515,6 +515,34 @@ test("viewer hides negligible files by default, preserves chart totals and IDs, 
       0,
       "the 1 MiB threshold also applies in small folders"
     )
+    const markProject = (mark) =>
+      fetch(`${url.origin}/api/mark`, {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ id: project.id, mark }),
+      })
+    assert.equal((await markProject("trash")).status, 200)
+    for (const sort of ["size", "name"]) {
+      const marked = await get(`directory?id=0&sort=${sort}`)
+      assert.equal(
+        marked.entries[0].id,
+        project.id,
+        "Trash marks are pinned before sorting and pagination"
+      )
+      assert.equal(marked.entries[0].mark, "trash")
+      assert.equal(
+        marked.total,
+        normal.total,
+        "marking keeps the item in the list"
+      )
+    }
+    assert.equal((await get("shortlist"))[0].path, project.path)
+    assert.equal((await markProject(null)).status, 200)
+    assert.equal(
+      (await get("directory?id=0")).entries[0].id,
+      movie.id,
+      "clearing restores normal sorting"
+    )
     const prefs = (minFileBytes) =>
       fetch(`${url.origin}/api/preferences`, {
         method: "POST",

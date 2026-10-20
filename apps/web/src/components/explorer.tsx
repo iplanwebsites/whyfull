@@ -2,7 +2,7 @@ import { MinimumFileSize } from "./minimum-file-size"
 import { toast } from "@workspace/ui/components/sonner"
 import { RunnerControls, useDrives } from "./runner-controls"
 import { DiagnosticsDialog } from "./diagnostics-dialog"
-import { CleanupShortlist } from "./cleanup-shortlist"
+import { CleanupShortlist, TrashShortlistButton } from "./cleanup-shortlist"
 import { FileDistribution } from "./file-distribution"
 import { ReportViewer } from "./report-viewer"
 import { useEffect, useMemo, useRef, useState } from "react"
@@ -211,6 +211,7 @@ export function Explorer() {
   }
   async function mark(node: ViewEntry, value: "trash" | "useless" | null) {
     await api("mark", { id: node.id, mark: value })
+    setPage(0)
   }
   function directoryActions(node: ViewEntry | undefined, contextual = false) {
     const Item = contextual ? ContextMenuItem : DropdownMenuItem
@@ -494,6 +495,10 @@ export function Explorer() {
           >
             {formatSize(d?.node.value ?? s.bytes)}
           </span>
+          <TrashShortlistButton
+            documentId={s.documentId}
+            onClick={() => setShortlist(true)}
+          />
           <Badge
             variant="outline"
             className={demo ? "text-emerald-700" : "text-destructive"}
@@ -837,11 +842,21 @@ export function Explorer() {
                         <File className="size-4 shrink-0 text-muted-foreground" />
                       )}
                       <span
-                        className="truncate text-sm"
+                        className={
+                          entry.mark === "trash"
+                            ? "truncate text-sm text-destructive line-through"
+                            : "truncate text-sm"
+                        }
                         title={entry.path ?? entry.name}
                       >
                         {entry.name}
                       </span>
+                      {entry.mark === "trash" && (
+                        <Trash2
+                          className="size-3 shrink-0 text-destructive"
+                          aria-label="Marked for Trash"
+                        />
+                      )}
                       {entry.kept && (
                         <ShieldCheck className="size-3 shrink-0" />
                       )}
@@ -995,7 +1010,7 @@ export function Explorer() {
           onBrowse={(entry) =>
             open({
               id: entry.id!,
-              path: entry.path,
+              // Marks use canonical paths; browse by this inventory's ID.
               name: entry.name,
               value: entry.bytes ?? 0,
               kind: "directory",

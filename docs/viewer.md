@@ -50,8 +50,9 @@ It also opens saved JSON reports without restarting the runner. View modes, Find
 appearance and scan actions in an ellipsis menu. Right-click a breadcrumb, list
 entry, treemap tile or ring to open its Base UI context menu. Directory marks
 (`trash` or `useless`; legacy `delete` marks are migrated) are saved in the configuration separately from keep/exclude
-rules. **Cleanup shortlist** in the ellipsis menu shows all saved marks across scans,
-including folders outside the current inventory with unknown sizes. Browse measured
+rules. The toolbar's **Trash shortlist** button shows the number of Trash marks and opens all saved marks across scans. The list is also available under **Cleanup shortlist** in the ellipsis menu.
+Trash-marked entries remain visible, appear before unmarked entries, and use red, struck-through names in directory lists, reports, and the shortlist.
+The shortlist includes folders outside the current inventory with unknown sizes. Browse measured
 folders, reveal them in Finder, or clear marks individually. Marks are review metadata;
 they never move files. Native cleanup always moves to Trash and starts in demo mode.
 Finder accepts only inventory directory IDs, report locations or saved shortlist paths,

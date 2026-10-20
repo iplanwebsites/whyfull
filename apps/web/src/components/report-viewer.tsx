@@ -35,7 +35,7 @@ import {
   DropdownMenuItem,
 } from "@workspace/ui/components/dropdown-menu"
 import { DiagnosticsDialog } from "./diagnostics-dialog"
-import { CleanupShortlist } from "./cleanup-shortlist"
+import { CleanupShortlist, TrashShortlistButton } from "./cleanup-shortlist"
 import { RunnerControls } from "./runner-controls"
 import { copyPath } from "@/lib/clipboard"
 import { api, formatSize, exportSnapshot, isSmallEntry } from "@/lib/api"
@@ -173,6 +173,9 @@ export function ReportViewer({
                   .includes(query.toLocaleLowerCase())
               )) &&
             (query ||
+              locations.data?.some(
+                (item) => item.path === row.path && item.mark === "trash"
+              ) ||
               row.bytes === null ||
               !isSmallEntry(row.bytes, status.viewer.minFileBytes)) &&
             (tier === "all" || row.tier === tier) &&
@@ -184,7 +187,19 @@ export function ReportViewer({
                     ?.mark
               ))
         )
-        .sort((a, b) => (b.bytes ?? 0) - (a.bytes ?? 0)),
+        .sort(
+          (a, b) =>
+            Number(
+              locations.data?.some(
+                (item) => item.path === b.path && item.mark === "trash"
+              )
+            ) -
+              Number(
+                locations.data?.some(
+                  (item) => item.path === a.path && item.mark === "trash"
+                )
+              ) || (b.bytes ?? 0) - (a.bytes ?? 0)
+        ),
     [rows, query, tier, markedOnly, locations.data, status.viewer.minFileBytes]
   )
   return (
@@ -236,6 +251,10 @@ export function ReportViewer({
           finderAvailable={status.finderAvailable}
           documentId={status.documentId}
           onBrowse={(entry) => void action(entry.path, "scan")}
+        />
+        <TrashShortlistButton
+          documentId={status.documentId}
+          onClick={() => setShortlist(true)}
         />
         <DropdownMenu>
           <DropdownMenuTrigger
@@ -467,7 +486,15 @@ function ReportRows({
             onClick={onToggle}
             className="block max-w-full truncate text-left font-medium"
           >
-            {row.name}
+            <span
+              className={
+                location?.mark === "trash"
+                  ? "text-destructive line-through"
+                  : undefined
+              }
+            >
+              {row.name}
+            </span>
             {location?.mark && (
               <span className="ml-2 text-xs font-normal text-muted-foreground">
                 {location.mark === "trash" ? "Trash shortlist" : "Useless"}
@@ -551,65 +578,83 @@ function ReportRows({
                 </Button>
               </div>
             )}
-            {row.children.slice(0, 100).map((child) => (
-              <ContextMenu key={child.path}>
-                <ContextMenuTrigger
-                  render={
-                    <div className="flex items-center gap-3 border-t py-2 text-xs" />
-                  }
-                >
-                  <span className="min-w-0 flex-1 truncate" title={child.path}>
-                    <FileJson className="mr-2 inline size-3 text-muted-foreground" />
-                    {child.name}
-                    {child.stale && (
-                      <span className="ml-2 text-muted-foreground">
-                        Obsolete format
-                      </span>
-                    )}
-                    {locations.get(child.path)?.mark && (
-                      <span className="ml-2 text-muted-foreground">
-                        Shortlisted
-                      </span>
-                    )}
-                  </span>
-                  <span className="shrink-0 tabular-nums">
-                    {child.partial ? "≥ " : ""}
-                    {formatSize(child.bytes, upperLimit)}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="icon-xs"
-                    aria-label={`Mark ${child.name} for Trash`}
-                    disabled={locations.get(child.path)?.kept}
-                    onClick={() => void onAction(child.path, "trash")}
-                  >
-                    <Trash2 />
-                  </Button>
-                </ContextMenuTrigger>
-                <ContextMenuContent>
-                  <ContextMenuItem
-                    disabled={!finderAvailable}
-                    onClick={() =>
-                      void api("report/finder", { path: child.path }).catch(
-                        (error) => toast.error(error.message)
-                      )
+            {[...row.children]
+              .sort(
+                (a, b) =>
+                  Number(locations.get(b.path)?.mark === "trash") -
+                  Number(locations.get(a.path)?.mark === "trash")
+              )
+              .slice(0, 100)
+              .map((child) => (
+                <ContextMenu key={child.path}>
+                  <ContextMenuTrigger
+                    render={
+                      <div className="flex items-center gap-3 border-t py-2 text-xs" />
                     }
                   >
-                    <FolderOpen />
-                    Show in Finder
-                  </ContextMenuItem>
-                  <ContextMenuItem onClick={() => void copyPath(child.path)}>
-                    <Copy />
-                    Copy path
-                  </ContextMenuItem>
-                  <ReportMenu
-                    path={child.path}
-                    state={locations.get(child.path)}
-                    onAction={onAction}
-                  />
-                </ContextMenuContent>
-              </ContextMenu>
-            ))}
+                    <span
+                      className="min-w-0 flex-1 truncate"
+                      title={child.path}
+                    >
+                      <FileJson className="mr-2 inline size-3 text-muted-foreground" />
+                      <span
+                        className={
+                          locations.get(child.path)?.mark === "trash"
+                            ? "text-destructive line-through"
+                            : undefined
+                        }
+                      >
+                        {child.name}
+                      </span>
+                      {child.stale && (
+                        <span className="ml-2 text-muted-foreground">
+                          Obsolete format
+                        </span>
+                      )}
+                      {locations.get(child.path)?.mark && (
+                        <span className="ml-2 text-muted-foreground">
+                          Shortlisted
+                        </span>
+                      )}
+                    </span>
+                    <span className="shrink-0 tabular-nums">
+                      {child.partial ? "≥ " : ""}
+                      {formatSize(child.bytes, upperLimit)}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      aria-label={`Mark ${child.name} for Trash`}
+                      disabled={locations.get(child.path)?.kept}
+                      onClick={() => void onAction(child.path, "trash")}
+                    >
+                      <Trash2 />
+                    </Button>
+                  </ContextMenuTrigger>
+                  <ContextMenuContent>
+                    <ContextMenuItem
+                      disabled={!finderAvailable}
+                      onClick={() =>
+                        void api("report/finder", { path: child.path }).catch(
+                          (error) => toast.error(error.message)
+                        )
+                      }
+                    >
+                      <FolderOpen />
+                      Show in Finder
+                    </ContextMenuItem>
+                    <ContextMenuItem onClick={() => void copyPath(child.path)}>
+                      <Copy />
+                      Copy path
+                    </ContextMenuItem>
+                    <ReportMenu
+                      path={child.path}
+                      state={locations.get(child.path)}
+                      onAction={onAction}
+                    />
+                  </ContextMenuContent>
+                </ContextMenu>
+              ))}
             {row.children.length > 100 && (
               <p className="text-xs text-muted-foreground">
                 {row.children.length - 100} more entries in the JSON report.

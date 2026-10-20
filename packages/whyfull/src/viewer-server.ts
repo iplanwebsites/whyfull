@@ -586,6 +586,7 @@ export async function startViewer(options: ViewerOptions) {
         let entries: Record<string, unknown>[] = node.children.map((id) => ({
           id: `d${id}`,
           name: snapshot.directories[id].name,
+          path: snapshot.directories[id].path,
           kind: "directory",
           value: snapshot.directories[id].bytes,
         }))
@@ -653,9 +654,14 @@ export async function startViewer(options: ViewerOptions) {
         const search = (url.searchParams.get("q") ?? "").toLowerCase()
         const sort = url.searchParams.get("sort") === "name" ? "name" : "size"
         entries = entries
+          .map((entry): Record<string, unknown> => ({
+            ...entry,
+            mark: marks[policyPath(String(entry.path))] ?? null,
+          }))
           .filter(
             (entry) =>
               search ||
+              entry.mark === "trash" ||
               url.searchParams.get("files") === "all" ||
               entry.kind !== "file" ||
               !isSmallEntry(Number(entry.value), viewerPreferences.minFileBytes)
@@ -663,6 +669,7 @@ export async function startViewer(options: ViewerOptions) {
           .filter((e) => String(e.name).toLowerCase().includes(search))
           .sort(
             (a, b) =>
+              Number(b.mark === "trash") - Number(a.mark === "trash") ||
               (sort === "size" ? Number(b.value) - Number(a.value) : 0) ||
               String(a.name).localeCompare(String(b.name))
           )
