@@ -1,3 +1,4 @@
+import { observationContext } from "@/lib/analysis-context"
 import {
   Select,
   SelectTrigger,
@@ -86,7 +87,6 @@ export function ReportViewer({
   const client = useQueryClient()
   const [tier, setTier] = useState("all")
   const [markedOnly, setMarkedOnly] = useState(false)
-  const [reportRun, setReportRun] = useState(false)
   const locations = useQuery({
     queryKey: ["report-locations", status.documentId],
     queryFn: ({ signal }) =>
@@ -231,17 +231,16 @@ export function ReportViewer({
           variant="outline"
           size="sm"
           onClick={() => {
-            setReportRun(true)
             setDiagnostics(true)
           }}
         >
           <Play />
-          Run report
+          Analysis
         </Button>
         <DiagnosticsDialog
           open={diagnostics}
           onOpenChange={setDiagnostics}
-          initialCommand={reportRun ? "whyfull" : "space"}
+          initialCommand="whyfull"
           initialOptions={
             report?.options
               ? {
@@ -251,6 +250,7 @@ export function ReportViewer({
                   exact: report.options.exact === true,
                   caches: report.options.cacheScan === true,
                   worktrees: report.options.worktrees === true,
+                  discover: report.options.discover === true,
                 }
               : undefined
           }
@@ -284,12 +284,11 @@ export function ReportViewer({
             <MinimumFileSize value={status.viewer.minFileBytes} />
             <DropdownMenuItem
               onClick={() => {
-                setReportRun(false)
                 setDiagnostics(true)
               }}
             >
               <Terminal />
-              Diagnostics
+              Analysis
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setShortlist(true)}>
               <ListChecks />
@@ -578,6 +577,19 @@ function ReportRows({
           <Copy />
           Copy path
         </ContextMenuItem>
+        <ContextMenuItem
+          onClick={() =>
+            void navigator.clipboard
+              .writeText(
+                observationContext([{ ...row, category: "Report location" }])
+              )
+              .then(() => toast.success("Context copied · observations only"))
+              .catch(() => toast.error("Could not copy context"))
+          }
+        >
+          <Copy />
+          Copy context
+        </ContextMenuItem>
         {row.path && (
           <ReportMenu path={row.path} state={location} onAction={onAction} />
         )}
@@ -612,12 +624,19 @@ function ReportRows({
                 <Button
                   variant="ghost"
                   size="icon-xs"
-                  aria-label={`Copy recommendation for ${row.name}`}
+                  aria-label={`Copy context for ${row.name}`}
+                  title="Copy context"
                   onClick={() =>
                     void navigator.clipboard
-                      .writeText(row.hint)
-                      .then(() => toast.success("Recommendation copied"))
-                      .catch(() => toast.error("Could not copy recommendation"))
+                      .writeText(
+                        observationContext([
+                          { ...row, category: "Report location" },
+                        ])
+                      )
+                      .then(() =>
+                        toast.success("Context copied · observations only")
+                      )
+                      .catch(() => toast.error("Could not copy context"))
                   }
                 >
                   <Copy />

@@ -142,6 +142,21 @@ test("CLI opens home by default and exposes only fixed diagnostic commands over 
     ).json()
     assert.ok(commands.commands.some((item) => item.id === "whyfull"))
     assert.equal((await fetch(`${url.origin}/api/diagnostics`)).status, 401)
+    assert.equal((await fetch(`${url.origin}/api/analysis`)).status, 401)
+    const catalogue = await (
+      await fetch(`${url.origin}/api/analysis`, { headers })
+    ).json()
+    assert.equal(catalogue.report, null)
+    assert.ok(catalogue.definitions.length > 0)
+    assert.ok(
+      catalogue.definitions.every(
+        (item) =>
+          item.id &&
+          item.label &&
+          Array.isArray(item.paths) &&
+          !Object.hasOwn(item, "hint")
+      )
+    )
     const runReport = await fetch(`${url.origin}/api/diagnostics`, {
       method: "POST",
       headers,
@@ -163,6 +178,17 @@ test("CLI opens home by default and exposes only fixed diagnostic commands over 
     }
     assert.equal(generated.status, "complete", generated.trace)
     assert.equal(generated.reportAvailable, true)
+    const findings = await (
+      await fetch(`${url.origin}/api/analysis`, { headers })
+    ).json()
+    assert.equal(findings.source, "Analysis run")
+    assert.equal(findings.report.options.top, 3)
+    assert.equal(
+      (await (await fetch(`${url.origin}/api/status`, { headers })).json())
+        .source.kind,
+      "live",
+      "reading findings does not replace the folder chart"
+    )
     const opened = await fetch(`${url.origin}/api/diagnostics/report`, {
       method: "POST",
       headers,
@@ -208,6 +234,26 @@ test("report options produce fixed CLI arguments and completed JSON becomes a re
   assert.deepEqual(
     reportArguments({ top: 12, exact: true, caches: false, worktrees: false }),
     ["--json", "--top", "12", "--exact", "--no-cache-scan", "--no-worktrees"]
+  )
+  assert.ok(
+    reportArguments({
+      top: 3,
+      exact: false,
+      caches: true,
+      worktrees: true,
+      discover: true,
+    }).includes("--discover")
+  )
+  assert.throws(
+    () =>
+      reportArguments({
+        top: 3,
+        exact: false,
+        caches: true,
+        worktrees: true,
+        discover: "shell",
+      }),
+    /options/
   )
   for (const top of [-1, 101, 1.5, "5; echo bad"])
     assert.throws(

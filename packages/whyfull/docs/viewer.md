@@ -111,10 +111,10 @@ Sizes use whole MiB and at most one decimal for GiB/TiB. When the current folder
 or report section reaches a TiB, GiB values use whole numbers too. Zooming into a
 smaller folder restores useful precision; charts and the ranked list share a scale.
 
-**Diagnostics** in the ellipsis menu runs individual read-only commands: disk usage,
+**Analysis** in the toolbar (also in the ellipsis menu) runs individual read-only commands: disk usage,
 macOS volume information, local snapshot listing, system storage information, and
 the whyfull known-cache report. Each command has a play button, live stdout/stderr,
-exit status, stop control, and copyable trace. Commands run on the local Node.js
+exit status, stop control, and copyable observation context. Commands run on the local Node.js
 runner by fixed ID without a shell or arbitrary command input. Traces stay in memory
 for the runner session, are bounded, and survive switching commands or closing the
 panel. Failed commands show a red toast; long-running commands have timeouts.
@@ -364,3 +364,11 @@ aggregate. Search explicitly or choose **All files** to reveal them in the list.
 Report locations and child entries below the same threshold are hidden unless
 searching. Entries exactly at the selected minimum remain visible; unknown report sizes remain
 visible. Filtering never changes measurements or deletes anything.
+
+### Analysis workspace
+
+The toolbar’s **Analysis** button opens read-only checks without replacing the current folder chart. **Checks & coverage** lists the CLI’s resolved known-location definitions (including custom targets), measurement status, optional cache / large-folder / worktree coverage, and individual system checks with Run buttons. **Findings** shows measured locations, worktree states, uncertainty, child measurements, and reference recommendations. **Trace** retains command output and failures.
+
+Storage analysis exposes the CLI’s `--top`, `--exact`, cache scan, `--discover`, and worktree options. The most recent successful generated report is available under Findings without importing it as the active document; loaded CLI reports are also supported. System checks use the home volume on the runner’s machine. Cached or imported results show their original timestamp and platform.
+
+**Copy context** and **Copy results** serialize observations, paths, sizes, partial / denied flags, classifications, and relevant worktree caveats as JSON data. They explicitly omit target hints, recommendation commands, and executable cleanup instructions, including nested child fields. Reference recommendations remain visible for review and are never executed from this workspace. Copying a system trace wraps its recorded output and run status as diagnostic observations.

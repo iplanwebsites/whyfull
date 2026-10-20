@@ -37,7 +37,7 @@ import {
   loadViewerPreferences,
   saveViewerPreferences,
 } from "./disk-policy"
-import { forPlatform } from "./targets"
+import { forPlatform, TIERS } from "./targets"
 import { volume } from "./size"
 import type {
   DiskDirectory,
@@ -123,7 +123,8 @@ export async function startViewer(options: ViewerOptions) {
         `'sha256-${createHash("sha256").update(match[1]).digest("base64")}'`
     )
     .join(" ")
-  const targets = forPlatform()
+  const resolvedTargets = forPlatform()
+  const targets = resolvedTargets
     .flatMap((target) =>
       target.candidates
         .filter((p): p is string => !!p)
@@ -714,6 +715,25 @@ export async function startViewer(options: ViewerOptions) {
         const controller = new AbortController()
         res.once("close", () => controller.abort())
         json(res, await measureFileDistribution(node.path, controller.signal))
+        return
+      }
+      if (req.method === "GET" && url.pathname === "/api/analysis") {
+        const latest = diagnostics
+          .status()
+          .runs.find((run) => run.id === "whyfull" && run.reportAvailable)
+        const generated = latest ? diagnostics.report(latest.startedAt) : null
+        json(res, {
+          definitions: resolvedTargets.map((target) => ({
+            id: target.id,
+            label: target.label,
+            group: target.group,
+            tier: target.tier,
+            classification: TIERS[target.tier].label,
+            paths: target.candidates.filter((path): path is string => !!path),
+          })),
+          report: generated ?? report,
+          source: generated ? "Analysis run" : report ? "Loaded report" : null,
+        })
         return
       }
       if (req.method === "GET" && url.pathname === "/api/diagnostics") {

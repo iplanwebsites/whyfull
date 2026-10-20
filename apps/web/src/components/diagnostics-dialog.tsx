@@ -1,3 +1,15 @@
+import { AnalysisResults } from "./analysis-results"
+import type { AnalysisData } from "./analysis-results"
+import { observationContext, reportObservations } from "@/lib/analysis-context"
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@workspace/ui/components/tabs"
+import { Checkbox } from "@workspace/ui/components/checkbox"
+import { Input } from "@workspace/ui/components/input"
+import { Textarea } from "@workspace/ui/components/textarea"
 import {
   Select,
   SelectTrigger,
@@ -24,7 +36,7 @@ export function DiagnosticsDialog({
   open,
   onOpenChange,
   onReport,
-  initialCommand = "space",
+  initialCommand = "whyfull",
   initialOptions,
 }: {
   open: boolean
@@ -36,6 +48,7 @@ export function DiagnosticsDialog({
     exact: boolean
     caches: boolean
     worktrees: boolean
+    discover?: boolean
   }
 }) {
   const client = useQueryClient()
@@ -44,21 +57,28 @@ export function DiagnosticsDialog({
     top: 5,
     exact: false,
     caches: true,
-    worktrees: false,
+    worktrees: true,
+    discover: false,
   })
   useEffect(() => {
     if (open) setSelected(initialCommand)
   }, [open, initialCommand])
   useEffect(() => {
-    if (open && initialOptions) setOptions(initialOptions)
+    if (open && initialOptions)
+      setOptions({
+        ...initialOptions,
+        discover: initialOptions.discover ?? false,
+      })
   }, [
     open,
     initialOptions?.top,
     initialOptions?.exact,
     initialOptions?.caches,
     initialOptions?.worktrees,
+    initialOptions?.discover,
   ])
   const [busy, setBusy] = useState(false)
+  const [tab, setTab] = useState<string>("checks")
   const notified = useRef(new Set<string>())
   const result = useQuery({
     queryKey: ["diagnostics"],
@@ -67,6 +87,9 @@ export function DiagnosticsDialog({
     enabled: open,
     refetchInterval: open ? 1000 : false,
   })
+  useEffect(() => {
+    if (result.error) toast.error(result.error.message)
+  }, [result.error])
   const data = result.data
   const command =
     data?.commands.find((item) => item.id === selected) ?? data?.commands[0]
@@ -80,15 +103,18 @@ export function DiagnosticsDialog({
       }
     }
   }, [data])
-  async function action(action: "run" | "cancel") {
+  useEffect(() => {
+    void client.invalidateQueries({ queryKey: ["analysis"] })
+  }, [client, run?.startedAt, run?.status])
+  async function action(action: "run" | "cancel", id = command?.id) {
     setBusy(true)
     try {
       client.setQueryData(
         ["diagnostics"],
         await api<DiagnosticsStatus>("diagnostics", {
           action,
-          id: command?.id,
-          ...(action === "run" && command?.id === "whyfull" ? { options } : {}),
+          id,
+          ...(action === "run" && id === "whyfull" ? { options } : {}),
         })
       )
     } catch (error) {
@@ -102,11 +128,40 @@ export function DiagnosticsDialog({
     : ""
   async function copy() {
     try {
-      await navigator.clipboard.writeText(trace)
-      toast.success("Trace copied")
-    } catch {
+      if (command?.id === "whyfull") {
+        const analysis = await api<AnalysisData>("analysis")
+        if (!analysis.report || run?.status !== "complete")
+          throw new Error(
+            "Complete the storage analysis before copying findings"
+          )
+        await navigator.clipboard.writeText(
+          observationContext(
+            reportObservations(analysis.report),
+            analysis.report.generatedAt
+          )
+        )
+      } else {
+        await navigator.clipboard.writeText(
+          JSON.stringify(
+            {
+              format: "whyfull-diagnostic-observation",
+              check: command?.label,
+              status: run?.status,
+              startedAt: run?.startedAt,
+              finishedAt: run?.finishedAt,
+              exitCode: run?.exitCode,
+              output: run?.trace,
+              outputTruncated: run?.truncated,
+            },
+            null,
+            2
+          )
+        )
+      }
+      toast.success("Context copied · observations only")
+    } catch (error) {
       toast.error(
-        "Could not copy the trace. Select the output and copy it manually."
+        error instanceof Error ? error.message : "Could not copy context"
       )
     }
   }
@@ -114,104 +169,119 @@ export function DiagnosticsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] overflow-auto sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Diagnostics</DialogTitle>
+          <DialogTitle>Analysis</DialogTitle>
           <DialogDescription>
-            Read-only commands. Adjust a report scan, then open its locations
-            and recommendations.
+            Read-only checks. Copy findings as context for your agent.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex flex-wrap items-center gap-2">
-          <Select
-            value={command?.id ?? ""}
-            onValueChange={(value) => {
-              if (value !== null) setSelected(value)
-            }}
-            items={
-              data?.commands.map((item) => ({
-                value: item.id,
-                label: item.label,
-              })) ?? []
-            }
-          >
-            <SelectTrigger
-              aria-label="Diagnostic command"
-              className="min-w-0 max-w-full flex-1 text-xs"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {data?.commands.map((item) => (
-                <SelectItem key={item.id} value={item.id}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button
-            size="sm"
-            disabled={busy || !command || data?.running}
-            onClick={() => void action("run")}
-          >
-            <Play />
-            Run
-          </Button>
-          {data?.running && (
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={busy}
-              onClick={() => void action("cancel")}
-            >
-              <Square />
-              Stop
-            </Button>
-          )}
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            title="Copy trace"
-            aria-label="Copy trace"
-            disabled={!run}
-            onClick={() => void copy()}
-          >
-            <Copy />
-          </Button>
-        </div>
-        {command?.id === "whyfull" && (
-          <fieldset
-            disabled={busy || data?.running}
-            className="flex flex-wrap items-center gap-3 text-xs"
-          >
-            <label className="flex items-center gap-2">
-              Children per location
-              <InputNumber
-                value={options.top}
-                onChange={(top) => setOptions({ ...options, top })}
-              />
-            </label>
-            {(
-              [
-                ["exact", "Exact sizes"],
-                ["caches", "Find caches"],
-                ["worktrees", "Find worktrees"],
-              ] as const
-            ).map(([key, label]) => (
-              <label key={key} className="flex items-center gap-1.5">
-                <input
-                  type="checkbox"
-                  checked={options[key]}
-                  onChange={(event) =>
-                    setOptions({ ...options, [key]: event.target.checked })
-                  }
-                />
-                {label}
-              </label>
-            ))}
-          </fieldset>
+        {tab !== "findings" && (
+          <>
+            <div className="flex flex-wrap items-center gap-2">
+              <Select
+                value={command?.id ?? ""}
+                onValueChange={(value) => {
+                  if (value !== null) setSelected(value)
+                }}
+                items={
+                  data?.commands.map((item) => ({
+                    value: item.id,
+                    label: item.label,
+                  })) ?? []
+                }
+              >
+                <SelectTrigger
+                  aria-label="Diagnostic command"
+                  className="min-w-0 max-w-full flex-1 text-xs"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {data?.commands.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                size="sm"
+                disabled={busy || !command || data?.running}
+                onClick={() => void action("run")}
+              >
+                <Play />
+                {command?.id === "whyfull"
+                  ? "Run storage analysis"
+                  : "Run check"}
+              </Button>
+              {data?.running && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => void action("cancel")}
+                >
+                  <Square />
+                  Stop
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                title="Copy context"
+                aria-label="Copy context"
+                disabled={
+                  !run ||
+                  (command?.id === "whyfull" && run.status !== "complete")
+                }
+                onClick={() => void copy()}
+              >
+                <Copy />
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {command?.id === "whyfull"
+                ? "Measures known locations from the CLI definitions. Optional scans find other caches, large folders, and Git worktrees on this machine."
+                : "System checks run on this machine’s home volume. See the Trace tab for the exact command and output."}
+            </p>
+            {command?.id === "whyfull" && (
+              <fieldset
+                disabled={busy || data?.running}
+                className="flex flex-wrap items-center gap-3 text-xs"
+              >
+                <label className="flex items-center gap-2">
+                  Children per location
+                  <InputNumber
+                    value={options.top}
+                    onChange={(top) => setOptions({ ...options, top })}
+                  />
+                </label>
+                {(
+                  [
+                    ["exact", "Exact sizes"],
+                    ["caches", "Find caches"],
+                    ["worktrees", "Find worktrees"],
+                    ["discover", "Find large folders"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <label key={key} className="flex items-center gap-1.5">
+                    <Checkbox
+                      checked={options[key]}
+                      onCheckedChange={(checked) =>
+                        setOptions({ ...options, [key]: checked === true })
+                      }
+                    />
+                    {label}
+                  </label>
+                ))}
+              </fieldset>
+            )}
+          </>
         )}
         {run?.reportAvailable && onReport && (
           <Button
             size="sm"
+            variant="outline"
+            className="w-fit"
             disabled={busy}
             onClick={() =>
               void (async () => {
@@ -232,16 +302,67 @@ export function DiagnosticsDialog({
               })()
             }
           >
-            Open report
+            Open full report
           </Button>
         )}
-        <textarea
-          aria-label="Diagnostic trace"
-          readOnly
-          value={trace}
-          spellCheck={false}
-          className="h-80 w-full resize-y rounded-md border bg-muted/40 p-3 font-mono text-xs leading-relaxed"
-        />
+        <Tabs value={tab} onValueChange={(value) => setTab(String(value))}>
+          <TabsList>
+            <TabsTrigger value="checks">Checks & coverage</TabsTrigger>
+            <TabsTrigger value="findings">Findings</TabsTrigger>
+            <TabsTrigger value="trace">Trace</TabsTrigger>
+          </TabsList>
+          <TabsContent value="checks">
+            <div className="mb-3 divide-y rounded-lg border">
+              {data?.commands
+                .filter((item) => item.id !== "whyfull")
+                .map((item) => {
+                  const previous = data.runs.find((run) => run.id === item.id)
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex items-center gap-3 p-2 text-xs"
+                    >
+                      <div className="flex-1">
+                        <div className="font-medium">{item.label}</div>
+                        <div className="text-muted-foreground">
+                          {previous
+                            ? `${previous.status} · ${new Date(previous.startedAt).toLocaleTimeString()}`
+                            : "Not run"}
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        aria-label={`Run ${item.label}`}
+                        disabled={busy || data.running}
+                        onClick={() => {
+                          setSelected(item.id)
+                          setTab("trace")
+                          void action("run", item.id)
+                        }}
+                      >
+                        <Play />
+                        Run
+                      </Button>
+                    </div>
+                  )
+                })}
+            </div>
+            <AnalysisResults mode="checks" />
+          </TabsContent>
+          <TabsContent value="findings">
+            <AnalysisResults mode="findings" />
+          </TabsContent>
+          <TabsContent value="trace">
+            <Textarea
+              aria-label="Diagnostic trace"
+              readOnly
+              value={trace}
+              spellCheck={false}
+              className="h-80 font-mono text-xs leading-relaxed"
+            />
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   )
@@ -255,7 +376,7 @@ function InputNumber({
   onChange: (value: number) => void
 }) {
   return (
-    <input
+    <Input
       type="number"
       min={0}
       max={100}

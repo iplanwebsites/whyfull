@@ -80,6 +80,7 @@ export interface ReportRunOptions {
   exact: boolean
   caches: boolean
   worktrees: boolean
+  discover?: boolean
 }
 export function reportArguments(value: unknown): string[] {
   const options = value as ReportRunOptions
@@ -88,8 +89,10 @@ export function reportArguments(value: unknown): string[] {
     typeof options !== "object" ||
     Array.isArray(options) ||
     Object.keys(options).some(
-      (key) => !["top", "exact", "caches", "worktrees"].includes(key)
+      (key) =>
+        !["top", "exact", "caches", "worktrees", "discover"].includes(key)
     ) ||
+    (options.discover !== undefined && typeof options.discover !== "boolean") ||
     !Number.isInteger(options.top) ||
     options.top < 0 ||
     options.top > 100 ||
@@ -107,6 +110,7 @@ export function reportArguments(value: unknown): string[] {
     ...(options.exact ? ["--exact"] : []),
     ...(!options.caches ? ["--no-cache-scan"] : []),
     ...(!options.worktrees ? ["--no-worktrees"] : []),
+    ...(options.discover ? ["--discover"] : []),
   ]
 }
 const commandText = (command: DiagnosticCommand) =>

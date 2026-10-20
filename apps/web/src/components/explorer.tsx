@@ -531,6 +531,14 @@ export function Explorer() {
           >
             {formatSize(d?.node.value ?? s.bytes)}
           </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setDiagnostics(true)}
+          >
+            <Terminal />
+            Analysis
+          </Button>
           <TrashShortlistButton
             documentId={s.documentId}
             onClick={() => setShortlist(true)}
@@ -656,7 +664,7 @@ export function Explorer() {
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setDiagnostics(true)}>
                 <Terminal />
-                Diagnostics
+                Analysis
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setShortlist(true)}>
                 <Trash2 />
