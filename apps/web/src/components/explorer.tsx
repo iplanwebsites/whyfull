@@ -1,3 +1,4 @@
+import { isHoveredEntry } from "@/lib/chart-hover"
 import {
   Select,
   SelectTrigger,
@@ -723,6 +724,7 @@ export function Explorer() {
                           onOpen={open}
                           onSelect={setSelected}
                           onHover={setHover}
+                          hovered={hover}
                           onContext={setContext}
                         />
                       ) : Sunburst ? (
@@ -733,6 +735,7 @@ export function Explorer() {
                           onOpen={open}
                           onSelect={setSelected}
                           onHover={setHover}
+                          hovered={hover}
                           onContext={setContext}
                           onUp={up}
                         />
@@ -884,7 +887,15 @@ export function Explorer() {
                     <div
                       key={entry.id}
                       data-entry-id={entry.id}
-                      className={`group flex items-center gap-2 border-b px-2 py-1 hover:bg-muted/60 ${selected?.id === entry.id ? "bg-muted" : ""}`}
+                      data-hovered={isHoveredEntry(entry, hover) || undefined}
+                      onMouseEnter={() => setHover(entry)}
+                      onMouseLeave={() => setHover(null)}
+                      onFocus={() => setHover(entry)}
+                      onBlur={(event) => {
+                        if (!event.currentTarget.contains(event.relatedTarget))
+                          setHover(null)
+                      }}
+                      className={`group flex items-center gap-2 border-b px-2 py-1 hover:bg-muted/60 ${isHoveredEntry(entry, hover) ? "bg-accent ring-1 ring-inset ring-ring/50" : selected?.id === entry.id ? "bg-muted" : ""}`}
                     >
                       <span
                         className="size-2 shrink-0 rounded-sm"

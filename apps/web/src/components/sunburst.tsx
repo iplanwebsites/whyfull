@@ -1,3 +1,4 @@
+import { isHoveredEntry } from "@/lib/chart-hover"
 import { colorFor } from "@/lib/chart-colors"
 import type { ChartColors } from "@/lib/chart-colors"
 import { useLayoutEffect, useRef } from "react"
@@ -14,6 +15,7 @@ export default function Sunburst({
   onOpen,
   onSelect,
   onHover,
+  hovered,
   onContext,
   onUp,
 }: {
@@ -23,9 +25,11 @@ export default function Sunburst({
   onOpen: (node: ViewEntry) => void
   onSelect: (node: ViewEntry) => void
   onHover: (node: ViewEntry | null) => void
+  hovered: ViewEntry | null
   onContext: (node: ViewEntry) => void
   onUp: () => void
 }) {
+  const original = (data: unknown) => (data as { entry: ViewEntry }).entry
   const container = useRef<HTMLDivElement>(null)
   const chart = useRef<echarts.EChartsType | null>(null)
   const callbacks = useRef({ onOpen, onSelect, onHover, onContext })
@@ -34,15 +38,15 @@ export default function Sunburst({
     const instance = echarts.init(container.current!)
     chart.current = instance
     instance.on("click", (event) => {
-      const node = event.data as unknown as ViewEntry
+      const node = original(event.data)
       if (node.kind === "directory") callbacks.current.onOpen(node)
       else callbacks.current.onSelect(node)
     })
     instance.on("contextmenu", (event) =>
-      callbacks.current.onContext(event.data as unknown as ViewEntry)
+      callbacks.current.onContext(original(event.data))
     )
     instance.on("mouseover", (event) =>
-      callbacks.current.onHover(event.data as unknown as ViewEntry)
+      callbacks.current.onHover(original(event.data))
     )
     instance.on("mouseout", () => callbacks.current.onHover(null))
     const observer = new ResizeObserver(() => instance.resize())
@@ -58,6 +62,8 @@ export default function Sunburst({
       const paint = colorFor(colors, node, dark)
       return {
         ...node,
+        name: node.id,
+        entry: node,
         itemStyle: {
           color: paint.fill,
           borderColor:
@@ -89,7 +95,7 @@ export default function Sunburst({
               .map((n) => prepare(n)),
             animation: false,
             nodeClick: false,
-            radius: ["23%", "94%"],
+            radius: ["35%", "94%"],
             sort: "desc",
             label: {
               color: "#fff",
@@ -99,27 +105,59 @@ export default function Sunburst({
             },
             levels: [
               {},
-              { r0: "23%", r: "49%" },
+              { r0: "35%", r: "58%" },
               {
-                r0: "49%",
-                r: "74%",
+                r0: "58%",
+                r: "78%",
                 label: { fontSize: 9 },
               },
               {
-                r0: "74%",
+                r0: "78%",
                 r: "94%",
                 label: { show: false },
               },
             ],
-            emphasis: { focus: "none", itemStyle: { borderWidth: 2 } },
+            emphasis: {
+              focus: "none",
+              itemStyle: {
+                borderWidth: 3,
+                borderColor: dark ? "#f8fafc" : "#0f172a",
+              },
+              label: { fontWeight: 600 },
+            },
           },
         ],
       },
       true
     )
   }, [root, colors, dark])
+  useLayoutEffect(() => {
+    const instance = chart.current
+    if (!instance) return
+    instance.dispatchAction({ type: "downplay", seriesIndex: 0 })
+    if (!hovered) return
+    const names: string[] = []
+    const visit = (node: ViewEntry) => {
+      if (isHoveredEntry(node, hovered)) names.push(node.id)
+      node.children?.forEach(visit)
+    }
+    root.children?.forEach(visit)
+    if (names.length)
+      instance.dispatchAction({
+        type: "highlight",
+        seriesIndex: 0,
+        name: names,
+      })
+  }, [hovered, root, colors, dark])
+  const label = hovered ?? root
   return (
-    <div className="relative h-full min-h-0">
+    <div className="relative h-full min-h-0" style={{ containerType: "size" }}>
+      <div
+        className="pointer-events-none absolute left-3 top-3 z-10 max-w-[60%] truncate text-base font-semibold"
+        title={root.path ?? root.name}
+      >
+        {root.name}
+      </div>
       <div
         ref={container}
         role="img"
@@ -129,13 +167,15 @@ export default function Sunburst({
       <button
         onClick={onUp}
         aria-label="Go to parent folder"
-        className="absolute left-1/2 top-1/2 flex aspect-square w-[20%] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full bg-background text-center"
+        title={label.path ?? label.name}
+        style={{ width: "32cqmin" }}
+        className="absolute left-1/2 top-1/2 flex aspect-square -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center gap-2 rounded-full bg-background px-4 text-center"
       >
-        <span className="text-xl font-medium tracking-tight">
-          {formatSize(root.value)}
+        <span className="line-clamp-3 w-full break-words text-[clamp(16px,2.8cqmin,28px)] font-semibold leading-tight tracking-tight">
+          {label.name}
         </span>
-        <span className="mt-1 max-w-[80%] truncate text-xs text-muted-foreground">
-          {root.name}
+        <span className="text-[clamp(11px,1.8cqmin,16px)] text-muted-foreground tabular-nums">
+          {formatSize(label.value, root.value)}
         </span>
       </button>
     </div>

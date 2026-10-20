@@ -88,3 +88,8 @@ button {
   border-color: #be123c;
   color: #ffe4e6;
 }
+
+.map-tile[data-hovered="true"] {
+  filter: brightness(1.06);
+  stroke-width: 3px;
+}

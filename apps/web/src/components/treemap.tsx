@@ -1,3 +1,4 @@
+import { isHoveredEntry } from "@/lib/chart-hover"
 import { colorFor } from "@/lib/chart-colors"
 import type { ChartColors } from "@/lib/chart-colors"
 import { useLayoutEffect, useRef, useState } from "react"
@@ -13,6 +14,7 @@ export function Treemap({
   onOpen,
   onSelect,
   onHover,
+  hovered,
   onContext,
 }: {
   colors: ChartColors
@@ -21,6 +23,7 @@ export function Treemap({
   onOpen: (node: ViewEntry) => void
   onSelect: (node: ViewEntry) => void
   onHover: (node: ViewEntry | null) => void
+  hovered: ViewEntry | null
   onContext: (node: ViewEntry) => void
 }) {
   const container = useRef<HTMLDivElement>(null)
@@ -73,15 +76,20 @@ export function Treemap({
               rx={5}
               fill={paint.fill}
               fillOpacity={entry.trashed ? 0.35 : 1}
+              data-hovered={isHoveredEntry(entry, hovered) || undefined}
               stroke={
-                entry.mark === "trash"
-                  ? "#ef4444"
-                  : entry.mark === "useless"
-                    ? "#d69e2e"
-                    : paint.stroke
+                isHoveredEntry(entry, hovered)
+                  ? dark
+                    ? "#f8fafc"
+                    : "#0f172a"
+                  : entry.mark === "trash"
+                    ? "#ef4444"
+                    : entry.mark === "useless"
+                      ? "#d69e2e"
+                      : paint.stroke
               }
               strokeDasharray={entry.mark ? "4 2" : undefined}
-              strokeWidth={1}
+              strokeWidth={isHoveredEntry(entry, hovered) ? 3 : 1}
               role="button"
               tabIndex={0}
               aria-label={`${entry.name}, ${formatSize(entry.value, root.value)}${entry.kind === "directory" ? ", open folder" : ""}`}
@@ -93,6 +101,8 @@ export function Treemap({
                   open()
                 }
               }}
+              onFocus={() => onHover(entry)}
+              onBlur={() => onHover(null)}
               onMouseEnter={() => onHover(entry)}
               onMouseLeave={() => onHover(null)}
             >
