@@ -46,6 +46,8 @@ The compact workspace keeps drive selection and breadcrumbs in the toolbar,
 without a product-name banner. Errors and action feedback use Sonner toasts.
 The drive selector defaults to macOS Data and lists other mounted volumes; choosing
 a drive cancels the previous scan and starts a fresh inventory in demo mode.
+Drag the divider between the chart and file list to resize them, or focus it and use the arrow keys. The default split is 70/30, with minimum widths of 320 px for the chart and 280 px for the list. Narrow screens stack the panes vertically. Layouts are remembered separately for each orientation in this browser.
+
 It also opens saved JSON reports without restarting the runner. View modes, Finder,
 appearance and scan actions in an ellipsis menu. Right-click a breadcrumb, list
 entry, treemap tile or ring to open its Base UI context menu. Directory marks

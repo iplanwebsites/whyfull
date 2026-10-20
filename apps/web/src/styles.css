@@ -20,13 +20,7 @@ button {
   overflow: hidden;
 }
 .explorer-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(280px, 34%, 390px);
   min-height: 0;
-}
-.explorer-grid > section {
-  min-width: 0;
-  overflow: hidden;
 }
 .ranked-list {
   overscroll-behavior: contain;
@@ -54,32 +48,24 @@ button {
   transition: filter 0.12s;
   outline: none;
 }
-@media (max-width: 640px) {
+@media (max-width: 767px) {
   .disk-workspace {
     height: auto;
     min-height: 100svh;
     overflow: visible;
   }
   .explorer-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .explorer-grid > section:first-child {
-    height: 45svh;
-    min-height: 280px;
-  }
-  .explorer-grid > section + section {
-    border-left: 0;
-    border-top: 1px solid var(--border);
-    min-height: 300px;
-    max-height: 65svh;
+    flex: none;
+    height: calc(100svh - 64px);
+    min-height: 520px;
   }
 }
 
 /* Quiet neutral gutters; tile edges come from each branch's own hue. */
-.explorer-grid > section:first-child {
+.explorer-chart {
   background: #e4e8ef;
 }
-.dark .explorer-grid > section:first-child {
+.dark .explorer-chart {
   background: #202630;
 }
 .map-tile:hover {

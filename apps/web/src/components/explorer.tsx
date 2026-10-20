@@ -1,3 +1,10 @@
+import {
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
+  useResizableLayout,
+} from "@workspace/ui/components/resizable"
+import { useIsMobile } from "@workspace/ui/hooks/use-mobile"
 import { MinimumFileSize } from "./minimum-file-size"
 import { toast } from "@workspace/ui/components/sonner"
 import { RunnerControls, useDrives } from "./runner-controls"
@@ -92,6 +99,12 @@ const loadSunburst = () => import("./sunburst")
 type SunburstComponent = (typeof import("./sunburst"))["default"]
 
 export function Explorer() {
+  const isMobile = useIsMobile()
+  const { defaultLayout, onLayoutChanged } = useResizableLayout({
+    id: isMobile ? "whyfull-explorer-vertical" : "whyfull-explorer-horizontal",
+    panelIds: ["chart", "files"],
+    onlySaveAfterUserInteractions: true,
+  })
   const search = Route.useSearch(),
     navigate = Route.useNavigate(),
     client = useQueryClient()
@@ -646,356 +659,383 @@ export function Explorer() {
           </DropdownMenu>
         </header>
         <main className="flex min-h-0 flex-1 flex-col gap-2 p-2">
-          <div
+          <ResizablePanelGroup
+            key={isMobile ? "vertical" : "horizontal"}
+            orientation={isMobile ? "vertical" : "horizontal"}
+            defaultLayout={defaultLayout}
+            onLayoutChanged={onLayoutChanged}
             className="explorer-grid flex-1 overflow-hidden rounded-xl border"
             aria-busy={directory.isFetching || changing}
           >
-            <section className="flex min-w-0 flex-col bg-muted/25">
-              <div className="relative min-h-0 flex-1">
-                {directory.error ? (
-                  <div className="p-3">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => url({ id: 0, path: s.root })}
-                    >
-                      Back to root
-                    </Button>
-                  </div>
-                ) : d && fileHeavy && mapForPath !== d.node.path ? (
-                  <FileDistribution
-                    key={`${s.documentId}:${d.node.id}`}
-                    directory={d}
-                    documentId={s.documentId}
-                    onMap={() => setMapForPath(d.node.path ?? null)}
-                  />
-                ) : d ? (
-                  <>
-                    {fileHeavy && (
+            <ResizablePanel
+              id="chart"
+              defaultSize={isMobile ? "50%" : "70%"}
+              minSize={isMobile ? 220 : 320}
+              className="explorer-chart flex min-h-0 min-w-0 flex-col"
+            >
+              <section className="flex min-h-0 min-w-0 flex-1 flex-col">
+                <div className="relative min-h-0 flex-1">
+                  {directory.error ? (
+                    <div className="p-3">
                       <Button
-                        variant="secondary"
+                        variant="ghost"
                         size="sm"
-                        className="absolute right-3 top-3 z-10"
-                        onClick={() => setMapForPath(null)}
+                        onClick={() => url({ id: 0, path: s.root })}
                       >
-                        File sizes
+                        Back to root
                       </Button>
-                    )}
-                    {view === "treemap" ? (
-                      <Treemap
-                        root={d.chart}
-                        colors={colors}
-                        dark={dark}
-                        onOpen={open}
-                        onSelect={setSelected}
-                        onHover={setHover}
-                        onContext={setContext}
-                      />
-                    ) : Sunburst ? (
-                      <Sunburst
-                        root={d.chart}
-                        colors={colors}
-                        dark={dark}
-                        onOpen={open}
-                        onSelect={setSelected}
-                        onHover={setHover}
-                        onContext={setContext}
-                        onUp={up}
-                      />
-                    ) : null}
-                  </>
-                ) : null}
-              </div>
-              <div className="flex h-6 shrink-0 items-center justify-between gap-3 border-t px-2 text-[11px] text-muted-foreground">
-                <span className="truncate">
-                  {hover?.path ?? hover?.name ?? ""}
-                </span>
-                <span className="shrink-0">
-                  {hover ? formatSize(hover.value, d?.node.value) : ""}
-                </span>
-              </div>
-            </section>
-            <section className="flex min-h-0 flex-col border-l">
-              <div className="flex flex-wrap items-center gap-2 border-b p-2">
-                <div className="shrink-0">
-                  <select
-                    aria-label="Sort entries"
-                    className="rounded border bg-background px-2 py-1 text-xs"
-                    value={sort}
-                    onChange={(e) => {
-                      const value = e.target.value as "size" | "name"
-                      url({ sort: value })
-                      void run(() => prefs({ sort: value }))
-                    }}
-                  >
-                    <option value="size">Size ↓</option>
-                    <option value="name">Name A–Z</option>
-                  </select>
-                </div>
-                <div className="relative min-w-28 flex-1">
-                  <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
-                  <Input
-                    ref={input}
-                    aria-label={
-                      limitedFiles
-                        ? "Search listed entries"
-                        : "Search this folder"
-                    }
-                    placeholder={
-                      limitedFiles ? "Search listed entries…" : "Search…"
-                    }
-                    className="pl-9"
-                    value={search.q ?? ""}
-                    onChange={(e) =>
-                      url({ q: e.target.value || undefined }, true)
-                    }
-                  />
-                </div>
-                {!s.snapshotMode && (
-                  <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <input
-                      type="checkbox"
-                      checked={!!search.files}
-                      onChange={(e) =>
-                        url({ files: e.target.checked || undefined })
-                      }
+                    </div>
+                  ) : d && fileHeavy && mapForPath !== d.node.path ? (
+                    <FileDistribution
+                      key={`${s.documentId}:${d.node.id}`}
+                      directory={d}
+                      documentId={s.documentId}
+                      onMap={() => setMapForPath(d.node.path ?? null)}
                     />
-                    All files
-                  </label>
-                )}
-              </div>
-              {manyFiles && d && (
-                <div className="space-y-1 border-b px-3 py-2 text-xs text-muted-foreground">
-                  <p className="font-medium text-foreground">
-                    {d.ownFiles.toLocaleString()} files ·{" "}
-                    {limitedFiles
-                      ? `${search.q ? "searching" : "showing"} largest ${d.retainedFiles}`
-                      : "live listing"}
-                  </p>
-                  {largestShare !== null &&
-                  largestShare < 0.01 &&
-                  d.node.state === "scanned" &&
-                  !d.node.issues ? (
-                    <p>
-                      No single file dominates. Largest:{" "}
-                      {formatSize(d.largestFileBytes, d.ownBytes)} (&lt;1% of
-                      file space).
-                    </p>
-                  ) : (
-                    <p>
-                      {limitedFiles
-                        ? "Other filenames are not included in this list."
-                        : "All-file browsing uses the current folder on disk."}
-                    </p>
-                  )}
-                  {limitedFiles && (
-                    <Button
-                      variant="link"
-                      size="sm"
-                      className="h-auto p-0 text-xs"
-                      disabled={busy}
-                      onClick={() => {
-                        if (!s.snapshotMode) url({ files: true, q: undefined })
-                        else
-                          void run(async () => {
-                            const next = await api<ViewerStatus>(
-                              "scan-folder",
-                              {
-                                id: d.node.id,
-                              }
-                            )
-                            await documentChanged(next)
-                            url({
-                              files: true,
-                              q: undefined,
-                              id: 0,
-                              path: next.root,
-                            })
-                          })
+                  ) : d ? (
+                    <>
+                      {fileHeavy && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="absolute right-3 top-3 z-10"
+                          onClick={() => setMapForPath(null)}
+                        >
+                          File sizes
+                        </Button>
+                      )}
+                      {view === "treemap" ? (
+                        <Treemap
+                          root={d.chart}
+                          colors={colors}
+                          dark={dark}
+                          onOpen={open}
+                          onSelect={setSelected}
+                          onHover={setHover}
+                          onContext={setContext}
+                        />
+                      ) : Sunburst ? (
+                        <Sunburst
+                          root={d.chart}
+                          colors={colors}
+                          dark={dark}
+                          onOpen={open}
+                          onSelect={setSelected}
+                          onHover={setHover}
+                          onContext={setContext}
+                          onUp={up}
+                        />
+                      ) : null}
+                    </>
+                  ) : null}
+                </div>
+                <div className="flex h-6 shrink-0 items-center justify-between gap-3 border-t px-2 text-[11px] text-muted-foreground">
+                  <span className="truncate">
+                    {hover?.path ?? hover?.name ?? ""}
+                  </span>
+                  <span className="shrink-0">
+                    {hover ? formatSize(hover.value, d?.node.value) : ""}
+                  </span>
+                </div>
+              </section>
+            </ResizablePanel>
+            <ResizableHandle
+              withHandle
+              aria-label="Resize chart and file list"
+            />
+            <ResizablePanel
+              id="files"
+              defaultSize={isMobile ? "50%" : "30%"}
+              minSize={isMobile ? 240 : 280}
+              className="flex min-h-0 min-w-0 flex-col"
+            >
+              <section className="flex min-h-0 flex-1 flex-col">
+                <div className="flex flex-wrap items-center gap-2 border-b p-2">
+                  <div className="shrink-0">
+                    <select
+                      aria-label="Sort entries"
+                      className="rounded border bg-background px-2 py-1 text-xs"
+                      value={sort}
+                      onChange={(e) => {
+                        const value = e.target.value as "size" | "name"
+                        url({ sort: value })
+                        void run(() => prefs({ sort: value }))
                       }}
                     >
-                      {s.snapshotMode
-                        ? "Scan folder & list all files"
-                        : "List all files"}
-                    </Button>
+                      <option value="size">Size ↓</option>
+                      <option value="name">Name A–Z</option>
+                    </select>
+                  </div>
+                  <div className="relative min-w-28 flex-1">
+                    <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+                    <Input
+                      ref={input}
+                      aria-label={
+                        limitedFiles
+                          ? "Search listed entries"
+                          : "Search this folder"
+                      }
+                      placeholder={
+                        limitedFiles ? "Search listed entries…" : "Search…"
+                      }
+                      className="pl-9"
+                      value={search.q ?? ""}
+                      onChange={(e) =>
+                        url({ q: e.target.value || undefined }, true)
+                      }
+                    />
+                  </div>
+                  {!s.snapshotMode && (
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <input
+                        type="checkbox"
+                        checked={!!search.files}
+                        onChange={(e) =>
+                          url({ files: e.target.checked || undefined })
+                        }
+                      />
+                      All files
+                    </label>
                   )}
                 </div>
-              )}
-              <div className="ranked-list min-h-0 flex-1 overflow-y-auto">
-                {d?.entries.map((entry) => (
-                  <div
-                    key={entry.id}
-                    data-entry-id={entry.id}
-                    className={`group flex items-center gap-2 border-b px-2 py-1 hover:bg-muted/60 ${selected?.id === entry.id ? "bg-muted" : ""}`}
-                  >
-                    <span
-                      className="size-2 shrink-0 rounded-sm"
-                      style={{ background: colorFor(colors, entry, dark).fill }}
-                    />
-                    <button
-                      className="flex min-w-0 flex-1 items-center gap-2 text-left"
-                      onClick={() => open(entry)}
-                    >
-                      {entry.kind === "directory" ? (
-                        <Folder className="size-4 shrink-0 text-muted-foreground" />
-                      ) : (
-                        <File className="size-4 shrink-0 text-muted-foreground" />
-                      )}
-                      <span
-                        className={
-                          entry.mark === "trash"
-                            ? "truncate text-sm text-destructive line-through"
-                            : "truncate text-sm"
-                        }
-                        title={entry.path ?? entry.name}
+                {manyFiles && d && (
+                  <div className="space-y-1 border-b px-3 py-2 text-xs text-muted-foreground">
+                    <p className="font-medium text-foreground">
+                      {d.ownFiles.toLocaleString()} files ·{" "}
+                      {limitedFiles
+                        ? `${search.q ? "searching" : "showing"} largest ${d.retainedFiles}`
+                        : "live listing"}
+                    </p>
+                    {largestShare !== null &&
+                    largestShare < 0.01 &&
+                    d.node.state === "scanned" &&
+                    !d.node.issues ? (
+                      <p>
+                        No single file dominates. Largest:{" "}
+                        {formatSize(d.largestFileBytes, d.ownBytes)} (&lt;1% of
+                        file space).
+                      </p>
+                    ) : (
+                      <p>
+                        {limitedFiles
+                          ? "Other filenames are not included in this list."
+                          : "All-file browsing uses the current folder on disk."}
+                      </p>
+                    )}
+                    {limitedFiles && (
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="h-auto p-0 text-xs"
+                        disabled={busy}
+                        onClick={() => {
+                          if (!s.snapshotMode)
+                            url({ files: true, q: undefined })
+                          else
+                            void run(async () => {
+                              const next = await api<ViewerStatus>(
+                                "scan-folder",
+                                {
+                                  id: d.node.id,
+                                }
+                              )
+                              await documentChanged(next)
+                              url({
+                                files: true,
+                                q: undefined,
+                                id: 0,
+                                path: next.root,
+                              })
+                            })
+                        }}
                       >
-                        {entry.name}
-                      </span>
-                      {entry.mark === "trash" && (
-                        <Trash2
-                          className="size-3 shrink-0 text-destructive"
-                          aria-label="Marked for Trash"
-                        />
-                      )}
-                      {entry.kept && (
-                        <ShieldCheck className="size-3 shrink-0" />
-                      )}
-                      {entry.trashed && (
-                        <Badge variant="outline">Trashed</Badge>
-                      )}
-                    </button>
-                    <span className="shrink-0 text-xs font-medium tabular-nums">
-                      {formatSize(entry.value, d?.node.value)}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="icon-xs"
-                      aria-label={`Inspect ${entry.name}`}
-                      onClick={() => setSelected(entry)}
-                    >
-                      <ChevronRight />
-                    </Button>
+                        {s.snapshotMode
+                          ? "Scan folder & list all files"
+                          : "List all files"}
+                      </Button>
+                    )}
                   </div>
-                ))}
-                {d?.entries.length === 0 && (
-                  <p className="p-6 text-sm text-muted-foreground">
-                    No matching entries.
-                  </p>
                 )}
-              </div>
-              <div className="flex items-center justify-between border-t px-4 py-2 text-xs text-muted-foreground">
-                <span>
-                  {d?.total.toLocaleString() ?? 0}{" "}
-                  {limitedFiles
-                    ? "listed"
-                    : d?.total === 1
-                      ? "entry"
-                      : "entries"}
-                </span>
-                <div className="flex gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={page === 0}
-                    onClick={() => setPage((p) => p - 1)}
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={!d || (page + 1) * 100 >= d.total}
-                    onClick={() => setPage((p) => p + 1)}
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div>
-              {selected && focus && (
-                <div className="border-t bg-muted/30 p-3">
-                  <div className="mb-1 flex justify-between gap-2 text-sm font-medium">
-                    <span className="truncate">{focus.name}</span>
-                    <span className="shrink-0">
-                      {formatSize(focus.value, d?.node.value)}
-                    </span>
-                  </div>
-                  <p className="mb-3 break-all text-xs text-muted-foreground">
-                    {focus.path ??
-                      focus.reason ??
-                      "Grouped entries cannot be moved."}
-                  </p>
-                  {focus.tool && focus.advice && (
-                    <p className="mb-3 text-xs text-muted-foreground">
-                      {focus.advice}
+                <div className="ranked-list min-h-0 flex-1 overflow-y-auto">
+                  {d?.entries.map((entry) => (
+                    <div
+                      key={entry.id}
+                      data-entry-id={entry.id}
+                      className={`group flex items-center gap-2 border-b px-2 py-1 hover:bg-muted/60 ${selected?.id === entry.id ? "bg-muted" : ""}`}
+                    >
+                      <span
+                        className="size-2 shrink-0 rounded-sm"
+                        style={{
+                          background: colorFor(colors, entry, dark).fill,
+                        }}
+                      />
+                      <button
+                        className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                        onClick={() => open(entry)}
+                      >
+                        {entry.kind === "directory" ? (
+                          <Folder className="size-4 shrink-0 text-muted-foreground" />
+                        ) : (
+                          <File className="size-4 shrink-0 text-muted-foreground" />
+                        )}
+                        <span
+                          className={
+                            entry.mark === "trash"
+                              ? "truncate text-sm text-destructive line-through"
+                              : "truncate text-sm"
+                          }
+                          title={entry.path ?? entry.name}
+                        >
+                          {entry.name}
+                        </span>
+                        {entry.mark === "trash" && (
+                          <Trash2
+                            className="size-3 shrink-0 text-destructive"
+                            aria-label="Marked for Trash"
+                          />
+                        )}
+                        {entry.kept && (
+                          <ShieldCheck className="size-3 shrink-0" />
+                        )}
+                        {entry.trashed && (
+                          <Badge variant="outline">Trashed</Badge>
+                        )}
+                      </button>
+                      <span className="shrink-0 text-xs font-medium tabular-nums">
+                        {formatSize(entry.value, d?.node.value)}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        aria-label={`Inspect ${entry.name}`}
+                        onClick={() => setSelected(entry)}
+                      >
+                        <ChevronRight />
+                      </Button>
+                    </div>
+                  ))}
+                  {d?.entries.length === 0 && (
+                    <p className="p-6 text-sm text-muted-foreground">
+                      No matching entries.
                     </p>
                   )}
-                  {focus.mark && (
-                    <Badge variant="outline" className="mb-2">
-                      {focus.mark === "trash"
-                        ? "Marked for Trash"
-                        : "Marked as useless"}
-                    </Badge>
-                  )}
-                  <div className="flex flex-wrap gap-2">
-                    {focus.kind === "directory" && (
+                </div>
+                <div className="flex items-center justify-between border-t px-4 py-2 text-xs text-muted-foreground">
+                  <span>
+                    {d?.total.toLocaleString() ?? 0}{" "}
+                    {limitedFiles
+                      ? "listed"
+                      : d?.total === 1
+                        ? "entry"
+                        : "entries"}
+                  </span>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={page === 0}
+                      onClick={() => setPage((p) => p - 1)}
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={!d || (page + 1) * 100 >= d.total}
+                      onClick={() => setPage((p) => p + 1)}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+                {selected && focus && (
+                  <div className="border-t bg-muted/30 p-3">
+                    <div className="mb-1 flex justify-between gap-2 text-sm font-medium">
+                      <span className="truncate">{focus.name}</span>
+                      <span className="shrink-0">
+                        {formatSize(focus.value, d?.node.value)}
+                      </span>
+                    </div>
+                    <p className="mb-3 break-all text-xs text-muted-foreground">
+                      {focus.path ??
+                        focus.reason ??
+                        "Grouped entries cannot be moved."}
+                    </p>
+                    {focus.tool && focus.advice && (
+                      <p className="mb-3 text-xs text-muted-foreground">
+                        {focus.advice}
+                      </p>
+                    )}
+                    {focus.mark && (
+                      <Badge variant="outline" className="mb-2">
+                        {focus.mark === "trash"
+                          ? "Marked for Trash"
+                          : "Marked as useless"}
+                      </Badge>
+                    )}
+                    <div className="flex flex-wrap gap-2">
+                      {focus.kind === "directory" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={!s.finderAvailable || busy}
+                          onClick={() =>
+                            void run(() => api("finder", { id: focus.id }))
+                          }
+                        >
+                          <FolderOpen />
+                          Finder
+                        </Button>
+                      )}
+                      {focus.kind === "directory" && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={busy || focus.kept}
+                            onClick={() =>
+                              void run(() => policy(focus, "keep"))
+                            }
+                          >
+                            <ShieldCheck />
+                            Keep
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={busy}
+                            onClick={() => {
+                              setExclude(focus)
+                            }}
+                          >
+                            Exclude
+                          </Button>
+                        </>
+                      )}
                       <Button
                         size="sm"
                         variant="outline"
-                        disabled={!s.finderAvailable || busy}
+                        disabled={busy || !canAct}
                         onClick={() =>
-                          void run(() => api("finder", { id: focus.id }))
+                          void run(async () =>
+                            setPlan(
+                              await api<TrashPlan>("trash/preview", {
+                                id: focus.id,
+                                parentId: Number(d?.node.id.slice(1)),
+                              })
+                            )
+                          )
                         }
                       >
-                        <FolderOpen />
-                        Finder
+                        <Trash2 />
+                        {demo ? "Try cleanup" : "Move to Trash"}
                       </Button>
-                    )}
-                    {focus.kind === "directory" && (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={busy || focus.kept}
-                          onClick={() => void run(() => policy(focus, "keep"))}
-                        >
-                          <ShieldCheck />
-                          Keep
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={busy}
-                          onClick={() => {
-                            setExclude(focus)
-                          }}
-                        >
-                          Exclude
-                        </Button>
-                      </>
-                    )}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={busy || !canAct}
-                      onClick={() =>
-                        void run(async () =>
-                          setPlan(
-                            await api<TrashPlan>("trash/preview", {
-                              id: focus.id,
-                              parentId: Number(d?.node.id.slice(1)),
-                            })
-                          )
-                        )
-                      }
-                    >
-                      <Trash2 />
-                      {demo ? "Try cleanup" : "Move to Trash"}
-                    </Button>
+                    </div>
                   </div>
-                </div>
-              )}
-            </section>
-          </div>
+                )}
+              </section>
+            </ResizablePanel>
+          </ResizablePanelGroup>
         </main>
         <DiagnosticsDialog
           open={diagnostics}
