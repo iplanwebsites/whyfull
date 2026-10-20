@@ -153,7 +153,7 @@ test("runner imports reports atomically, exports original data, and scans select
     )
     const bad = await fetch(`${url.origin}/api/import`, {
       method: "POST",
-      headers: auth,
+      headers: { ...auth, "Content-Type": "application/json" },
       body: "{ invalid json",
     })
     assert.equal(bad.status, 400)
@@ -166,6 +166,7 @@ test("runner imports reports atomically, exports original data, and scans select
       method: "POST",
       headers: {
         ...auth,
+        "Content-Type": "application/json",
         "X-Whyfull-Name": encodeURIComponent("cache report.json"),
       },
       body: JSON.stringify(report),
@@ -257,7 +258,7 @@ test("runner imports reports atomically, exports original data, and scans select
     assert.equal((await get("status")).cleanup.mode, "demo")
     const disk = await fetch(`${url.origin}/api/import`, {
       method: "POST",
-      headers: auth,
+      headers: { ...auth, "Content-Type": "application/json" },
       body: JSON.stringify(snapshot),
     })
     assert.equal(disk.status, 200)

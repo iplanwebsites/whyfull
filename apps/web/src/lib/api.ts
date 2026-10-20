@@ -47,7 +47,13 @@ export class ApiError extends Error {
 
 async function viewerFetch(path: string, init?: RequestInit) {
   try {
-    return await fetch(path, init)
+    return await fetch(path, {
+      ...init,
+      mode: "same-origin",
+      credentials: "omit",
+      redirect: "error",
+      cache: "no-store",
+    })
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") throw error
     throw new Error(

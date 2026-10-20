@@ -425,18 +425,30 @@ export async function startViewer(options: ViewerOptions) {
     res.end(JSON.stringify(value))
   }
   async function body(req: IncomingMessage): Promise<Record<string, unknown>> {
-    let text = ""
+    const chunks: Buffer[] = []
+    let bytes = 0
     for await (const chunk of req) {
-      text += chunk.toString()
-      if (text.length > 16384) throw new Error("Request too large")
+      bytes += chunk.length
+      if (bytes > 16384) throw new Error("Request too large")
+      chunks.push(chunk)
     }
-    return JSON.parse(text)
+    const value: unknown = JSON.parse(Buffer.concat(chunks).toString("utf8"))
+    if (!value || typeof value !== "object" || Array.isArray(value))
+      throw new Error("Expected a JSON object")
+    return value as Record<string, unknown>
   }
+
   let base = ""
   const server = createServer((req, res) => {
     void (async () => {
       res.setHeader("X-Content-Type-Options", "nosniff")
       res.setHeader("Referrer-Policy", "no-referrer")
+      res.setHeader("Cross-Origin-Resource-Policy", "same-origin")
+      res.setHeader("Cross-Origin-Opener-Policy", "same-origin")
+      res.setHeader(
+        "Permissions-Policy",
+        "camera=(), microphone=(), geolocation=()"
+      )
       res.setHeader(
         "Content-Security-Policy",
         `default-src 'self'; script-src 'self' ${scriptHashes}; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'`
@@ -445,7 +457,7 @@ export async function startViewer(options: ViewerOptions) {
         req.headers.host !== new URL(base).host ||
         (req.headers.origin && req.headers.origin !== base)
       ) {
-        json(res, { error: "Untrusted request origin" }, 403)
+        json(res, { error: "Forbidden" }, 403)
         return
       }
       const url = new URL(req.url ?? "/", base)
@@ -469,14 +481,42 @@ export async function startViewer(options: ViewerOptions) {
         res.end(assetContents.get(asset.file))
         return
       }
-      const auth = Buffer.from(
-        req.headers.authorization?.replace(/^Bearer /, "") ?? ""
+      // Browsers set Fetch Metadata; reject other sites/ports even if Origin is absent.
+      // Native clients can omit browser headers, but still need the session capability.
+      const site = req.headers["sec-fetch-site"]
+      if (
+        (site !== undefined && site !== "same-origin") ||
+        (req.headers["sec-fetch-mode"] !== undefined &&
+          !["cors", "same-origin"].includes(
+            String(req.headers["sec-fetch-mode"])
+          )) ||
+        (req.headers["sec-fetch-dest"] !== undefined &&
+          req.headers["sec-fetch-dest"] !== "empty")
+      ) {
+        json(res, { error: "Forbidden" }, 403)
+        return
+      }
+      const bearer = /^Bearer ([a-f0-9]{64})$/i.exec(
+        req.headers.authorization ?? ""
       )
+      const auth = Buffer.from(bearer?.[1] ?? "")
       if (
         auth.length !== token.length ||
         !timingSafeEqual(auth, Buffer.from(token))
       ) {
-        json(res, { error: "Viewer token required" }, 401)
+        json(res, { error: "Unauthorized" }, 401)
+        return
+      }
+      if (req.method !== "GET" && req.method !== "POST") {
+        json(res, { error: "Method not allowed" }, 405)
+        return
+      }
+      if (
+        req.method === "POST" &&
+        req.headers["content-type"]?.split(";")[0].trim().toLowerCase() !==
+          "application/json"
+      ) {
+        json(res, { error: "Expected application/json" }, 415)
         return
       }
       if (req.method === "GET" && url.pathname === "/api/status") {
@@ -675,6 +715,13 @@ export async function startViewer(options: ViewerOptions) {
       }
       if (req.method === "POST" && url.pathname === "/api/diagnostics") {
         const input = await body(req)
+        if (
+          Object.keys(input).some(
+            (key) => !["action", "id", "options"].includes(key)
+          ) ||
+          (input.action === "cancel" && input.options !== undefined)
+        )
+          throw new Error("Unsupported diagnostic fields")
         if (input.action === "run")
           json(res, diagnostics.run(input.id, input.options))
         else if (input.action === "cancel") json(res, diagnostics.cancel())

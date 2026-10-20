@@ -204,6 +204,51 @@ stored in tab-local session storage to survive reloads. APIs require a bearer
 token and validate Host and Origin; no CORS access is enabled. Static assets are
 allowlisted. A restrictive content policy blocks external assets and framing.
 
+### Local API security
+
+The server listens only on IPv4 loopback (`127.0.0.1`) at an OS-assigned port.
+Every launch generates a new cryptographically random 256-bit bearer key. API
+requests require `Authorization: Bearer <key>`; cookies, query parameters, an
+old session's key, or a key from a different viewer cannot authenticate. The key
+is passed in the browser URL fragment, removed from the address bar, and kept
+in tab-local session storage. It is never embedded in public assets or reports.
+Stopping the server revokes its key. Treat the full launch URL as a secret.
+
+Host must exactly match the listener's address and port, so a domain pointing
+at loopback cannot pass a DNS-rebinding request through a spoofed Host. An
+Origin header, when present, must exactly match that origin, including the port;
+`null` and other local app origins are rejected. Browser API requests must also
+carry same-origin Fetch Metadata when those headers are present; navigation,
+iframe, same-site/different-origin, and cross-site API requests are rejected.
+No CORS or private-network preflight permission is granted. Native clients that
+omit browser metadata still need the key. POST bodies must be `application/json`;
+ordinary action bodies must be JSON objects of at most 16 KiB, measured in bytes.
+Authenticated report imports use their separate streaming size limit.
+
+The HTTP runner accepts fixed diagnostic IDs and strictly validated report
+options. It rejects executable, command, args, cwd, env, and other unexpected
+fields, and spawns server-selected executables/arguments with `shell: false`.
+Report recommendations are displayed as text, never evaluated. Finder uses a
+fixed executable and validated inventory/report paths. Real Trash capability
+must be granted at CLI startup and still requires explicit mode selection and
+a short-lived preview; a POST cannot grant that missing startup capability.
+
+Responses omit server/framework identity headers, use generic authentication
+errors, and apply CSP, no-referrer, nosniff, same-origin resource/opener isolation,
+and restrictive camera/microphone/location permissions. Public UI assets may
+identify the application; hiding its name or port is not an authorization boundary.
+
+A localhost web server cannot prove that a caller is its frontend: native
+programs can forge Origin and Fetch Metadata. These checks block hostile browser
+origins and clients without the key. A local process that steals the key, a
+compromised same-origin page, or malware running with the user's privileges is
+outside this boundary. Keep the session short, close the runner when done, and
+do not share its authenticated URL. No claim of isolation from same-user malware
+or of a complete independent security audit is made.
+
+The browser request checks follow [OWASP's CSRF guidance](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html)
+and [Fetch Metadata semantics](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Sec-Fetch-Site).
+
 Config updates are explicit UI actions, use private temporary files and atomic
 rename, and preserve unrelated settings. Invalid existing settings are never
 overwritten. Keep and Exclude are separate policies; removing an ancestor's keep

@@ -85,6 +85,11 @@ export function reportArguments(value: unknown): string[] {
   const options = value as ReportRunOptions
   if (
     !options ||
+    typeof options !== "object" ||
+    Array.isArray(options) ||
+    Object.keys(options).some(
+      (key) => !["top", "exact", "caches", "worktrees"].includes(key)
+    ) ||
     !Number.isInteger(options.top) ||
     options.top < 0 ||
     options.top > 100 ||
