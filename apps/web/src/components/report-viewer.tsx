@@ -1,3 +1,10 @@
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@workspace/ui/components/select"
 import { MinimumFileSize } from "./minimum-file-size"
 import {
   ContextMenu,
@@ -26,7 +33,11 @@ import {
   ScanSearch,
 } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
-import { Input } from "@workspace/ui/components/input"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@workspace/ui/components/input-group"
 import { toast } from "@workspace/ui/components/sonner"
 import {
   DropdownMenu,
@@ -299,40 +310,73 @@ export function ReportViewer({
       </header>
       <main className="flex min-h-0 flex-1 flex-col gap-2 p-2">
         <div className="flex flex-wrap items-center gap-2">
-          <select
-            aria-label="Report section"
-            className="h-8 rounded-md border bg-background px-2 text-xs"
+          <Select
             value={section}
-            onChange={(e) => {
-              setSection(e.target.value as ReportSection)
+            onValueChange={(value) => {
+              if (value === null) return
+              setSection(value as ReportSection)
               setTier("all")
               setPage(0)
               setExpanded(null)
             }}
+            items={[
+              { value: "targets", label: "Known locations" },
+              { value: "caches", label: "Untracked caches" },
+              { value: "discovered", label: "Discovered locations" },
+              { value: "worktrees", label: "Worktrees" },
+            ]}
           >
-            <option value="targets">Known locations</option>
-            <option value="caches">Untracked caches</option>
-            <option value="discovered">Discovered locations</option>
-            <option value="worktrees">Worktrees</option>
-          </select>
-          <select
-            aria-label="Filter report tier"
+            <SelectTrigger
+              aria-label="Report section"
+              className="min-w-0 max-w-full text-xs"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="targets">Known locations</SelectItem>
+              <SelectItem value="caches">Untracked caches</SelectItem>
+              <SelectItem value="discovered">Discovered locations</SelectItem>
+              <SelectItem value="worktrees">Worktrees</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select
             value={tier}
-            onChange={(event) => {
-              setTier(event.target.value)
+            onValueChange={(value) => {
+              setTier(value ?? "all")
               setPage(0)
             }}
-            className="h-8 rounded-md border bg-background px-2 text-xs"
+            items={[
+              { value: "all", label: "All tiers" },
+              ...[
+                ...new Set(
+                  rows
+                    .map((row) => row.tier)
+                    .filter((tier): tier is string => !!tier)
+                ),
+              ].map((value) => ({ value, label: value })),
+            ]}
           >
-            <option value="all">All tiers</option>
-            {[...new Set(rows.map((row) => row.tier).filter(Boolean))].map(
-              (value) => (
-                <option key={value} value={value}>
+            <SelectTrigger
+              aria-label="Filter report tier"
+              className="min-w-0 max-w-full text-xs"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All tiers</SelectItem>
+              {[
+                ...new Set(
+                  rows
+                    .map((row) => row.tier)
+                    .filter((value): value is string => !!value)
+                ),
+              ].map((value) => (
+                <SelectItem key={value} value={value}>
                   {value}
-                </option>
-              )
-            )}
-          </select>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button
             variant={markedOnly ? "secondary" : "ghost"}
             size="sm"
@@ -344,19 +388,21 @@ export function ReportViewer({
             <ListChecks />
             Shortlisted
           </Button>
-          <div className="relative min-w-40 max-w-sm flex-1">
-            <Search className="absolute left-2 top-2 size-4 text-muted-foreground" />
-            <Input
+          <InputGroup className="min-w-40 max-w-sm flex-1">
+            <InputGroupAddon>
+              <Search />
+            </InputGroupAddon>
+            <InputGroupInput
+              type="search"
               aria-label="Search report"
               placeholder="Search…"
-              className="h-8 pl-8"
               value={query}
               onChange={(e) => {
                 setQuery(e.target.value)
                 setPage(0)
               }}
             />
-          </div>
+          </InputGroup>
           <span className="ml-auto text-xs text-muted-foreground">
             {report ? new Date(report.generatedAt).toLocaleString() : ""}
           </span>
@@ -731,24 +777,42 @@ function ReportAction({
   const [busy, setBusy] = useState(false)
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <select
-        aria-label={`Action for ${path.split("/").at(-1)}`}
+      <Select
         value={selected}
-        onChange={(event) => setSelected(event.target.value)}
-        className="h-8 max-w-full rounded-md border bg-background px-2 text-xs"
+        onValueChange={(value) => {
+          if (value !== null) setSelected(value)
+        }}
+        items={[
+          { value: "scan", label: "Inspect folder · recommended" },
+          { value: "trash", label: "Shortlist for Trash" },
+          { value: "useless", label: "Mark as useless" },
+          {
+            value: state?.directKeep ? "unkeep" : "keep",
+            label: state?.directKeep ? "Remove keep rule" : "Keep",
+          },
+          ...(state?.mark ? [{ value: "clear", label: "Clear mark" }] : []),
+        ]}
       >
-        <option value="scan">Inspect folder · recommended</option>
-        <option value="trash" disabled={state?.kept}>
-          Shortlist for Trash
-        </option>
-        <option value="useless" disabled={state?.kept}>
-          Mark as useless
-        </option>
-        <option value={state?.directKeep ? "unkeep" : "keep"}>
-          {state?.directKeep ? "Remove keep rule" : "Keep"}
-        </option>
-        {state?.mark && <option value="clear">Clear mark</option>}
-      </select>
+        <SelectTrigger
+          aria-label={`Action for ${path.split("/").at(-1)}`}
+          className="min-w-0 max-w-full text-xs"
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="scan">Inspect folder · recommended</SelectItem>
+          <SelectItem value="trash" disabled={state?.kept}>
+            Shortlist for Trash
+          </SelectItem>
+          <SelectItem value="useless" disabled={state?.kept}>
+            Mark as useless
+          </SelectItem>
+          <SelectItem value={state?.directKeep ? "unkeep" : "keep"}>
+            {state?.directKeep ? "Remove keep rule" : "Keep"}
+          </SelectItem>
+          {state?.mark && <SelectItem value="clear">Clear mark</SelectItem>}
+        </SelectContent>
+      </Select>
       <Button
         size="sm"
         disabled={

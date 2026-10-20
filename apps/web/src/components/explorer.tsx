@@ -1,4 +1,11 @@
 import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@workspace/ui/components/select"
+import {
   ResizablePanelGroup,
   ResizablePanel,
   ResizableHandle,
@@ -39,7 +46,11 @@ import {
   X,
 } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
-import { Input } from "@workspace/ui/components/input"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@workspace/ui/components/input-group"
 import { Badge } from "@workspace/ui/components/badge"
 import {
   Breadcrumb,
@@ -752,23 +763,36 @@ export function Explorer() {
               <section className="flex min-h-0 flex-1 flex-col">
                 <div className="flex flex-wrap items-center gap-2 border-b p-2">
                   <div className="shrink-0">
-                    <select
-                      aria-label="Sort entries"
-                      className="rounded border bg-background px-2 py-1 text-xs"
+                    <Select
                       value={sort}
-                      onChange={(e) => {
-                        const value = e.target.value as "size" | "name"
+                      onValueChange={(value) => {
+                        if (value !== "size" && value !== "name") return
                         url({ sort: value })
                         void run(() => prefs({ sort: value }))
                       }}
+                      items={[
+                        { value: "size", label: "Size ↓" },
+                        { value: "name", label: "Name A–Z" },
+                      ]}
                     >
-                      <option value="size">Size ↓</option>
-                      <option value="name">Name A–Z</option>
-                    </select>
+                      <SelectTrigger
+                        aria-label="Sort entries"
+                        className="min-w-0 max-w-full text-xs"
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="size">Size ↓</SelectItem>
+                        <SelectItem value="name">Name A–Z</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div className="relative min-w-28 flex-1">
-                    <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
-                    <Input
+                  <InputGroup className="min-w-28 flex-1">
+                    <InputGroupAddon>
+                      <Search />
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      type="search"
                       ref={input}
                       aria-label={
                         limitedFiles
@@ -778,13 +802,12 @@ export function Explorer() {
                       placeholder={
                         limitedFiles ? "Search listed entries…" : "Search…"
                       }
-                      className="pl-9"
                       value={search.q ?? ""}
                       onChange={(e) =>
                         url({ q: e.target.value || undefined }, true)
                       }
                     />
-                  </div>
+                  </InputGroup>
                   {!s.snapshotMode && (
                     <label className="flex items-center gap-2 text-xs text-muted-foreground">
                       <input

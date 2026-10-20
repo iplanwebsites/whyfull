@@ -1,3 +1,10 @@
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@workspace/ui/components/select"
 import { useEffect, useRef, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Play, Square, Copy } from "lucide-react"
@@ -114,18 +121,32 @@ export function DiagnosticsDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-wrap items-center gap-2">
-          <select
-            aria-label="Diagnostic command"
-            className="h-8 min-w-0 flex-1 rounded-md border bg-background px-2 text-xs"
+          <Select
             value={command?.id ?? ""}
-            onChange={(event) => setSelected(event.target.value)}
+            onValueChange={(value) => {
+              if (value !== null) setSelected(value)
+            }}
+            items={
+              data?.commands.map((item) => ({
+                value: item.id,
+                label: item.label,
+              })) ?? []
+            }
           >
-            {data?.commands.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.label}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger
+              aria-label="Diagnostic command"
+              className="min-w-0 max-w-full flex-1 text-xs"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {data?.commands.map((item) => (
+                <SelectItem key={item.id} value={item.id}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button
             size="sm"
             disabled={busy || !command || data?.running}

@@ -2,7 +2,11 @@ import { useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { FolderOpen, Trash2, Flag, X, ArrowRight, Search } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
-import { Input } from "@workspace/ui/components/input"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@workspace/ui/components/input-group"
 import { Badge } from "@workspace/ui/components/badge"
 import {
   Dialog,
@@ -96,10 +100,12 @@ export function CleanupShortlist({
             action. Sizes can overlap.
           </DialogDescription>
         </DialogHeader>
-        <div className="relative">
-          <Search className="absolute left-2 top-2 size-4 text-muted-foreground" />
-          <Input
-            className="h-8 pl-8"
+        <InputGroup>
+          <InputGroupAddon>
+            <Search />
+          </InputGroupAddon>
+          <InputGroupInput
+            type="search"
             aria-label="Search shortlist"
             placeholder="Search…"
             value={query}
@@ -108,7 +114,7 @@ export function CleanupShortlist({
               setLimit(100)
             }}
           />
-        </div>
+        </InputGroup>
         <div className="text-xs text-muted-foreground">
           {result.data
             ? `${result.data.length} marked ${result.data.length === 1 ? "folder" : "folders"}`
