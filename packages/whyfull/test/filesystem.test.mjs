@@ -282,7 +282,11 @@ test("loopback viewer authenticates requests, preserves measured data, and suppo
     const remainder = kept.chart.children.find(
       (child) => child.kind === "remainder"
     )
-    assert.equal(remainder.files, keep.ownFiles - keep.topFiles.length)
+    assert.equal(
+      remainder.files,
+      keep.ownFiles,
+      "all sub-1 MiB files are grouped"
+    )
     assert.equal(remainder.name, `${remainder.files} files`)
     assert.ok(
       kept.chart.children

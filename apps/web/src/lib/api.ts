@@ -113,4 +113,4 @@ export async function importReport(file: File): Promise<ViewerStatus> {
   return result
 }
 
-export { isTinyMetadata } from "../../../../packages/whyfull/src/viewer-noise"
+export { isSmallEntry } from "../../../../packages/whyfull/src/viewer-noise"

@@ -1,4 +1,4 @@
-import { isNegligibleFile } from "./viewer-noise"
+import { isSmallEntry } from "./viewer-noise"
 import { measureFileDistribution } from "./file-distribution"
 import { pipeline } from "node:stream/promises"
 import { DiagnosticRunner } from "./diagnostics"
@@ -226,9 +226,7 @@ export async function startViewer(options: ViewerOptions) {
     }))
     const visibleFiles = node.topFiles
       .map((file, i) => ({ file, i }))
-      .filter(
-        ({ file }) => !isNegligibleFile(file.name, file.bytes, node.bytes)
-      )
+      .filter(({ file }) => !isSmallEntry(file.bytes))
     children.push(
       ...visibleFiles.map(({ file, i }) => ({
         id: `f${node.id}-${i}`,
@@ -618,11 +616,7 @@ export async function startViewer(options: ViewerOptions) {
               search ||
               url.searchParams.get("files") === "all" ||
               entry.kind !== "file" ||
-              !isNegligibleFile(
-                String(entry.name),
-                Number(entry.value),
-                node.bytes
-              )
+              !isSmallEntry(Number(entry.value))
           )
           .filter((e) => String(e.name).toLowerCase().includes(search))
           .sort(

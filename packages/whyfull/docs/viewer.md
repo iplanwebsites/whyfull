@@ -303,11 +303,10 @@ results. The current document stays open until that action is chosen. Report
 output is bounded to 64 MiB, and traces remain bounded to 256 KiB. Options from
 the open report are used as the starting point for another run.
 
-Tiny metadata files (`.DS_Store`, `Thumbs.db`, `desktop.ini`, and AppleDouble
-`._*` sidecars) up to 64 KiB are hidden from default lists. In filesystem views,
-other files up to 64 KiB are also hidden when each is less than 0.1% of the
-folder's allocated size. Directories remain visible. Their bytes and file counts
+Files smaller than 1 MiB are hidden from default filesystem lists and individual
+chart slices, regardless of filename or the folder's size. Their bytes and counts
 still contribute to the inventory; charts combine hidden files into the file
 aggregate. Search explicitly or choose **All files** to reveal them in the list.
-Reports filter known tiny metadata entries while preserving location totals and
-show them when searching. Large metadata files remain visible.
+Report locations and child entries below the same threshold are hidden unless
+searching. Entries of exactly 1 MiB remain visible; unknown report sizes remain
+visible. Filtering never changes measurements or deletes anything.

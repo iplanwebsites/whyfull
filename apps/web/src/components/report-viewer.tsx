@@ -37,7 +37,7 @@ import { DiagnosticsDialog } from "./diagnostics-dialog"
 import { CleanupShortlist } from "./cleanup-shortlist"
 import { RunnerControls } from "./runner-controls"
 import { copyPath } from "@/lib/clipboard"
-import { api, formatSize, exportSnapshot, isTinyMetadata } from "@/lib/api"
+import { api, formatSize, exportSnapshot, isSmallEntry } from "@/lib/api"
 import type { ViewerStatus, WhyfullJsonReport } from "@/lib/api"
 type ReportSection = "targets" | "caches" | "discovered" | "worktrees"
 interface LocationState {
@@ -170,12 +170,7 @@ export function ReportViewer({
                   .toLocaleLowerCase()
                   .includes(query.toLocaleLowerCase())
               )) &&
-            (query ||
-              row.bytes === null ||
-              !isTinyMetadata(
-                row.path?.split("/").at(-1) ?? row.name,
-                row.bytes ?? 0
-              )) &&
+            (query || row.bytes === null || !isSmallEntry(row.bytes)) &&
             (tier === "all" || row.tier === tier) &&
             (!markedOnly ||
               !!locations.data?.find((item) => item.path === row.path)?.mark ||
@@ -365,7 +360,7 @@ export function ReportViewer({
                     children: query
                       ? row.children
                       : row.children.filter(
-                          (child) => !isTinyMetadata(child.name, child.bytes)
+                          (child) => !isSmallEntry(child.bytes)
                         ),
                   }}
                   upperLimit={Math.max(...rows.map((item) => item.bytes ?? 0))}

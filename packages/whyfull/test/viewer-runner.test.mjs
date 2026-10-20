@@ -302,7 +302,7 @@ test("large file directories report the true count and can start a scoped live l
         body: JSON.stringify(body),
       })
     const listed = await get(`directory?id=${node.id}`)
-    assert.equal(listed.total, 32)
+    assert.equal(listed.total, 0, "sub-1 MiB files are hidden by default")
     assert.equal(listed.ownFiles, 150)
     assert.equal(listed.retainedFiles, 32)
     assert.equal(listed.fileScope, "largest")
@@ -460,6 +460,11 @@ test("viewer hides negligible files by default, preserves chart totals and IDs, 
     ])
       writeFileSync(join(root, name), Buffer.alloc(4096))
     writeFileSync(join(root, "._large"), Buffer.alloc(128 * 1024))
+    writeFileSync(
+      join(root, "below-limit.bin"),
+      Buffer.alloc(1024 * 1024 - 4096)
+    )
+    writeFileSync(join(root, "boundary.bin"), Buffer.alloc(1024 * 1024))
     viewer = await startViewer({
       root,
       open: false,
@@ -475,16 +480,16 @@ test("viewer hides negligible files by default, preserves chart totals and IDs, 
     const normal = await get("directory?id=0")
     assert.deepEqual(
       normal.entries.map((entry) => entry.name).sort(),
-      ["._large", "movie.bin", "small-project"].sort()
+      ["boundary.bin", "movie.bin", "small-project"].sort()
     )
-    assert.equal(normal.ownFiles, 7, "filtered files remain measured")
+    assert.equal(normal.ownFiles, 9, "filtered files remain measured")
     assert.equal(
       normal.chart.children.reduce((sum, entry) => sum + entry.value, 0),
       normal.node.value
     )
     assert.equal(
       normal.chart.children.find((entry) => entry.kind === "remainder").files,
-      5
+      7
     )
     assert.ok(
       !normal.chart.children.some((entry) => entry.name === ".DS_Store")
@@ -499,15 +504,15 @@ test("viewer hides negligible files by default, preserves chart totals and IDs, 
     assert.equal(search.entries.length, 1)
     assert.equal(search.entries[0].name, ".DS_Store")
     const all = await get("directory?id=0&files=all")
-    assert.equal(all.entries.length, 8)
+    assert.equal(all.entries.length, 10)
     assert.ok(all.entries.some((entry) => entry.name === "tiny.txt"))
     const project = normal.entries.find(
       (entry) => entry.name === "small-project"
     )
     assert.equal(
-      (await get(`directory?id=${project.id.slice(1)}`)).entries[0].name,
-      "readme.txt",
-      "small files stay visible when they are meaningful within their own folder"
+      (await get(`directory?id=${project.id.slice(1)}`)).entries.length,
+      0,
+      "the 1 MiB threshold also applies in small folders"
     )
   } finally {
     await viewer?.close()
