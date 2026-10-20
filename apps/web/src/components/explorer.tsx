@@ -493,8 +493,10 @@ export function Explorer() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-60">
               <DropdownMenuGroup>
-                <DropdownMenuLabel>View</DropdownMenuLabel>
+                <DropdownMenuLabel>View options</DropdownMenuLabel>
                 <DropdownMenuRadioGroup
+                  aria-label="View options"
+                  className="mx-1 mb-1 flex gap-1 rounded-lg bg-muted p-1"
                   value={view}
                   onValueChange={(value) => {
                     const next = value as "treemap" | "sunburst"
@@ -508,13 +510,21 @@ export function Explorer() {
                     })
                   }}
                 >
-                  <DropdownMenuRadioItem value="treemap" closeOnClick>
+                  <DropdownMenuRadioItem
+                    value="treemap"
+                    closeOnClick={false}
+                    className="flex-1 justify-center px-2 py-1.5 text-xs data-checked:bg-background data-checked:text-foreground data-checked:shadow-sm [&>[data-slot=dropdown-menu-radio-item-indicator]]:hidden"
+                  >
                     <LayoutGrid />
                     Treemap
                   </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="sunburst" closeOnClick>
+                  <DropdownMenuRadioItem
+                    value="sunburst"
+                    closeOnClick={false}
+                    className="flex-1 justify-center px-2 py-1.5 text-xs data-checked:bg-background data-checked:text-foreground data-checked:shadow-sm [&>[data-slot=dropdown-menu-radio-item-indicator]]:hidden"
+                  >
                     <ChartPie />
-                    Rings
+                    Radial
                   </DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
               </DropdownMenuGroup>
