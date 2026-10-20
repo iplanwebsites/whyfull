@@ -2,9 +2,7 @@
 /**
  * whyfull — report where disk space went on a developer machine.
  *
- * Read-only by design. There is no delete flag and there will not be one:
- * `hf cache delete` already does revision-aware blob refcounting, and
- * reimplementing that is how you corrupt someone's model cache.
+ * Reports are read-only; the viewer offers demo-first native Trash moves.
  */
 
 import mri from "mri"
@@ -14,6 +12,7 @@ import { findWorktrees } from "./worktrees"
 import { buildJsonReport, saveJsonReport } from "./json"
 import { render, dim } from "./report"
 import { human } from "./size"
+import { runDiskCli } from "./disk-cli"
 
 const HELP = `
   whyfull — where did my disk go?
@@ -22,6 +21,15 @@ const HELP = `
     npx whyfull [options]
 
   Options
+    --view            open the local treemap / sunburst disk explorer
+    --scan            inventory an entire filesystem with JS worker threads
+    --root <dir>      filesystem scan root (macOS: /System/Volumes/Data)
+    --workers <n>     filesystem workers, 1–32 (default: up to 8)
+    --engine <name>   sync or async metadata (for scan benchmarks)
+    --exclude <dir>   skip a directory and descendants; repeatable
+    --snapshot <file> open a saved disk inventory with --view
+    --allow-trash     enable macOS Trash capability (viewer still starts in demo)
+    --no-open         start --view without opening the browser
     --json            versioned, machine-readable output on stdout
     --json-file <path>  save the same JSON privately; refuses to overwrite
     --top <n>         drill into the n largest children of big targets (default 5)
@@ -38,7 +46,8 @@ const HELP = `
 
   Reads a table of known cache and model locations, measures what exists, and
   ranks it by how safe it is to remove. Prints the reclaim command for each.
-  Never deletes or mutates scanned locations and never touches the network.
+  Reports never mutate scanned locations. Viewer cleanup defaults to demo;
+  --allow-trash permits confirmed native Trash moves. No permanent deletion.
   --json-file creates only the explicitly requested report file.
 
   Add custom targets in ~/.config/whyfull/targets.json — see README for schema.
@@ -155,119 +164,128 @@ function parseArgs(argv: string[]): CliOptions {
   }
 }
 
-const opts = parseArgs(process.argv.slice(2))
-
-if (opts.help) {
-  process.stdout.write(HELP)
-  process.exit(0)
-}
-
-const started = Date.now()
-// Progress uses cursor control, so it needs a real terminal and must respect
-// NO_COLOR — otherwise escapes end up in logs and CI output.
-const interactive = process.stdout.isTTY && !opts.json && !process.env.NO_COLOR
-
-const report = scan({
-  top: opts.top,
-  exact: opts.exact,
-  onProgress: interactive
-    ? (label: string) => {
-        process.stderr.write(`\r\x1b[2K  scanning ${label}…`)
-      }
-    : null,
-})
-
-// Discovery mode: scan common dirs for unknown hogs
-const discovered = opts.discover
-  ? discover({
-      onProgress: interactive
-        ? (name: string) => {
-            process.stderr.write(`\r\x1b[2K  discovering ${name}…`)
-          }
-        : null,
-    })
-  : null
-
-// Cache discovery is shallow and default-on: cache roots are precisely where
-// fast-growing tools appear before they earn a built-in target.
-const cacheHogs = opts.cacheScan
-  ? discoverCaches({
-      onProgress: interactive
-        ? (name: string) => {
-            process.stderr.write(`\r\x1b[2K  cache ${name}…`)
-          }
-        : null,
-    })
-  : null
-
-// Worktree discovery: seeds + metadata expansion, then a budgeted measure per
-// worktree. Default-on because agent-created checkouts are often the largest
-// developer-only consumer; --no-worktrees keeps a quick known-location mode.
-const worktrees = opts.worktrees
-  ? findWorktrees({
-      roots: opts.worktreeRoots,
-      minAgeDays: opts.worktreeAge,
-      exact: opts.exact,
-      onProgress: interactive
-        ? (label: string) => {
-            process.stderr.write(`\r\x1b[2K  worktree ${label}…`)
-          }
-        : null,
-    })
-  : null
-
-if (interactive) process.stderr.write("\r\x1b[2K")
-
-const durationMs = Date.now() - started
-const jsonReport = buildJsonReport({
-  report,
-  discovered,
-  cacheHogs,
-  worktrees,
-  durationMs,
-  options: {
-    top: opts.top,
-    showAll: opts.all,
-    exact: opts.exact,
-    discover: opts.discover,
-    cacheScan: opts.cacheScan,
-    worktrees: opts.worktrees,
-    worktreeRoots: opts.worktreeRoots,
-    worktreeAge: opts.worktreeAge,
-  },
-})
-
-let savedPath: string | null = null
-if (opts.jsonFile) {
-  try {
-    savedPath = saveJsonReport(opts.jsonFile, jsonReport)
-  } catch (err) {
-    const reason =
-      err instanceof Error && "code" in err && err.code === "EEXIST"
-        ? "file already exists (refusing to overwrite)"
-        : err instanceof Error
-          ? err.message
-          : String(err)
-    process.stderr.write(`whyfull: could not save JSON report: ${reason}\n`)
-    process.exit(2)
-  }
-}
-
-if (opts.json) {
-  process.stdout.write(`${JSON.stringify(jsonReport, null, 2)}\n`)
+if (
+  process.argv
+    .slice(2)
+    .some((arg) => ["--view", "--scan", "--snapshot"].includes(arg))
+) {
+  await runDiskCli(process.argv.slice(2))
 } else {
-  process.stdout.write(
-    render(report, {
+  const opts = parseArgs(process.argv.slice(2))
+
+  if (opts.help) {
+    process.stdout.write(HELP)
+    process.exit(0)
+  }
+
+  const started = Date.now()
+  // Progress uses cursor control, so it needs a real terminal and must respect
+  // NO_COLOR — otherwise escapes end up in logs and CI output.
+  const interactive =
+    process.stdout.isTTY && !opts.json && !process.env.NO_COLOR
+
+  const report = scan({
+    top: opts.top,
+    exact: opts.exact,
+    onProgress: interactive
+      ? (label: string) => {
+          process.stderr.write(`\r\x1b[2K  scanning ${label}…`)
+        }
+      : null,
+  })
+
+  // Discovery mode: scan common dirs for unknown hogs
+  const discovered = opts.discover
+    ? discover({
+        onProgress: interactive
+          ? (name: string) => {
+              process.stderr.write(`\r\x1b[2K  discovering ${name}…`)
+            }
+          : null,
+      })
+    : null
+
+  // Cache discovery is shallow and default-on: cache roots are precisely where
+  // fast-growing tools appear before they earn a built-in target.
+  const cacheHogs = opts.cacheScan
+    ? discoverCaches({
+        onProgress: interactive
+          ? (name: string) => {
+              process.stderr.write(`\r\x1b[2K  cache ${name}…`)
+            }
+          : null,
+      })
+    : null
+
+  // Worktree discovery: seeds + metadata expansion, then a budgeted measure per
+  // worktree. Default-on because agent-created checkouts are often the largest
+  // developer-only consumer; --no-worktrees keeps a quick known-location mode.
+  const worktrees = opts.worktrees
+    ? findWorktrees({
+        roots: opts.worktreeRoots,
+        minAgeDays: opts.worktreeAge,
+        exact: opts.exact,
+        onProgress: interactive
+          ? (label: string) => {
+              process.stderr.write(`\r\x1b[2K  worktree ${label}…`)
+            }
+          : null,
+      })
+    : null
+
+  if (interactive) process.stderr.write("\r\x1b[2K")
+
+  const durationMs = Date.now() - started
+  const jsonReport = buildJsonReport({
+    report,
+    discovered,
+    cacheHogs,
+    worktrees,
+    durationMs,
+    options: {
+      top: opts.top,
       showAll: opts.all,
-      discovered,
-      cacheHogs,
-      worktrees,
-    })
-  )
-  process.stdout.write(
-    `  ${dim(`Scanned ${human(report.total)} in ${(durationMs / 1000).toFixed(1)}s`)}\n`
-  )
-  if (savedPath)
-    process.stdout.write(`  ${dim(`Saved JSON to ${savedPath}`)}\n`)
-  process.stdout.write("\n")
+      exact: opts.exact,
+      discover: opts.discover,
+      cacheScan: opts.cacheScan,
+      worktrees: opts.worktrees,
+      worktreeRoots: opts.worktreeRoots,
+      worktreeAge: opts.worktreeAge,
+    },
+  })
+
+  let savedPath: string | null = null
+  if (opts.jsonFile) {
+    try {
+      savedPath = saveJsonReport(opts.jsonFile, jsonReport)
+    } catch (err) {
+      const reason =
+        err instanceof Error && "code" in err && err.code === "EEXIST"
+          ? "file already exists (refusing to overwrite)"
+          : err instanceof Error
+            ? err.message
+            : String(err)
+      process.stderr.write(`whyfull: could not save JSON report: ${reason}\n`)
+      process.exit(2)
+    }
+  }
+
+  if (opts.json) {
+    process.stdout.write(`${JSON.stringify(jsonReport, null, 2)}\n`)
+  } else {
+    process.stdout.write(
+      render(report, {
+        showAll: opts.all,
+        discovered,
+        cacheHogs,
+        worktrees,
+      })
+    )
+    process.stdout.write(
+      `  ${dim(`Scanned ${human(report.total)} in ${(durationMs / 1000).toFixed(1)}s`)}\n`
+    )
+    if (savedPath)
+      process.stdout.write(`  ${dim(`Saved JSON to ${savedPath}`)}\n`)
+    process.stdout.write("\n")
+  }
 }

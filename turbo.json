@@ -23,6 +23,10 @@
     },
     "clean": {
       "cache": false
+    },
+    "whyfull#build": {
+      "dependsOn": ["@whyfull/viewer#build"],
+      "outputs": ["dist/**"]
     }
   }
 }

@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 
-import { readFile, writeFile } from "node:fs/promises"
+import { mkdir, readFile, writeFile } from "node:fs/promises"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const write = process.argv.includes("--write")
-const documents = ["README.md", "LICENSE", "NOTICE"]
+const documents = ["README.md", "LICENSE", "NOTICE", "docs/viewer.md"]
 
 let drifted = false
 
@@ -16,6 +16,7 @@ for (const document of documents) {
   const source = await readFile(sourcePath)
 
   if (write) {
+    await mkdir(dirname(packagePath), { recursive: true })
     await writeFile(packagePath, source)
     process.stdout.write(`synced packages/whyfull/${document}\n`)
     continue

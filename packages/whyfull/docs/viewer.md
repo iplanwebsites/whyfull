@@ -1,0 +1,189 @@
+# Local filesystem viewer
+
+The browser UI and scanner are JavaScript, built from the repository's TypeScript
+library and a React frontend. No Rust toolchain, native addon, hosted
+service, CDN, or Electron installation is needed.
+
+## Design
+
+The two views follow familiar disk-navigation conventions:
+[Filelight's](https://apps.kde.org/filelight/) concentric folder rings and
+[GrandPerspective's](https://grandperspectiv.sourceforge.net/) proportional rectangles. Both
+share the same current directory, breadcrumbs, ranked list, and details panel.
+Sunburst rings show up to three levels; treemaps use horizontal-biased weighted
+partitions with two visible label levels. Clicking
+a directory navigates; the center/up button ascends. The list provides keyboard
+navigation, search, paging, and access to folders too small for chart labels.
+
+The UI uses the shadcn `b0` monorepo preset (Base UI, neutral Nova style,
+Tailwind 4 and Lucide icons), with shared components in `packages/ui` and the
+TanStack Start app in `apps/web`. TanStack Router owns folder, search, map and
+sort URL state and supports browser back/forward. React Query fetches bounded
+folder summaries. Press Command/Ctrl+K to focus folder search. Last folder, map,
+sort and appearance preferences survive CLI restarts in the config file.
+The compact workspace keeps navigation and tools in one toolbar. Folder counts,
+scan metadata and explanations live in the details/rules dialogs; selection
+actions appear only when inspecting an entry.
+
+Cleanup defaults to demo on every server start; the mode is never persisted.
+`--allow-trash` enables the capability for a live scan, but users must still turn
+off demo mode and confirm a short-lived, one-use preview. Only macOS 14+ native
+Trash is supported for actual moves. No permanent removal endpoint exists.
+Saved snapshots support demo only. Keep and exclude rules also block moves of
+ancestors that contain protected paths. Root/system locations and changed or
+symlinked paths are rejected. The inventory is refreshed by an explicit rescan.
+
+## Scanner
+
+`DiskScanner` schedules each directory once across a bounded pool of worker
+threads. Each worker reads one directory's entries, checks metadata without
+following symbolic links, returns child directories and direct-file aggregates,
+and retains the largest direct files. Aggregation visits directory nodes in
+reverse parent order. The main event loop serves the UI while workers perform
+metadata reads. A failed read does not abort the rest of the inventory.
+
+The sync engine performs synchronous metadata calls inside each worker; the
+async engine fans out up to eight metadata calls per worker. Workers default to
+CPU parallelism minus one, capped at eight, with a configurable range of 1–32.
+Exclusions prune traversal before descending. Kept paths remain measured.
+
+The default macOS root `/System/Volumes/Data` includes the writable data volume
+without also traversing the system firmlink aliases. Different devices are
+excluded and can be scanned separately. Rules understand `/var`/`/private/var`
+aliases and Data-volume user-path aliases. Rules use path boundaries rather
+than raw string prefixes. Glob patterns and automatic `.gitignore` exclusion
+are deliberately absent: ignored development output is often the point of a
+disk diagnostic.
+
+Allocated bytes come from `stat.blocks * 512`; logical bytes come from
+`stat.size`. Hard-linked inodes are attributed once to their first encountered
+directory, so their placement can differ with scheduling. Filename counts
+include each encountered regular-file name. APFS clones with distinct inodes
+can share blocks; deleting one may free less than the displayed size. Directory
+metadata, snapshots, skipped files and unreadable data are outside file-byte
+totals. Scan completion means traversal finished, not complete disk access.
+A live inventory is best-effort, not an atomic filesystem snapshot: files can
+change during traversal.
+
+Memory scales with directory nodes and largest direct files. The snapshot is
+not a complete per-file index: it stores 32 direct files per directory and groups
+the rest. Live browsing can explicitly read all direct files on demand, with
+per-name sizes that can include shared hard-link blocks. Chart depth and node
+counts are bounded independently of scan size. The searchable, paged list can
+reach every retained directory. A snapshot stores the entire directory inventory
+and still requires memory proportional to that inventory when loaded.
+
+## Data and API
+
+Existing known-target reports retain their `whyfull-report` versioned contract.
+Filesystem inventories use `whyfull-disk`, schema version 1. The public API
+exports `DiskScanner`, `scanFilesystem`, `startViewer`, asynchronous
+`saveDiskSnapshot`/`loadDiskSnapshot`, and policy helpers.
+
+```js
+import { scanFilesystem, saveDiskSnapshot } from "whyfull"
+
+const snapshot = await scanFilesystem({
+  root: "/path/to/folder",
+  workers: 4,
+  engine: "sync",
+  policy: { keep: [], exclude: [] },
+  signal: new AbortController().signal,
+})
+await saveDiskSnapshot(snapshot, "/tmp/new-disk-snapshot.json")
+```
+
+Snapshots are ordinary JSON streamed on write and parsed incrementally on read.
+The canonical output places one directory per line so the reader can use native
+`JSON.parse` per record; minified and pretty JSON use a general streaming parser.
+This avoids V8's individual-string size limit. Existing files are never replaced.
+Incomplete/cancelled scans remain labelled incomplete when opened later. Save
+snapshots after a scan completes or is cancelled; do not serialize a changing
+inventory. Snapshot imports never continue scanning or read live file lists.
+
+The local server exposes authenticated status, directory summaries, export,
+policy updates, cancellation and rescan endpoints. Directory navigation uses
+IDs from the scan; there is no general-purpose filesystem-read endpoint. Tokens
+are generated per server session, passed to the browser in a URL fragment, and
+stored in tab-local session storage to survive reloads. APIs require a bearer
+token and validate Host and Origin; no CORS access is enabled. Static assets are
+allowlisted. A restrictive content policy blocks external assets and framing.
+
+Config updates are explicit UI actions, use private temporary files and atomic
+rename, and preserve unrelated settings. Invalid existing settings are never
+overwritten. Keep and Exclude are separate policies; removing an ancestor's keep
+rule is done in the rules panel. Exclusions apply on the next scan.
+
+## Configuration experiments
+
+After building:
+
+```bash
+node scripts/benchmark-filesystem.mjs ~/Library/pnpm/store /tmp/whyfull-benchmark.json
+```
+
+The script runs sync metadata with 1/4/8 workers and async metadata with 4 workers.
+It records elapsed time, counts, bytes, throughput, errors and sampled process
+RSS. All configurations should agree on an unchanged directory. Its sequential
+runs are warm-cache observations; memory can include objects retained from prior
+configurations. Do not infer cold-cache performance or guaranteed speedups.
+
+For an independent single run:
+
+```bash
+whyfull --scan --root ~/Library/pnpm/store --workers 4 --engine sync --json-file /tmp/scan-4.json
+```
+
+### Local macOS spike · October 19, 2026
+
+Node 22.23.2, Apple Silicon. Sequential package-store runs, with 918,102 regular
+file names, 86,976 directories, 43,107,897,344 allocated bytes, and no read errors.
+Counts and byte totals agreed across all four configurations:
+
+| Metadata engine | Workers | Elapsed | Files/second |
+| --------------- | ------: | ------: | -----------: |
+| Sync            |       1 |  56.4 s |       16,268 |
+| Sync            |       4 |  13.5 s |       67,802 |
+| Sync            |       8 |   8.4 s |      109,889 |
+| Async           |       4 |  18.6 s |       49,239 |
+
+These are warm-cache observations in this run order, not a controlled cold-cache
+benchmark. They support the eight-sync-worker default on this machine, not a
+universal claim about all disks.
+
+The full Data-volume validation traversed 24,442,231 regular-file names and
+3,220,116 directories in 250.5 seconds. It reported 441 read errors and three
+excluded mount points. The approximately 2 GiB streamed JSON snapshot reopened
+and validated in 11 seconds with the record reader, versus 51 seconds with the
+generic streaming parser, retaining the same counts and bytes. The record-reader
+process used about 3.5 GiB RSS: inventory memory is still material at this scale.
+The measurements were separate warm runs and are not cold-start guarantees.
+
+## Build and verification
+
+`pnpm build` builds the TanStack Start SPA first, then the library, CLI and
+filesystem worker. Only `apps/web/dist/client` is copied into the CLI package.
+Vite and the Start SSR/prerender server are build tools; production uses the
+small authenticated Node HTTP server. An asset manifest allows hashed JS/CSS,
+local fonts and SPA navigation fallbacks. Inline shell scripts receive CSP hashes.
+The chart rings load lazily; the horizontal SVG treemap has no chart dependency.
+Bundled dependency license texts are included in `dist/viewer/THIRD_PARTY.txt`.
+Use Node 22.18+ and pnpm 9 for development; packaged CLI code targets Node 18.15+.
+
+For UI development, start a live backend with `--view --no-open`, then run
+`WHYFULL_DEV_API=http://127.0.0.1:<backend-port> pnpm --filter @whyfull/viewer dev`.
+Open `http://127.0.0.1:3000/#<token-from-backend-url>`. The Vite proxy targets the
+explicit loopback backend. For packaged verification, run `pnpm build` and use
+the CLI URL directly. `pnpm --filter whyfull dev` watches backend code only.
+
+Tests cover allocated sizes, sparse files, hard links, symlink cycles, exclusions,
+path boundaries, cancellation, bounded direct-file retention, streamed snapshot
+round-trips, private non-overwriting reports, config preservation, local API
+authentication, origin/Host rejection, chart byte partitions and file browsing.
+Integration tests need permission to bind a loopback port.
+
+Manual release checks: scan a real volume, switch both charts, navigate with
+breadcrumbs/list/chart, search and page folders, read all direct files, save and
+remove Keep/Exclude rules in a temporary config, pause/export/import a snapshot,
+and check mobile layout. macOS has been exercised locally; verify native Windows
+and Linux behavior before claiming equivalent platform performance.

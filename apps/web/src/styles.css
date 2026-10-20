@@ -1,0 +1,83 @@
+@import "@workspace/ui/globals.css";
+@source './**/*.{ts,tsx}';
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+}
+button {
+  cursor: pointer;
+}
+.disk-workspace {
+  display: flex;
+  flex-direction: column;
+  height: 100svh;
+  overflow: hidden;
+}
+.explorer-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(280px, 34%, 390px);
+  min-height: 0;
+}
+.explorer-grid > section {
+  min-width: 0;
+  overflow: hidden;
+}
+.ranked-list {
+  overscroll-behavior: contain;
+}
+.tile-label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.25;
+  text-shadow: 0 1px 2px #0003;
+}
+.tile-label span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tile-label span + span {
+  font-size: 10px;
+  opacity: 0.85;
+  font-weight: 400;
+}
+.tile-parent {
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 8px;
+}
+.map-tile {
+  cursor: pointer;
+  transition: filter 0.12s;
+  outline: none;
+}
+.map-tile:hover,
+.map-tile:focus-visible {
+  filter: brightness(1.1);
+  stroke: var(--foreground);
+  stroke-width: 2px;
+}
+@media (max-width: 640px) {
+  .disk-workspace {
+    height: auto;
+    min-height: 100svh;
+    overflow: visible;
+  }
+  .explorer-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .explorer-grid > section:first-child {
+    height: 45svh;
+    min-height: 280px;
+  }
+  .explorer-grid > section + section {
+    border-left: 0;
+    border-top: 1px solid var(--border);
+    min-height: 300px;
+    max-height: 65svh;
+  }
+}

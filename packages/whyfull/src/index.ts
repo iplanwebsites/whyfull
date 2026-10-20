@@ -9,6 +9,22 @@ export { discover, discoverCaches } from "./discover"
 export { findWorktrees } from "./worktrees"
 export { buildJsonReport, saveJsonReport, JSON_SCHEMA_VERSION } from "./json"
 export { storeVersions, sharedStore, readModulesStoreDir } from "./pnpm"
+export { TrashController, moveToNativeTrash } from "./trash"
+export { DiskScanner, scanFilesystem, defaultScanWorkers } from "./filesystem"
+export {
+  startViewer,
+  loadDiskSnapshot,
+  saveDiskSnapshot,
+} from "./viewer-server"
+export { loadDiskPolicy, saveDiskPolicy, pathWithin } from "./disk-policy"
+export type {
+  DiskFile,
+  DiskDirectory,
+  DiskPolicy,
+  DiskSnapshot,
+  DiskScanOptions,
+} from "./filesystem-types"
+export type { ViewerOptions } from "./viewer-server"
 export type {
   Tier,
   TierMeta,

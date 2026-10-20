@@ -13,6 +13,55 @@ deleting anything for you.
 npx whyfull
 ```
 
+Explore a full filesystem in the bundled local viewer:
+
+```bash
+npx whyfull --view
+```
+
+Switch between a **sunburst** (concentric folder rings) and **treemap**, with
+breadcrumbs and a searchable list of the largest pieces on the right. Click
+folders to explore while the scan runs. All viewer assets are bundled and work
+offline; the authenticated server binds only to `127.0.0.1` on a random port.
+
+```bash
+whyfull --view --root ~/Library --workers 4
+whyfull --view --exclude ~/Pictures --exclude ~/Music
+whyfull --scan --root ~/Downloads --json-file disk.json
+whyfull --view --snapshot disk.json
+```
+
+On macOS, the default root is `/System/Volumes/Data`; elsewhere it is the home
+directory. Scanning stays on one filesystem, skips symlinks, reads metadata
+only, and reports inaccessible locations as undercounts. macOS-protected
+locations may require Full Disk Access for the launching terminal. Ctrl+C stops
+the viewer and its workers. Nothing is uploaded. Cleanup starts in demo mode.
+
+In folder details, **Keep** leaves sizes visible and suppresses cleanup advice.
+**Exclude** skips the folder and its descendants on future scans; its size is
+unknown. Manage saved rules in **Keep & exclude rules**. Pause and rescan to apply
+changed exclusions. Preferences are stored privately in
+`~/.config/whyfull/config.json`, with `keep` and `exclude` arrays of absolute or
+`~/` paths. Use `--config <file>` for another settings file. CLI exclusions are
+temporary. These preferences apply to the filesystem viewer/scanner; the
+original known-target report is unchanged.
+
+The JS scanner measures every accessible regular file once and retains every
+directory plus its largest 32 direct files. Smaller direct files are grouped;
+**All direct files** reads the current folder's complete file listing on demand.
+Snapshots retain all directory summaries and the largest files, not every
+filename. Allocated and logical sizes are separate, hard-linked bytes are counted
+once, and APFS clones may still share blocks. Measured sizes are not guaranteed
+reclaimable space.
+
+Filesystem snapshots use a separate `whyfull-disk` JSON format, version 1.
+Export and import stream JSON to avoid one huge string in memory; viewing still
+retains the directory inventory. Export after completion or pausing. Reports
+contain private local paths, use owner-only permissions, and refuse overwrites.
+
+See [viewer and scanner development](docs/viewer.md) for the architecture,
+configuration experiments and verification notes.
+
 ## Why it exists
 
 I built whyfull while working with machine learning, where trying models across
@@ -23,15 +72,22 @@ render caches, sample libraries, generated assets, and downloads.
 General disk tools tell you which files are large. whyfull starts with a shared
 map of where popular tools tend to store them, then adds context: what created
 the files, how safe they are to reclaim, and the appropriate cleanup command.
-In the Unix tradition, it does one job and leaves the actual cleanup to the tool
-that owns the data.
+The report provides cleanup commands for the tools that own the data; the viewer
+also supports explicit macOS Trash moves.
 
-## Read-only by design
+## Demo-first cleanup
 
-There is no `--clean` flag. whyfull only reads and reports, ranking disposable
-caches separately from costly downloads and irreplaceable data. You decide what
-to reclaim with the tool that created it. The only optional write is the report
-file explicitly requested with `--json-file`; it never changes scanned data.
+The report and scanner read metadata. Viewer cleanup starts in **demo mode** every
+session: previews and “Run demo” never change scanned files. To enable real moves,
+start a live viewer with `whyfull --view --allow-trash`, then enable Trash in the
+UI and confirm an individual preview. Saved snapshots support demo cleanup only.
+
+Real cleanup uses the native macOS 14+ Trash command, with no permanent-delete
+fallback. Keep rules protect folders and their containing folders. Scan roots,
+core system locations, symlinks, and items changed since preview are rejected.
+Pause or finish scanning before enabling real moves. Restore items in Finder;
+rescan afterward to refresh sizes. The appropriate tool-specific cleanup command
+is still preferable for shared model/package stores.
 
 ## Usage
 

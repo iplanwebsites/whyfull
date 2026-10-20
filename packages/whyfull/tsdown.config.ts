@@ -4,6 +4,7 @@ export default defineConfig({
   entry: {
     index: "src/index.ts",
     cli: "src/cli.ts",
+    "fs-worker": "src/fs-worker.ts",
   },
   format: ["esm"],
   target: "node18",

@@ -2,7 +2,7 @@
   "name": "whyfull",
   "version": "0.0.2",
   "private": false,
-  "description": "Find where disk space went on a dev machine (AI caches, package stores, build output), ranked by how safe each is to delete. Read-only.",
+  "description": "Find where disk space went on a dev machine (AI caches, package stores, build output), ranked by how safe each is to delete. Local disk explorer with demo-first macOS Trash cleanup.",
   "author": "Felix Menard",
   "homepage": "https://github.com/iplanwebsites/whyfull#readme",
   "bugs": {
@@ -41,6 +41,7 @@
   "files": [
     "dist",
     "README.md",
+    "docs/viewer.md",
     "LICENSE",
     "NOTICE"
   ],
@@ -51,20 +52,23 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsdown",
+    "build": "tsdown && node scripts/build-viewer.mjs",
     "typecheck": "tsc --noEmit",
     "test": "node --test \"test/**/*.test.mjs\"",
     "dev": "tsdown --watch",
-    "prepack": "node ../../scripts/sync-publish-docs.mjs && tsdown",
+    "prepack": "node ../../scripts/sync-publish-docs.mjs && pnpm exec turbo build --filter=whyfull",
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@streamparser/json": "^0.0.26",
     "mri": "^1.2.0",
     "picocolors": "^1.1.1"
   },
   "devDependencies": {
     "@types/node": "^22",
     "@whyfull/tsconfig": "workspace:*",
+    "echarts": "^6.1.0",
+    "esbuild": "^0.28.2",
     "tsdown": "^0.22.14",
     "typescript": "^5.7.2"
   }

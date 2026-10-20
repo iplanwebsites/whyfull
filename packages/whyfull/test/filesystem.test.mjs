@@ -1,0 +1,351 @@
+import { test } from "node:test"
+import assert from "node:assert/strict"
+import {
+  mkdtempSync,
+  mkdirSync,
+  writeFileSync,
+  truncateSync,
+  linkSync,
+  symlinkSync,
+  rmSync,
+  readFileSync,
+  statSync,
+  realpathSync,
+} from "node:fs"
+import { request } from "node:http"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+import {
+  scanFilesystem,
+  measure,
+  startViewer,
+  saveDiskSnapshot,
+  loadDiskSnapshot,
+  loadDiskPolicy,
+  saveDiskPolicy,
+  pathWithin,
+} from "../dist/index.mjs"
+
+function fixture() {
+  const root = mkdtempSync(join(tmpdir(), "whyfull-disk-"))
+  for (const folder of ["keep", "skip", "skip-sibling", "nested/deep"])
+    mkdirSync(join(root, folder), { recursive: true })
+  for (const folder of ["keep", "skip", "skip-sibling", "nested/deep"])
+    writeFileSync(join(root, folder, "data.bin"), Buffer.alloc(65536, 1))
+  writeFileSync(join(root, "sparse.bin"), Buffer.alloc(4096, 1))
+  truncateSync(join(root, "sparse.bin"), 1024 ** 3)
+  linkSync(join(root, "keep/data.bin"), join(root, "nested/hardlink.bin"))
+  symlinkSync(root, join(root, "nested/cycle"))
+  for (let i = 0; i < 70; i++)
+    writeFileSync(join(root, "keep", `small-${i}`), Buffer.alloc(32, i))
+  return root
+}
+
+test("scanner configurations agree with allocated-byte measurement, including sparse files and hardlinks", async () => {
+  const root = fixture()
+  try {
+    const expected = measure(root)
+    for (const [workers, engine] of [
+      [1, "sync"],
+      [4, "sync"],
+      [2, "async"],
+    ]) {
+      const result = await scanFilesystem({ root, workers, engine })
+      assert.equal(result.status, "complete")
+      assert.equal(result.directories[0].bytes, expected.bytes)
+      assert.equal(
+        result.files,
+        expected.files + 1,
+        "file count includes both names of the hardlink"
+      )
+      assert.equal(result.skippedLinks, 1)
+      assert.equal(result.issues, 0)
+      assert.ok(
+        result.directories[0].apparentBytes > 1024 ** 3,
+        "sparse logical size remains available"
+      )
+      const kept = result.directories.find((d) => d.name === "keep")
+      assert.equal(kept.ownFiles, 71)
+      assert.equal(kept.topFiles.length, 32)
+      assert.ok(
+        kept.topFiles.every(
+          (f, i, all) => i === 0 || all[i - 1].bytes >= f.bytes
+        )
+      )
+      assert.ok(kept.ownBytes >= kept.topFiles.reduce((s, f) => s + f.bytes, 0))
+    }
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test("exclusion prunes descendants but not similarly named siblings; keep does not suppress measurement", async () => {
+  const root = fixture()
+  try {
+    const result = await scanFilesystem({
+      root,
+      workers: 2,
+      policy: { keep: [join(root, "keep")], exclude: [join(root, "skip")] },
+    })
+    assert.equal(
+      result.directories.find((d) => d.name === "skip").state,
+      "excluded"
+    )
+    assert.equal(result.directories.find((d) => d.name === "skip").bytes, 0)
+    assert.equal(result.directories[0].excluded, 1)
+    assert.ok(
+      result.directories.find((d) => d.name === "skip-sibling").bytes > 0
+    )
+    assert.ok(result.directories.find((d) => d.name === "keep").bytes > 0)
+    assert.equal(
+      result.directories[0].bytes,
+      measure(root).bytes - measure(join(root, "skip")).bytes
+    )
+    assert.equal(
+      pathWithin(join(root, "skip-sibling"), join(root, "skip")),
+      false
+    )
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test("cancellation and excluded roots return explicitly incomplete or excluded inventories", async () => {
+  const root = fixture()
+  try {
+    const controller = new AbortController()
+    controller.abort()
+    const cancelled = await scanFilesystem({ root, signal: controller.signal })
+    assert.equal(cancelled.status, "cancelled")
+    assert.equal(cancelled.files, 0)
+    const excluded = await scanFilesystem({
+      root,
+      policy: { keep: [], exclude: [root] },
+    })
+    assert.equal(excluded.status, "complete")
+    assert.equal(excluded.directories[0].state, "excluded")
+    assert.equal(excluded.files, 0)
+    await assert.rejects(scanFilesystem({ root, workers: 0 }), /workers/)
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test("private snapshots round-trip and refuse overwrites; malformed settings are preserved", async () => {
+  const root = fixture()
+  try {
+    const result = await scanFilesystem({ root, workers: 1 })
+    const snapshot = join(root, "snapshot.json")
+    await saveDiskSnapshot(result, snapshot)
+    assert.deepEqual(await loadDiskSnapshot(snapshot), result)
+    await assert.rejects(saveDiskSnapshot(result, snapshot), /EEXIST/)
+    const generic = join(root, "generic.json")
+    writeFileSync(generic, JSON.stringify(result))
+    assert.deepEqual(
+      await loadDiskSnapshot(generic),
+      result,
+      "minified JSON also imports"
+    )
+    writeFileSync(generic, JSON.stringify(result, null, 2))
+    assert.deepEqual(
+      await loadDiskSnapshot(generic),
+      result,
+      "pretty JSON also imports"
+    )
+    const original = readFileSync(snapshot, "utf8")
+    writeFileSync(generic, original.replace(/,\n(?=\{)/, "\n"))
+    await assert.rejects(
+      loadDiskSnapshot(generic),
+      /comma|Unexpected|separator|token|Token/
+    )
+    if (process.platform !== "win32")
+      assert.equal(statSync(snapshot).mode & 0o777, 0o600)
+    const config = join(root, "config.json")
+    writeFileSync(
+      config,
+      JSON.stringify({ theme: "light", keep: [], exclude: [] })
+    )
+    saveDiskPolicy({ keep: [root], exclude: [] }, config)
+    assert.deepEqual(loadDiskPolicy(config), {
+      keep: [realpathSync(root)],
+      exclude: [],
+    })
+    assert.equal(JSON.parse(readFileSync(config)).theme, "light")
+    writeFileSync(config, "broken")
+    assert.throws(() => saveDiskPolicy({ keep: [], exclude: [] }, config))
+    assert.equal(readFileSync(config, "utf8"), "broken")
+    const bad = JSON.parse(readFileSync(snapshot))
+    bad.directories[0].children = [0]
+    writeFileSync(snapshot, JSON.stringify(bad))
+    await assert.rejects(loadDiskSnapshot(snapshot), /Invalid/)
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test("loopback viewer authenticates requests, preserves measured data, and supports saved policies", async () => {
+  const root = fixture()
+  let viewer
+  try {
+    for (let i = 0; i < 160; i++) {
+      const folder = join(root, `folder-${i}`)
+      mkdirSync(folder)
+      writeFileSync(join(folder, "data"), Buffer.alloc(8192, 1))
+    }
+    viewer = await startViewer({
+      root,
+      workers: 2,
+      open: false,
+      policyFile: join(root, "preferences.json"),
+    })
+    const url = new URL(viewer.url),
+      token = url.hash.slice(1),
+      base = url.origin
+    const headers = { Authorization: `Bearer ${token}` }
+    assert.equal((await fetch(`${base}/api/status`)).status, 401)
+    assert.equal(
+      (
+        await fetch(`${base}/api/status`, {
+          headers: { ...headers, Origin: "https://attacker.example" },
+        })
+      ).status,
+      403
+    )
+    const spoofed = await new Promise((resolve, reject) => {
+      const req = request(
+        `${base}/api/status`,
+        { headers: { ...headers, Host: "attacker.example" } },
+        (res) => {
+          res.resume()
+          resolve(res.statusCode)
+        }
+      )
+      req.on("error", reject)
+      req.end()
+    })
+    assert.equal(spoofed, 403)
+    for (let i = 0; i < 100 && viewer.snapshot.status === "scanning"; i++)
+      await new Promise((r) => setTimeout(r, 20))
+    assert.equal(viewer.snapshot.status, "complete")
+    const response = await fetch(`${base}/api/directory?id=0`, { headers })
+    const data = await response.json()
+    assert.ok(
+      data.chart.children.length <= 49,
+      "chart payload stays bounded on wide folders"
+    )
+    assert.equal(data.entries.length, 100)
+    const nextPage = await (
+      await fetch(`${base}/api/directory?id=0&offset=100`, { headers })
+    ).json()
+    assert.ok(nextPage.entries.length > 0)
+    const found = await (
+      await fetch(`${base}/api/directory?id=0&q=folder-159`, { headers })
+    ).json()
+    assert.equal(found.total, 1)
+    assert.equal(data.node.value, viewer.snapshot.directories[0].bytes)
+    const sum = data.chart.children.reduce((s, n) => s + n.value, 0)
+    assert.equal(
+      sum,
+      data.node.value,
+      "chart children partition the measured bytes"
+    )
+    const keep = viewer.snapshot.directories.find((d) => d.name === "keep")
+    const changed = await fetch(`${base}/api/policy`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({ id: keep.id, action: "keep" }),
+    })
+    assert.equal(changed.status, 200)
+    const kept = await (
+      await fetch(`${base}/api/directory?id=${keep.id}`, { headers })
+    ).json()
+    assert.equal(kept.node.kept, true)
+    assert.ok(kept.node.value > 0)
+    const all = await (
+      await fetch(`${base}/api/directory?id=${keep.id}&files=all`, { headers })
+    ).json()
+    assert.equal(all.entries.length, 71)
+    const shell = await fetch(`${base}/`)
+    const html = await shell.text()
+    const script = html.match(/src="([^" ]+\.js)"/)
+    assert.ok(script)
+    assert.equal((await fetch(`${base}${script[1]}`)).status, 200)
+    assert.equal((await fetch(`${base}/explore`)).status, 200)
+    const preferences = await fetch(`${base}/api/preferences`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        view: "sunburst",
+        sort: "name",
+        lastPath: viewer.snapshot.root,
+      }),
+    })
+    assert.equal(preferences.status, 200)
+    const updated = await (
+      await fetch(`${base}/api/status`, { headers })
+    ).json()
+    assert.equal(updated.viewer.view, "sunburst")
+    assert.equal(updated.cleanup.mode, "demo")
+    const snapshot = await (
+      await fetch(`${base}/api/export`, { headers })
+    ).json()
+    assert.equal(snapshot.format, "whyfull-disk")
+  } finally {
+    await viewer?.close()
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test("cleanup starts in demo, consumes previews once, and enforces native Trash opt-in and keep rules", async () => {
+  const { TrashController } = await import("../dist/index.mjs")
+  const root = realpathSync(fixture())
+  try {
+    const snapshot = await scanFilesystem({ root, workers: 1 })
+    const policy = { keep: [], exclude: [] }
+    const moved = []
+    const options = {
+      snapshot: () => snapshot,
+      policy: () => policy,
+      allowTrash: true,
+      executor: async (path) => {
+        moved.push(path)
+      },
+    }
+    const controller = new TrashController(options)
+    const folder = snapshot.directories.find((d) => d.name === "keep"),
+      id = `d${folder.id}`
+    assert.equal(controller.status().mode, "demo")
+    const demo = await controller.prepare(id)
+    assert.equal((await controller.execute(demo.id)).moved, false)
+    assert.deepEqual(moved, [])
+    await assert.rejects(controller.execute(demo.id), /already used/)
+    await assert.rejects(controller.prepare("d0"), /root/)
+    assert.throws(
+      () =>
+        new TrashController({ ...options, allowTrash: false }).setMode("trash"),
+      /allow-trash/
+    )
+    assert.throws(
+      () =>
+        new TrashController({ ...options, snapshotMode: true }).setMode(
+          "trash"
+        ),
+      /Saved inventories/
+    )
+    controller.setMode("trash")
+    const stale = await controller.prepare(id)
+    writeFileSync(join(folder.path, "new-file"), "changed")
+    await assert.rejects(controller.execute(stale.id), /changed/)
+    const guarded = await controller.prepare(id)
+    policy.keep.push(join(folder.path, "data.bin"))
+    await assert.rejects(controller.execute(guarded.id), /kept/)
+    policy.keep = []
+    const real = await controller.prepare(id)
+    assert.equal((await controller.execute(real.id)).moved, true)
+    assert.deepEqual(moved, [folder.path])
+    await assert.rejects(controller.prepare(id), /already moved/)
+    assert.equal(new TrashController(options).status().mode, "demo")
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})

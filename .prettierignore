@@ -6,3 +6,5 @@ dist
 pnpm-lock.yaml
 package-lock.json
 yarn.lock
+
+apps/web/src/routeTree.gen.ts
