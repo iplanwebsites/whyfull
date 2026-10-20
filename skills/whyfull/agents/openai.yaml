@@ -1,0 +1,6 @@
+interface:
+  display_name: "Whyfull"
+  short_description: "Diagnose disk usage and plan targeted cleanup"
+  default_prompt: "Use $whyfull to find what is taking up disk space and help me reclaim it."
+policy:
+  allow_implicit_invocation: true
