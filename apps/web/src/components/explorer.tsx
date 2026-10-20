@@ -3,7 +3,7 @@ import { RunnerControls, useDrives } from "./runner-controls"
 import { DiagnosticsDialog } from "./diagnostics-dialog"
 import { CleanupShortlist } from "./cleanup-shortlist"
 import { ReportViewer } from "./report-viewer"
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   HardDrive,
@@ -84,7 +84,8 @@ import type {
 } from "@/lib/api"
 import { chartColors, colorFor } from "@/lib/chart-colors"
 import { Treemap } from "./treemap"
-const Sunburst = lazy(() => import("./sunburst"))
+const loadSunburst = () => import("./sunburst")
+type SunburstComponent = (typeof import("./sunburst"))["default"]
 
 export function Explorer() {
   const search = Route.useSearch(),
@@ -101,6 +102,7 @@ export function Explorer() {
     [plan, setPlan] = useState<TrashPlan | null>(null),
     [enable, setEnable] = useState(false),
     [exclude, setExclude] = useState<ViewEntry | null>(null)
+  const [Sunburst, setSunburst] = useState<SunburstComponent | null>(null)
   const busy = working || changing
   const restored = useRef(false),
     input = useRef<HTMLInputElement>(null)
@@ -115,6 +117,20 @@ export function Explorer() {
   const s = status.data,
     view = search.view ?? s?.viewer.view ?? "treemap",
     sort = search.sort ?? s?.viewer.sort ?? "size"
+  useEffect(() => {
+    if (view !== "sunburst" || Sunburst) return
+    let current = true
+    void loadSunburst()
+      .then((module) => {
+        if (current) setSunburst(() => module.default)
+      })
+      .catch((error) => {
+        if (current) toast.error(error.message)
+      })
+    return () => {
+      current = false
+    }
+  }, [view, Sunburst])
   const directory = useQuery({
     queryKey: [
       "directory",
@@ -132,6 +148,10 @@ export function Explorer() {
         undefined,
         signal
       ),
+    // Keep the chart, list and breadcrumbs together while navigating within one inventory.
+    // IDs belong to a document, so never reuse a previous drive/report's result.
+    placeholderData: (previous, query) =>
+      query?.queryKey[1] === s?.documentId ? previous : undefined,
     enabled: !!s && s.source.kind !== "report" && !changing,
     refetchInterval: s?.status === "scanning" ? 2500 : false,
   })
@@ -346,7 +366,7 @@ export function Explorer() {
         </p>
       </main>
     )
-  if (!s) return <main className="p-12">Loading…</main>
+  if (!s) return <main className="disk-workspace" aria-busy="true" />
   if (s.source.kind === "report")
     return (
       <ReportViewer
@@ -478,8 +498,14 @@ export function Explorer() {
                   value={view}
                   onValueChange={(value) => {
                     const next = value as "treemap" | "sunburst"
-                    url({ view: next })
-                    void run(() => prefs({ view: next }))
+                    void run(async () => {
+                      if (next === "sunburst" && !Sunburst) {
+                        const module = await loadSunburst()
+                        setSunburst(() => module.default)
+                      }
+                      url({ view: next })
+                      await prefs({ view: next })
+                    })
                   }}
                 >
                   <DropdownMenuRadioItem value="treemap" closeOnClick>
@@ -563,7 +589,10 @@ export function Explorer() {
           </DropdownMenu>
         </header>
         <main className="flex min-h-0 flex-1 flex-col gap-2 p-2">
-          <div className="explorer-grid flex-1 overflow-hidden rounded-xl border">
+          <div
+            className="explorer-grid flex-1 overflow-hidden rounded-xl border"
+            aria-busy={directory.isFetching || changing}
+          >
             <section className="flex min-w-0 flex-col bg-muted/25">
               <div className="relative min-h-0 flex-1">
                 {directory.error ? (
@@ -577,9 +606,7 @@ export function Explorer() {
                     </Button>
                   </div>
                 ) : d ? (
-                  <Suspense
-                    fallback={<div className="p-8 text-sm">Loading rings…</div>}
-                  >
+                  <>
                     {view === "treemap" ? (
                       <Treemap
                         root={d.chart}
@@ -590,7 +617,7 @@ export function Explorer() {
                         onHover={setHover}
                         onContext={setContext}
                       />
-                    ) : (
+                    ) : Sunburst ? (
                       <Sunburst
                         root={d.chart}
                         colors={colors}
@@ -601,11 +628,9 @@ export function Explorer() {
                         onContext={setContext}
                         onUp={up}
                       />
-                    )}
-                  </Suspense>
-                ) : (
-                  <div className="p-8">Reading folder…</div>
-                )}
+                    ) : null}
+                  </>
+                ) : null}
               </div>
               <div className="flex h-6 shrink-0 items-center justify-between gap-3 border-t px-2 text-[11px] text-muted-foreground">
                 <span className="truncate">

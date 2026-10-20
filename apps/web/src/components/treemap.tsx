@@ -1,6 +1,6 @@
 import { colorFor } from "@/lib/chart-colors"
 import type { ChartColors } from "@/lib/chart-colors"
-import { useEffect, useRef, useState } from "react"
+import { useLayoutEffect, useRef, useState } from "react"
 import { horizontalTreemap } from "@/lib/treemap-layout"
 import type { Rect } from "@/lib/treemap-layout"
 import { formatSize } from "@/lib/api"
@@ -24,15 +24,21 @@ export function Treemap({
   onContext: (node: ViewEntry) => void
 }) {
   const container = useRef<HTMLDivElement>(null)
-  const [size, setSize] = useState({ width: 800, height: 600 })
-  useEffect(() => {
-    const observer = new ResizeObserver(([entry]) =>
-      setSize({
-        width: entry.contentRect.width,
-        height: entry.contentRect.height,
-      })
-    )
-    if (container.current) observer.observe(container.current)
+  const [size, setSize] = useState({ width: 0, height: 0 })
+  useLayoutEffect(() => {
+    const element = container.current!
+    const measure = () => {
+      const width = element.clientWidth,
+        height = element.clientHeight
+      setSize((previous) =>
+        previous.width === width && previous.height === height
+          ? previous
+          : { width, height }
+      )
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(element)
     return () => observer.disconnect()
   }, [])
   function tiles(
@@ -128,20 +134,22 @@ export function Treemap({
   }
   return (
     <div ref={container} className="h-full min-h-0 w-full">
-      <svg
-        width="100%"
-        height="100%"
-        viewBox={`0 0 ${size.width} ${size.height}`}
-        aria-label="Horizontal treemap of allocated space"
-        role="group"
-      >
-        {tiles(root.children ?? [], {
-          x: 6,
-          y: 6,
-          width: size.width - 12,
-          height: size.height - 12,
-        })}
-      </svg>
+      {size.width > 0 && size.height > 0 && (
+        <svg
+          width="100%"
+          height="100%"
+          viewBox={`0 0 ${size.width} ${size.height}`}
+          aria-label="Horizontal treemap of allocated space"
+          role="group"
+        >
+          {tiles(root.children ?? [], {
+            x: 6,
+            y: 6,
+            width: size.width - 12,
+            height: size.height - 12,
+          })}
+        </svg>
+      )}
     </div>
   )
 }

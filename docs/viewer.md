@@ -14,6 +14,10 @@ Sunburst rings show up to three levels; treemaps use horizontal-biased weighted
 partitions with two visible label levels. Clicking
 a directory navigates; the center/up button ascends. The list provides keyboard
 navigation, search, paging, and access to folders too small for chart labels.
+Folder navigation retains the previous chart, breadcrumbs and rows until the next
+result is ready. Retention is scoped to one inventory so a drive/report switch never
+reuses stale IDs. Rings load before switching modes, and both charts measure/draw
+before paint to avoid loading-message flashes and initial layout jumps.
 
 The UI uses the shadcn `b0` monorepo preset (Base UI, neutral Nova style,
 Tailwind 4 and Lucide icons), with shared components in `packages/ui` and the

@@ -1,6 +1,6 @@
 import { colorFor } from "@/lib/chart-colors"
 import type { ChartColors } from "@/lib/chart-colors"
-import { useEffect, useRef } from "react"
+import { useLayoutEffect, useRef } from "react"
 import * as echarts from "echarts/core"
 import { SunburstChart } from "echarts/charts"
 import { CanvasRenderer } from "echarts/renderers"
@@ -30,7 +30,7 @@ export default function Sunburst({
   const chart = useRef<echarts.EChartsType | null>(null)
   const callbacks = useRef({ onOpen, onSelect, onHover, onContext })
   callbacks.current = { onOpen, onSelect, onHover, onContext }
-  useEffect(() => {
+  useLayoutEffect(() => {
     const instance = echarts.init(container.current!)
     chart.current = instance
     instance.on("click", (event) => {
@@ -53,7 +53,7 @@ export default function Sunburst({
       chart.current = null
     }
   }, [])
-  useEffect(() => {
+  useLayoutEffect(() => {
     const prepare = (node: ViewEntry): Record<string, unknown> => {
       const paint = colorFor(colors, node, dark)
       return {
