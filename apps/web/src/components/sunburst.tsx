@@ -4,7 +4,7 @@ import { useLayoutEffect, useRef } from "react"
 import * as echarts from "echarts/core"
 import { SunburstChart } from "echarts/charts"
 import { CanvasRenderer } from "echarts/renderers"
-import { formatSize } from "@/lib/api"
+import { formatSize, formatCount } from "@/lib/api"
 import type { ViewEntry } from "@/lib/api"
 echarts.use([SunburstChart, CanvasRenderer])
 export default function Sunburst({
@@ -71,7 +71,8 @@ export default function Sunburst({
         },
         label: {
           color: paint.text,
-          formatter: () => `${node.mark ? "⚑ " : ""}${node.name}`,
+          formatter: () =>
+            `${node.mark ? "⚑ " : ""}${(node.kind === "remainder" || node.kind === "group") && node.files !== undefined ? `${formatCount(node.files)} ${node.files === 1 ? "file" : "files"}` : node.name}`,
         },
         children: node.children
           ?.filter((n) => n.value > 0)

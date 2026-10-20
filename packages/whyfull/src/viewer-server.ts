@@ -200,7 +200,8 @@ export async function startViewer(options: ViewerOptions) {
     if (remainingCount)
       children.push({
         id: `r${node.id}`,
-        name: `${remainingCount.toLocaleString()} other files`,
+        name: `${remainingCount.toLocaleString()} ${remainingCount === 1 ? "file" : "files"}`,
+        files: remainingCount,
         value: remainder,
         kind: "remainder",
         path: node.path,
@@ -219,14 +220,30 @@ export async function startViewer(options: ViewerOptions) {
             )
           : { ...child, ...(child.path ? describe(String(child.path)) : {}) }
       )
-    if (children.length > limit)
+    if (children.length > limit) {
+      const hidden = children.slice(limit)
+      const filesOnly = hidden.every(
+        (child) => child.kind === "file" || child.kind === "remainder"
+      )
+      const files = filesOnly
+        ? hidden.reduce(
+            (count, child) =>
+              count + (child.kind === "file" ? 1 : Number(child.files)),
+            0
+          )
+        : undefined
       visible.push({
         id: `g${node.id}`,
-        name: `${children.length - limit} smaller entries`,
-        value: children.slice(limit).reduce((s, n) => s + Number(n.value), 0),
+        name:
+          files !== undefined
+            ? `${files.toLocaleString()} ${files === 1 ? "file" : "files"}`
+            : `${hidden.length} smaller entries`,
+        files,
+        value: hidden.reduce((s, n) => s + Number(n.value), 0),
         kind: "group",
         advice: "Use the searchable list to browse every folder.",
       })
+    }
     out.children = visible
     return out
   }

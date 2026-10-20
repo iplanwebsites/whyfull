@@ -57,6 +57,10 @@ Saved snapshots support demo only. Keep and exclude rules also block moves of
 ancestors that contain protected paths. Root/system locations and changed or
 symlinked paths are rejected. The inventory is refreshed by an explicit rescan.
 
+File groups use compact counts such as **14k files**, with allocated size beneath.
+Large treemap blocks scale up the count for readability. Tooltips and accessible
+labels retain exact counts; file-only groups preserve counts across chart limits.
+
 Sizes use whole MiB and at most one decimal for GiB/TiB. When the current folder
 or report section reaches a TiB, GiB values use whole numbers too. Zooming into a
 smaller folder restores useful precision; charts and the ranked list share a scale.

@@ -11,3 +11,15 @@ export function formatSize(value: number | undefined, upperLimit = value ?? 0) {
     i >= 3 && n < 100 && !(i === 3 && upperLimit >= 1024 ** 4) ? 1 : 0
   return `${n.toLocaleString(undefined, { maximumFractionDigits: decimals })} ${units[i]}`
 }
+
+/** Compact chart counts; exact counts remain in labels and tooltips. */
+export function formatCount(value: number) {
+  let scaled = value
+  while (scaled >= 1000) scaled /= 1000
+  return new Intl.NumberFormat("en", {
+    notation: "compact",
+    maximumFractionDigits: value >= 1000 && scaled < 10 ? 1 : 0,
+  })
+    .format(value)
+    .replace("K", "k")
+}

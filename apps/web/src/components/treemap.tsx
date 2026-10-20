@@ -3,7 +3,7 @@ import type { ChartColors } from "@/lib/chart-colors"
 import { useLayoutEffect, useRef, useState } from "react"
 import { horizontalTreemap } from "@/lib/treemap-layout"
 import type { Rect } from "@/lib/treemap-layout"
-import { formatSize } from "@/lib/api"
+import { formatSize, formatCount } from "@/lib/api"
 import type { ViewEntry } from "@/lib/api"
 
 export function Treemap({
@@ -59,6 +59,14 @@ export function Treemap({
           h > 105 &&
           w > 150 &&
           entry.children?.some((child) => child.value > 0)
+        const fileGroup =
+          (entry.kind === "remainder" || entry.kind === "group") &&
+          entry.files !== undefined
+        const label = fileGroup
+          ? `${formatCount(entry.files!)} ${entry.files === 1 ? "file" : "files"}`
+          : entry.name
+        const largeCount = fileGroup && w > 240 && h > 140
+        const countSize = Math.min(64, Math.max(28, Math.min(w / 7, h / 4)))
         const open = () =>
           entry.kind === "directory" ? onOpen(entry) : onSelect(entry)
         return (
@@ -97,7 +105,8 @@ export function Treemap({
               onMouseLeave={() => onHover(null)}
             >
               <title>
-                {entry.path ?? entry.name}
+                {entry.name}
+                {entry.path ? `\n${entry.path}` : ""}
                 {"\n"}
                 {formatSize(entry.value, root.value)} allocated
                 {entry.mark
@@ -110,15 +119,46 @@ export function Treemap({
                 x={x + 10}
                 y={y + 7}
                 width={Math.max(0, w - 20)}
-                height={nested ? 27 : Math.min(h - 12, 50)}
+                height={
+                  nested
+                    ? 27
+                    : largeCount
+                      ? Math.min(h - 12, countSize * 2 + 20)
+                      : Math.min(h - 12, 50)
+                }
                 pointerEvents="none"
               >
                 <div
                   className={`tile-label ${nested ? "tile-parent" : ""}`}
                   style={{ color: paint.text }}
                 >
-                  <span>{entry.name}</span>
-                  <span>{formatSize(entry.value, root.value)}</span>
+                  <span
+                    style={
+                      largeCount
+                        ? {
+                            fontSize: countSize,
+                            lineHeight: 1.1,
+                            fontWeight: 600,
+                            letterSpacing: "-0.035em",
+                          }
+                        : undefined
+                    }
+                  >
+                    {label}
+                  </span>
+                  <span
+                    style={
+                      largeCount
+                        ? {
+                            fontSize: Math.max(18, countSize * 0.45),
+                            marginTop: 6,
+                            fontWeight: 500,
+                          }
+                        : undefined
+                    }
+                  >
+                    {formatSize(entry.value, root.value)}
+                  </span>
                 </div>
               </foreignObject>
             )}

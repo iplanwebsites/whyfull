@@ -91,7 +91,7 @@ export async function exportSnapshot(filename = "whyfull-disk.json") {
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
-export { formatSize } from "./format-size"
+export { formatSize, formatCount } from "./format-size"
 
 export async function importReport(file: File): Promise<ViewerStatus> {
   if (file.size > 8 * 1024 ** 3)

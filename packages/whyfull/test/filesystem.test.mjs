@@ -261,6 +261,25 @@ test("loopback viewer authenticates requests, preserves measured data, and suppo
     ).json()
     assert.equal(kept.node.kept, true)
     assert.ok(kept.node.value > 0)
+    assert.equal(
+      kept.chart.children.reduce(
+        (count, child) =>
+          count + (child.kind === "file" ? 1 : (child.files ?? 0)),
+        0
+      ),
+      71,
+      "file groups preserve exact counts"
+    )
+    const remainder = kept.chart.children.find(
+      (child) => child.kind === "remainder"
+    )
+    assert.equal(remainder.files, keep.ownFiles - keep.topFiles.length)
+    assert.equal(remainder.name, `${remainder.files} files`)
+    assert.ok(
+      kept.chart.children
+        .filter((child) => child.kind === "group")
+        .every((child) => child.files > 0 && child.name.endsWith(" files"))
+    )
     const all = await (
       await fetch(`${base}/api/directory?id=${keep.id}&files=all`, { headers })
     ).json()

@@ -1,6 +1,6 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { formatSize } from "../src/lib/format-size.ts"
+import { formatSize, formatCount } from "../src/lib/format-size.ts"
 const GiB = 1024 ** 3,
   TiB = 1024 ** 4
 
@@ -13,4 +13,13 @@ test("size precision follows the visible scale and drops small-unit decimals", (
   assert.equal(formatSize(127), "127 B")
   assert.equal(formatSize(undefined), "0 B")
   assert.equal(formatSize(0.12 * GiB, 2 * TiB), "123 MiB")
+})
+
+test("chart counts use compact units without losing useful precision at each scale", () => {
+  assert.equal(formatCount(1), "1")
+  assert.equal(formatCount(950), "950")
+  assert.equal(formatCount(13902), "14k")
+  assert.equal(formatCount(1250), "1.3k")
+  assert.equal(formatCount(1490000), "1.5M")
+  assert.equal(formatCount(125000000), "125M")
 })
