@@ -61,6 +61,7 @@ export interface ViewerStatus extends Omit<
     supported: boolean
     reason: string | null
   }
+  homeDirectory: string
   finderAvailable: boolean
   needsRescan: boolean
 }
@@ -74,3 +75,5 @@ export interface ShortlistEntry {
   partial: boolean
   kept: boolean
 }
+
+export type { DiagnosticsStatus } from "./diagnostics"

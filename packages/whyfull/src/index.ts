@@ -64,3 +64,5 @@ export { loadViewerFile, validateViewerReport } from "./viewer-document"
 export { listScanDrives, defaultScanRoot } from "./drives"
 
 export type { ScanDrive } from "./drives"
+
+export { DiagnosticRunner, diagnosticCommands } from "./diagnostics"

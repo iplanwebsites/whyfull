@@ -8,6 +8,7 @@ import { useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import {
   Download,
+  Terminal,
   Ellipsis,
   ListChecks,
   Search,
@@ -25,6 +26,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@workspace/ui/components/dropdown-menu"
+import { DiagnosticsDialog } from "./diagnostics-dialog"
 import { CleanupShortlist } from "./cleanup-shortlist"
 import { RunnerControls } from "./runner-controls"
 import { api, formatSize, exportSnapshot } from "@/lib/api"
@@ -50,6 +52,7 @@ export function ReportViewer({
   onPendingChange: (value: boolean) => void
 }) {
   const [shortlist, setShortlist] = useState(false)
+  const [diagnostics, setDiagnostics] = useState(false)
   const [section, setSection] = useState<ReportSection>("targets"),
     [query, setQuery] = useState(""),
     [page, setPage] = useState(0),
@@ -123,6 +126,7 @@ export function ReportViewer({
         >
           {status.source.name ?? "CLI report"}
         </span>
+        <DiagnosticsDialog open={diagnostics} onOpenChange={setDiagnostics} />
         <CleanupShortlist
           open={shortlist}
           onOpenChange={setShortlist}
@@ -143,6 +147,10 @@ export function ReportViewer({
             <Ellipsis />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setDiagnostics(true)}>
+              <Terminal />
+              Diagnostics
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setShortlist(true)}>
               <ListChecks />
               Cleanup shortlist
@@ -213,6 +221,7 @@ export function ReportViewer({
                 <ReportRows
                   key={row.id}
                   row={row}
+                  upperLimit={Math.max(...rows.map((item) => item.bytes ?? 0))}
                   expanded={expanded === row.id}
                   finderAvailable={status.finderAvailable}
                   onToggle={() =>
@@ -265,11 +274,13 @@ export function ReportViewer({
 }
 function ReportRows({
   row,
+  upperLimit,
   expanded,
   onToggle,
   finderAvailable,
 }: {
   row: Row
+  upperLimit: number
   expanded: boolean
   finderAvailable: boolean
   onToggle: () => void
@@ -310,7 +321,7 @@ function ReportRows({
         <td className="p-2 text-xs">{row.tier ?? "—"}</td>
         <td className="whitespace-nowrap p-2 text-right text-xs tabular-nums">
           {row.partial && row.bytes !== null ? "≥ " : ""}
-          {row.bytes === null ? "Unknown" : formatSize(row.bytes)}
+          {row.bytes === null ? "Unknown" : formatSize(row.bytes, upperLimit)}
         </td>
       </ContextMenuTrigger>
       <ContextMenuContent>
@@ -352,7 +363,7 @@ function ReportRows({
                   {child.name}
                 </span>
                 <span className="shrink-0 tabular-nums">
-                  {formatSize(child.bytes)}
+                  {formatSize(child.bytes, upperLimit)}
                 </span>
               </div>
             ))}

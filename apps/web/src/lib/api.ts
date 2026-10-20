@@ -5,6 +5,7 @@ import type {
   ViewerPreferences,
   TrashPlan,
   ScanDrive,
+  DiagnosticsStatus,
   ShortlistEntry,
   WhyfullJsonReport,
 } from "../../../../packages/whyfull/src/viewer-types"
@@ -15,6 +16,7 @@ export type {
   ViewerPreferences,
   TrashPlan,
   ScanDrive,
+  DiagnosticsStatus,
   ShortlistEntry,
   WhyfullJsonReport,
 }
@@ -89,16 +91,7 @@ export async function exportSnapshot(filename = "whyfull-disk.json") {
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
-export function formatSize(value: number | undefined) {
-  let n = value ?? 0,
-    i = 0
-  const units = ["B", "KiB", "MiB", "GiB", "TiB", "PiB"]
-  while (n >= 1024 && i < units.length - 1) {
-    n /= 1024
-    i++
-  }
-  return `${n.toLocaleString(undefined, { maximumFractionDigits: i > 1 ? (n < 10 ? 2 : 1) : 0 })} ${units[i]}`
-}
+export { formatSize } from "./format-size"
 
 export async function importReport(file: File): Promise<ViewerStatus> {
   if (file.size > 8 * 1024 ** 3)

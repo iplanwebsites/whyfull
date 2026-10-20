@@ -1,5 +1,6 @@
 import { toast } from "@workspace/ui/components/sonner"
 import { RunnerControls, useDrives } from "./runner-controls"
+import { DiagnosticsDialog } from "./diagnostics-dialog"
 import { CleanupShortlist } from "./cleanup-shortlist"
 import { ReportViewer } from "./report-viewer"
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react"
@@ -13,6 +14,7 @@ import {
   Search,
   ArrowUp,
   Download,
+  Terminal,
   LayoutGrid,
   ChartPie,
   Sun,
@@ -90,6 +92,7 @@ export function Explorer() {
     client = useQueryClient()
   const [page, setPage] = useState(0),
     [shortlist, setShortlist] = useState(false),
+    [diagnostics, setDiagnostics] = useState(false),
     [selected, setSelected] = useState<ViewEntry | null>(null),
     [hover, setHover] = useState<ViewEntry | null>(null),
     [changing, setChanging] = useState(false),
@@ -292,6 +295,7 @@ export function Explorer() {
     restored.current = true
     if (
       s.source.kind !== "report" &&
+      s.root !== s.homeDirectory &&
       search.id === undefined &&
       !search.path &&
       s.viewer.lastPath
@@ -518,6 +522,10 @@ export function Explorer() {
                 <RefreshCw />
                 {s.status === "scanning" ? "Pause scan" : "Rescan"}
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setDiagnostics(true)}>
+                <Terminal />
+                Diagnostics
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setShortlist(true)}>
                 <Trash2 />
                 Cleanup shortlist
@@ -604,7 +612,7 @@ export function Explorer() {
                   {hover?.path ?? hover?.name ?? ""}
                 </span>
                 <span className="shrink-0">
-                  {hover ? formatSize(hover.value) : ""}
+                  {hover ? formatSize(hover.value, d?.node.value) : ""}
                 </span>
               </div>
             </section>
@@ -685,7 +693,7 @@ export function Explorer() {
                       )}
                     </button>
                     <span className="shrink-0 text-xs font-medium tabular-nums">
-                      {formatSize(entry.value)}
+                      {formatSize(entry.value, d?.node.value)}
                     </span>
                     <Button
                       variant="ghost"
@@ -728,7 +736,9 @@ export function Explorer() {
                 <div className="border-t bg-muted/30 p-3">
                   <div className="mb-1 flex justify-between gap-2 text-sm font-medium">
                     <span className="truncate">{focus.name}</span>
-                    <span className="shrink-0">{formatSize(focus.value)}</span>
+                    <span className="shrink-0">
+                      {formatSize(focus.value, d?.node.value)}
+                    </span>
                   </div>
                   <p className="mb-3 break-all text-xs text-muted-foreground">
                     {focus.path ??
@@ -808,6 +818,7 @@ export function Explorer() {
             </section>
           </div>
         </main>
+        <DiagnosticsDialog open={diagnostics} onOpenChange={setDiagnostics} />
         <CleanupShortlist
           open={shortlist}
           onOpenChange={setShortlist}

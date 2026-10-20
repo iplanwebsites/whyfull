@@ -1,5 +1,6 @@
 import { pipeline } from "node:stream/promises"
-import { tmpdir } from "node:os"
+import { DiagnosticRunner } from "./diagnostics"
+import { tmpdir, homedir } from "node:os"
 import { listScanDrives } from "./drives"
 import type { ScanDrive } from "./drives"
 import {
@@ -59,6 +60,8 @@ export interface ViewerOptions extends DiskScanOptions {
 }
 
 export async function startViewer(options: ViewerOptions) {
+  const diagnostics = new DiagnosticRunner()
+  const homeDirectory = await realpath(homedir())
   const token = randomBytes(32).toString("hex")
   const policyFile = options.policyFile ?? defaultPolicyPath()
   const policy = loadDiskPolicy(policyFile)
@@ -307,6 +310,7 @@ export async function startViewer(options: ViewerOptions) {
       },
       viewer: viewerPreferences,
       cleanup: trash.status(),
+      homeDirectory,
       finderAvailable: !!options.finder || process.platform === "darwin",
       needsRescan: trash.moved.size > 0,
     }
@@ -535,6 +539,17 @@ export async function startViewer(options: ViewerOptions) {
         })
         return
       }
+      if (req.method === "GET" && url.pathname === "/api/diagnostics") {
+        json(res, diagnostics.status())
+        return
+      }
+      if (req.method === "POST" && url.pathname === "/api/diagnostics") {
+        const input = await body(req)
+        if (input.action === "run") json(res, diagnostics.run(input.id))
+        else if (input.action === "cancel") json(res, diagnostics.cancel())
+        else throw new Error("Unknown diagnostic action")
+        return
+      }
       if (req.method === "GET" && url.pathname === "/api/shortlist") {
         const indexed = shortlistDirectories()
         json(
@@ -758,7 +773,10 @@ export async function startViewer(options: ViewerOptions) {
       if (req.method === "POST" && url.pathname === "/api/scan-root") {
         if (switching) throw new Error("Wait for the report to finish opening")
         const input = await body(req),
-          drive = drives().find((d) => d.id === input.root)
+          drive =
+            input.root === homeDirectory
+              ? { id: homeDirectory }
+              : drives().find((d) => d.id === input.root)
         if (!drive) throw new Error("Select an available drive")
         startScan(drive.id)
         json(res, summary())
@@ -867,6 +885,7 @@ export async function startViewer(options: ViewerOptions) {
     },
     close: async () => {
       scanner?.cancel()
+      diagnostics.cancel()
       server.closeAllConnections()
       await new Promise<void>((resolve) => server.close(() => resolve()))
     },

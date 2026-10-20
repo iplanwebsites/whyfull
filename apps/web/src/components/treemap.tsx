@@ -78,7 +78,7 @@ export function Treemap({
               strokeWidth={1}
               role="button"
               tabIndex={0}
-              aria-label={`${entry.name}, ${formatSize(entry.value)}${entry.kind === "directory" ? ", open folder" : ""}`}
+              aria-label={`${entry.name}, ${formatSize(entry.value, root.value)}${entry.kind === "directory" ? ", open folder" : ""}`}
               className="map-tile"
               onClick={open}
               onKeyDown={(event) => {
@@ -93,7 +93,7 @@ export function Treemap({
               <title>
                 {entry.path ?? entry.name}
                 {"\n"}
-                {formatSize(entry.value)} allocated
+                {formatSize(entry.value, root.value)} allocated
                 {entry.mark
                   ? ` · ${entry.mark === "trash" ? "Marked for Trash" : "Marked as useless"}`
                   : ""}
@@ -112,7 +112,7 @@ export function Treemap({
                   style={{ color: paint.text }}
                 >
                   <span>{entry.name}</span>
-                  <span>{formatSize(entry.value)}</span>
+                  <span>{formatSize(entry.value, root.value)}</span>
                 </div>
               </foreignObject>
             )}

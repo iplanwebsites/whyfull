@@ -53,6 +53,18 @@ Saved snapshots support demo only. Keep and exclude rules also block moves of
 ancestors that contain protected paths. Root/system locations and changed or
 symlinked paths are rejected. The inventory is refreshed by an explicit rescan.
 
+Sizes use whole MiB and at most one decimal for GiB/TiB. When the current folder
+or report section reaches a TiB, GiB values use whole numbers too. Zooming into a
+smaller folder restores useful precision; charts and the ranked list share a scale.
+
+**Diagnostics** in the ellipsis menu runs individual read-only commands: disk usage,
+macOS volume information, local snapshot listing, system storage information, and
+the whyfull known-cache report. Each command has a play button, live stdout/stderr,
+exit status, stop control, and copyable trace. Commands run on the local Node.js
+runner by fixed ID without a shell or arbitrary command input. Traces stay in memory
+for the runner session, are bounded, and survive switching commands or closing the
+panel. Failed commands show a red toast; long-running commands have timeouts.
+
 ## Scanner
 
 `DiskScanner` schedules each directory once across a bounded pool of worker
@@ -67,7 +79,11 @@ async engine fans out up to eight metadata calls per worker. Workers default to
 CPU parallelism minus one, capped at eight, with a configurable range of 1–32.
 Exclusions prune traversal before descending. Kept paths remain measured.
 
-The default macOS root `/System/Volumes/Data` includes the writable data volume
+The viewer starts in the user’s home directory. The drive selector includes a Home
+shortcut, macOS Data, and other mounted drives. An explicit `--root` overrides Home;
+the standalone `--scan` default remains the system data volume.
+
+The macOS Data root `/System/Volumes/Data` includes the writable data volume
 without also traversing the system firmlink aliases. Different devices are
 excluded and can be scanned separately. Rules understand `/var`/`/private/var`
 aliases and Data-volume user-path aliases. Rules use path boundaries rather

@@ -23,7 +23,7 @@ const HELP = `
   Options
     --view            open the local treemap / sunburst disk explorer
     --scan            inventory an entire filesystem with JS worker threads
-    --root <dir>      filesystem scan root (macOS: /System/Volumes/Data)
+    --root <dir>      scan root (viewer: home; --scan on macOS: Data)
     --workers <n>     filesystem workers, 1–32 (default: up to 8)
     --engine <name>   sync or async metadata (for scan benchmarks)
     --exclude <dir>   skip a directory and descendants; repeatable

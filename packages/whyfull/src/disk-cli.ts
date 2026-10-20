@@ -1,4 +1,5 @@
 import { loadViewerFile } from "./viewer-document"
+import { homedir } from "node:os"
 import { defaultScanRoot } from "./drives"
 import { basename } from "node:path"
 import mri from "mri"
@@ -106,7 +107,7 @@ export async function runDiskCli(argv: string[]): Promise<void> {
     if (excludes.some((p: unknown) => typeof p !== "string" || !p))
       throw new Error("--exclude requires a directory")
     const policyFile = one("config") ? resolve(one("config")!) : undefined
-    const root = one("root") ?? defaultScanRoot()
+    const root = one("root") ?? (raw.view ? homedir() : defaultScanRoot())
     const policy = loadDiskPolicy(policyFile)
     const options: DiskScanOptions = {
       root,

@@ -2,6 +2,7 @@ import { useRef, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import {
   HardDrive,
+  House,
   ChevronDown,
   FileJson,
   Check,
@@ -104,13 +105,36 @@ export function RunnerControls({
           <span className="truncate">
             {status.source.kind === "report"
               ? "Report"
-              : (selected?.name ??
-                status.root.split("/").filter(Boolean).at(-1) ??
-                "Drive")}
+              : status.root === status.homeDirectory
+                ? "Home"
+                : (selected?.name ??
+                  status.root.split("/").filter(Boolean).at(-1) ??
+                  "Drive")}
           </span>
           <ChevronDown className="size-3" />
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-72">
+          <DropdownMenuItem
+            disabled={pending || disabled}
+            onClick={() =>
+              void change(
+                () =>
+                  api<ViewerStatus>("scan-root", {
+                    root: status.homeDirectory,
+                  }),
+                "Scanning home…"
+              )
+            }
+          >
+            <House />
+            <div className="min-w-0">
+              <div>Home</div>
+              <div className="truncate text-[11px] text-muted-foreground">
+                {status.homeDirectory}
+              </div>
+            </div>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           {drives.data?.map((drive) => (
             <DropdownMenuItem
               key={drive.id}

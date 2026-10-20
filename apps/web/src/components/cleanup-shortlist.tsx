@@ -113,7 +113,7 @@ export function CleanupShortlist({
                 <div className="mt-1 text-xs tabular-nums">
                   {entry.bytes === null
                     ? "Outside this inventory · size unknown"
-                    : `${entry.partial ? "≥ " : ""}${formatSize(entry.bytes)}`}
+                    : `${entry.partial ? "≥ " : ""}${formatSize(entry.bytes, Math.max(...(result.data ?? []).map((item) => item.bytes ?? 0)))}`}
                 </div>
               </div>
               {entry.id && onBrowse && (
