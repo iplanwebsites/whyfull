@@ -17,7 +17,7 @@ export interface ViewEntry {
   issues?: number
   excluded?: number
   reason?: string
-  mark?: "delete" | "useless" | null
+  mark?: "trash" | "useless" | null
   kept?: boolean
   directKeep?: boolean
   trashed?: boolean
@@ -63,4 +63,14 @@ export interface ViewerStatus extends Omit<
   }
   finderAvailable: boolean
   needsRescan: boolean
+}
+
+export interface ShortlistEntry {
+  path: string
+  name: string
+  mark: "trash" | "useless"
+  id: string | null
+  bytes: number | null
+  partial: boolean
+  kept: boolean
 }

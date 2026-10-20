@@ -1,5 +1,6 @@
 import { toast } from "@workspace/ui/components/sonner"
 import { RunnerControls, useDrives } from "./runner-controls"
+import { CleanupShortlist } from "./cleanup-shortlist"
 import { ReportViewer } from "./report-viewer"
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
@@ -88,6 +89,7 @@ export function Explorer() {
     navigate = Route.useNavigate(),
     client = useQueryClient()
   const [page, setPage] = useState(0),
+    [shortlist, setShortlist] = useState(false),
     [selected, setSelected] = useState<ViewEntry | null>(null),
     [hover, setHover] = useState<ViewEntry | null>(null),
     [changing, setChanging] = useState(false),
@@ -173,7 +175,7 @@ export function Explorer() {
         null
     )
   }
-  async function mark(node: ViewEntry, value: "delete" | "useless" | null) {
+  async function mark(node: ViewEntry, value: "trash" | "useless" | null) {
     await api("mark", { id: node.id, mark: value })
   }
   function directoryActions(node: ViewEntry | undefined, contextual = false) {
@@ -183,19 +185,22 @@ export function Explorer() {
       <>
         <Item
           disabled={busy || !enabled || !s?.finderAvailable}
-          onClick={() => void run(() => api("finder", { id: node!.id }))}
+          onClick={() =>
+            void run(async () => {
+              await api("finder", { id: node!.id })
+              toast.success("Sent to Finder")
+            })
+          }
         >
           <FolderOpen />
-          Open in Finder
+          Show in Finder
         </Item>
         <Item
           disabled={busy || !enabled || node?.id === "d0" || node?.kept}
-          onClick={() => void run(() => mark(node!, "delete"))}
+          onClick={() => void run(() => mark(node!, "trash"))}
         >
           <Trash2 />
-          {node?.mark === "delete"
-            ? "Marked for deletion"
-            : "Mark for deletion"}
+          {node?.mark === "trash" ? "Marked for Trash" : "Mark for Trash"}
         </Item>
         <Item
           disabled={busy || !enabled || node?.id === "d0" || node?.kept}
@@ -419,17 +424,17 @@ export function Explorer() {
           {d?.node.mark && (
             <span
               title={
-                d.node.mark === "delete"
-                  ? "Marked for deletion"
+                d.node.mark === "trash"
+                  ? "Marked for Trash"
                   : "Marked as useless"
               }
               aria-label={
-                d.node.mark === "delete"
-                  ? "Marked for deletion"
+                d.node.mark === "trash"
+                  ? "Marked for Trash"
                   : "Marked as useless"
               }
             >
-              {d.node.mark === "delete" ? (
+              {d.node.mark === "trash" ? (
                 <Trash2 className="size-3 text-destructive" />
               ) : (
                 <Flag className="size-3 text-amber-600" />
@@ -512,6 +517,10 @@ export function Explorer() {
               >
                 <RefreshCw />
                 {s.status === "scanning" ? "Pause scan" : "Rescan"}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShortlist(true)}>
+                <Trash2 />
+                Cleanup shortlist
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => url({ panel: "rules" })}>
                 <ShieldCheck />
@@ -733,8 +742,8 @@ export function Explorer() {
                   )}
                   {focus.mark && (
                     <Badge variant="outline" className="mb-2">
-                      {focus.mark === "delete"
-                        ? "Marked for deletion"
+                      {focus.mark === "trash"
+                        ? "Marked for Trash"
                         : "Marked as useless"}
                     </Badge>
                   )}
@@ -799,6 +808,21 @@ export function Explorer() {
             </section>
           </div>
         </main>
+        <CleanupShortlist
+          open={shortlist}
+          onOpenChange={setShortlist}
+          finderAvailable={s.finderAvailable}
+          documentId={s.documentId}
+          onBrowse={(entry) =>
+            open({
+              id: entry.id!,
+              path: entry.path,
+              name: entry.name,
+              value: entry.bytes ?? 0,
+              kind: "directory",
+            })
+          }
+        />
         <Dialog
           open={!!search.panel}
           onOpenChange={(open) => {

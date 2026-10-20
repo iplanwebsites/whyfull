@@ -350,7 +350,7 @@ test("cleanup starts in demo, consumes previews once, and enforces native Trash 
   }
 })
 
-test("directory marks persist independently of preferences; Finder accepts only unchanged inventory directories", async () => {
+test("directory marks persist independently of preferences; Finder reveals allowlisted directories through path aliases", async () => {
   const root = realpathSync(fixture()),
     config = join(root, "config.json"),
     opened = []
@@ -381,7 +381,7 @@ test("directory marks persist independently of preferences; Finder accepts only 
       })
     const folder = snapshot.directories.find((d) => d.name === "nested"),
       id = `d${folder.id}`
-    assert.equal((await post("mark", { id, mark: "delete" })).status, 200)
+    assert.equal((await post("mark", { id, mark: "trash" })).status, 200)
     assert.equal((await post("preferences", { view: "sunburst" })).status, 200)
     assert.equal((await post("mark", { id, mark: "useless" })).status, 200)
     assert.equal((await post("finder", { id, path: "/etc" })).status, 200)
@@ -390,21 +390,36 @@ test("directory marks persist independently of preferences; Finder accepts only 
       [folder.path],
       "client-supplied arbitrary paths are ignored"
     )
+    symlinkSync(root, join(root, "alias"))
+    const original = folder.path
+    folder.path = join(root, "alias", "nested")
+    assert.equal((await post("finder", { id })).status, 200)
+    assert.equal(
+      opened.at(-1),
+      original,
+      "Finder resolves aliases in parent paths"
+    )
+    folder.path = original
     assert.equal((await post("finder", { id: "f0-0" })).status, 400)
     assert.equal((await post("finder", { id: "d99999999" })).status, 400)
-    assert.equal((await post("mark", { id: "d0", mark: "delete" })).status, 400)
+    assert.equal((await post("mark", { id: "d0", mark: "trash" })).status, 400)
     assert.equal((await post("mark", { id, mark: "bogus" })).status, 400)
     const kept = snapshot.directories.find((d) => d.name === "keep")
     await post("policy", { id: kept.id, action: "keep" })
     assert.equal(
-      (await post("mark", { id: `d${kept.id}`, mark: "delete" })).status,
+      (await post("mark", { id: `d${kept.id}`, mark: "trash" })).status,
       400
     )
     const altered = snapshot.directories.find((d) => d.name === "skip-sibling")
     rmSync(altered.path, { recursive: true })
     symlinkSync(root, altered.path)
-    assert.equal((await post("finder", { id: `d${altered.id}` })).status, 400)
-    assert.equal(opened.length, 1)
+    assert.equal((await post("finder", { id: `d${altered.id}` })).status, 200)
+    assert.equal(
+      opened.at(-1),
+      root,
+      "read-only reveal safely resolves directory symlinks"
+    )
+    assert.equal(opened.length, 3)
     assert.equal(
       readFileSync(join(folder.path, "deep/data.bin")).length,
       65536,
@@ -435,6 +450,89 @@ test("directory marks persist independently of preferences; Finder accepts only 
     })
     assert.equal(cleared.status, 200)
     assert.deepEqual(JSON.parse(readFileSync(config)).marks, {})
+  } finally {
+    await viewer?.close()
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test("shortlist migrates legacy marks, survives scan changes, and reports Finder errors", async () => {
+  const root = realpathSync(fixture()),
+    config = join(root, "config.json")
+  const missing = join(root, "gone"),
+    folder = join(root, "nested")
+  writeFileSync(
+    config,
+    JSON.stringify({ marks: { [folder]: "delete", [missing]: "useless" } })
+  )
+  let viewer
+  try {
+    viewer = await startViewer({
+      root,
+      workers: 1,
+      open: false,
+      policyFile: config,
+      finder: async () => {
+        throw new Error("Finder refused the request")
+      },
+    })
+    for (let i = 0; i < 100 && viewer.snapshot.status === "scanning"; i++)
+      await new Promise((r) => setTimeout(r, 10))
+    const url = new URL(viewer.url),
+      headers = {
+        Authorization: `Bearer ${url.hash.slice(1)}`,
+        "Content-Type": "application/json",
+      }
+    const get = async () =>
+      (await fetch(`${url.origin}/api/shortlist`, { headers })).json()
+    const post = (body) =>
+      fetch(`${url.origin}/api/shortlist`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+      })
+    const entries = await get()
+    assert.equal(entries.length, 2)
+    const measured = entries.find((entry) => entry.path === folder)
+    assert.equal(measured.mark, "trash")
+    assert.ok(measured.bytes > 0)
+    assert.equal(measured.partial, false)
+    const stale = entries.find((entry) => entry.path === missing)
+    assert.equal(stale.bytes, null)
+    assert.equal(stale.id, null)
+    const failed = await post({ path: folder, action: "finder" })
+    assert.equal(failed.status, 400)
+    assert.match((await failed.json()).error, /Finder refused/)
+    const gone = await post({ path: missing, action: "finder" })
+    assert.equal(gone.status, 400)
+    assert.match((await gone.json()).error, /missing or inaccessible/)
+    assert.equal((await post({ path: root, action: "finder" })).status, 400)
+    assert.equal((await post({ path: folder, action: "trash" })).status, 400)
+    assert.equal((await post({ path: missing, action: "clear" })).status, 200)
+    assert.equal((await get()).length, 1)
+    assert.deepEqual(JSON.parse(readFileSync(config)).marks, {
+      [folder]: "trash",
+    })
+    const snapshot = await scanFilesystem({
+      root: join(root, "keep"),
+      workers: 1,
+    })
+    const imported = await fetch(`${url.origin}/api/import`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(snapshot),
+    })
+    assert.equal(imported.status, 200)
+    const outside = (await get())[0]
+    assert.equal(outside.path, folder)
+    assert.equal(outside.mark, "trash")
+    assert.equal(outside.bytes, null)
+    assert.equal((await post({ path: folder, action: "clear" })).status, 200)
+    assert.deepEqual(await get(), [])
+    assert.ok(
+      statSync(folder).isDirectory(),
+      "clearing shortlist never moves user data"
+    )
   } finally {
     await viewer?.close()
     rmSync(root, { recursive: true, force: true })

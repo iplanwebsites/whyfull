@@ -68,7 +68,7 @@ export function Treemap({
               fill={paint.fill}
               fillOpacity={entry.trashed ? 0.35 : 1}
               stroke={
-                entry.mark === "delete"
+                entry.mark === "trash"
                   ? "#ef4444"
                   : entry.mark === "useless"
                     ? "#d69e2e"
@@ -95,7 +95,7 @@ export function Treemap({
                 {"\n"}
                 {formatSize(entry.value)} allocated
                 {entry.mark
-                  ? ` · ${entry.mark === "delete" ? "Marked for deletion" : "Marked as useless"}`
+                  ? ` · ${entry.mark === "trash" ? "Marked for Trash" : "Marked as useless"}`
                   : ""}
               </title>
             </rect>

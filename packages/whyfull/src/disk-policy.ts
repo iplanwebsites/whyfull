@@ -189,7 +189,7 @@ export function saveViewerPreferences(
   return next
 }
 
-export type DirectoryMark = "delete" | "useless"
+export type DirectoryMark = "trash" | "useless"
 export function loadDirectoryMarks(
   path = defaultPolicyPath()
 ): Record<string, DirectoryMark> {
@@ -206,14 +206,14 @@ export function loadDirectoryMarks(
         ([key, value]) =>
           !isAbsolute(key) ||
           key.includes("\0") ||
-          (value !== "delete" && value !== "useless")
+          (value !== "trash" && value !== "delete" && value !== "useless")
       )
     )
       throw new Error("Invalid directory marks")
     return Object.fromEntries(
       Object.entries(marks).map(([key, value]) => [
         policyPath(normalizePolicyPath(key)),
-        value as DirectoryMark,
+        value === "delete" ? "trash" : (value as DirectoryMark),
       ])
     )
   } catch (error) {
@@ -229,10 +229,23 @@ export function saveDirectoryMark(
   const marks = loadDirectoryMarks(path)
   const key = policyPath(normalizePolicyPath(directory))
   if (mark === null) delete marks[key]
-  else if (mark === "delete" || mark === "useless") marks[key] = mark
+  else if (mark === "trash" || mark === "useless") marks[key] = mark
   else throw new Error("Invalid directory mark")
   if (Object.keys(marks).length > 10000)
     throw new Error("Too many directory marks")
+  updateConfig({ marks }, path)
+  return marks
+}
+
+/** Clear the exact saved key, even if its directory has since moved. */
+export function clearDirectoryMark(
+  directory: string,
+  path = defaultPolicyPath()
+) {
+  const marks = loadDirectoryMarks(path)
+  if (!Object.hasOwn(marks, directory))
+    throw new Error("Unknown shortlisted folder")
+  delete marks[directory]
   updateConfig({ marks }, path)
   return marks
 }

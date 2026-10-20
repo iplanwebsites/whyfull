@@ -8,6 +8,8 @@ import { useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import {
   Download,
+  Ellipsis,
+  ListChecks,
   Search,
   ChevronRight,
   ChevronDown,
@@ -17,6 +19,13 @@ import {
 import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
 import { toast } from "@workspace/ui/components/sonner"
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@workspace/ui/components/dropdown-menu"
+import { CleanupShortlist } from "./cleanup-shortlist"
 import { RunnerControls } from "./runner-controls"
 import { api, formatSize, exportSnapshot } from "@/lib/api"
 import type { ViewerStatus, WhyfullJsonReport } from "@/lib/api"
@@ -40,6 +49,7 @@ export function ReportViewer({
   onChanged: (status: ViewerStatus) => Promise<void>
   onPendingChange: (value: boolean) => void
 }) {
+  const [shortlist, setShortlist] = useState(false)
   const [section, setSection] = useState<ReportSection>("targets"),
     [query, setQuery] = useState(""),
     [page, setPage] = useState(0),
@@ -113,18 +123,42 @@ export function ReportViewer({
         >
           {status.source.name ?? "CLI report"}
         </span>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          aria-label="Export report"
-          onClick={() =>
-            void exportSnapshot("whyfull-report.json").catch((e) =>
-              toast.error(e.message)
-            )
-          }
-        >
-          <Download />
-        </Button>
+        <CleanupShortlist
+          open={shortlist}
+          onOpenChange={setShortlist}
+          finderAvailable={status.finderAvailable}
+          documentId={status.documentId}
+        />
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="More options"
+                title="More options"
+              />
+            }
+          >
+            <Ellipsis />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setShortlist(true)}>
+              <ListChecks />
+              Cleanup shortlist
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() =>
+                void exportSnapshot("whyfull-report.json").catch((error) =>
+                  toast.error(error.message)
+                )
+              }
+            >
+              <Download />
+              Export report
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </header>
       <main className="flex min-h-0 flex-1 flex-col gap-2 p-2">
         <div className="flex flex-wrap items-center gap-2">
@@ -241,9 +275,9 @@ function ReportRows({
   onToggle: () => void
 }) {
   const finder = () =>
-    void api("report/finder", { path: row.path }).catch((error) =>
-      toast.error(error.message)
-    )
+    void api("report/finder", { path: row.path })
+      .then(() => toast.success("Sent to Finder"))
+      .catch((error) => toast.error(error.message))
   return (
     <ContextMenu>
       <ContextMenuTrigger
@@ -285,7 +319,7 @@ function ReportRows({
           onClick={finder}
         >
           <FolderOpen />
-          Open in Finder
+          Show in Finder
         </ContextMenuItem>
       </ContextMenuContent>
       {expanded && (

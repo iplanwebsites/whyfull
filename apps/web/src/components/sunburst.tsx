@@ -61,7 +61,7 @@ export default function Sunburst({
         itemStyle: {
           color: paint.fill,
           borderColor:
-            node.mark === "delete"
+            node.mark === "trash"
               ? "#ef4444"
               : node.mark === "useless"
                 ? "#d69e2e"

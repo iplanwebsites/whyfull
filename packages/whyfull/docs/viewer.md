@@ -28,10 +28,17 @@ a drive cancels the previous scan and starts a fresh inventory in demo mode.
 It also opens saved JSON reports without restarting the runner. View modes, Finder,
 appearance and scan actions in an ellipsis menu. Right-click a breadcrumb, list
 entry, treemap tile or ring to open its Base UI context menu. Directory marks
-(`delete` or `useless`) are saved in the configuration separately from keep/exclude
-rules. Marks are review metadata; they never move or delete files. Finder uses
-only inventory directory IDs, rechecks the live directory, and opens it through
-macOS without a shell. Folder counts,
+(`trash` or `useless`; legacy `delete` marks are migrated) are saved in the configuration separately from keep/exclude
+rules. **Cleanup shortlist** in the ellipsis menu shows all saved marks across scans,
+including folders outside the current inventory with unknown sizes. Browse measured
+folders, reveal them in Finder, or clear marks individually. Marks are review metadata;
+they never move files. Native cleanup always moves to Trash and starts in demo mode.
+Finder accepts only inventory directory IDs, report locations or saved shortlist paths,
+rechecks the live directory, resolves macOS path aliases, and runs `/usr/bin/open -R`
+without a shell. Missing folders, permission failures and launch errors show red toasts.
+Start the Node.js runner with `node packages/whyfull/dist/cli.mjs --view --report file.json`
+(or `pnpm viewer --report file.json`) and keep its terminal running while using the UI.
+Folder counts,
 scan metadata and explanations live in the details/rules dialogs; selection
 actions appear only when inspecting an entry. Chart colors assign distinct hues
 to the largest siblings and related shades to descendants. The treemap, rings

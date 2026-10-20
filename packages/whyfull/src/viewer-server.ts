@@ -18,12 +18,13 @@ import {
 } from "node:crypto"
 import { createWriteStream, readFileSync } from "node:fs"
 import { Readable, Transform } from "node:stream"
-import { lstat, readdir, realpath, mkdtemp, rm } from "node:fs/promises"
+import { lstat, stat, readdir, realpath, mkdtemp, rm } from "node:fs/promises"
 import { basename, isAbsolute, join } from "node:path"
 import { execFile, spawn } from "node:child_process"
 import { DiskScanner } from "./filesystem"
 import {
   loadDirectoryMarks,
+  clearDirectoryMark,
   saveDirectoryMark,
   policyPath,
   defaultPolicyPath,
@@ -226,31 +227,65 @@ export async function startViewer(options: ViewerOptions) {
     out.children = visible
     return out
   }
+  let shortlistCache: {
+    documentId: string
+    marks: typeof marks
+    indexed: Map<string, DiskDirectory>
+    count: number
+  } | null = null
+  function shortlistDirectories() {
+    if (
+      !shortlistCache ||
+      shortlistCache.documentId !== documentId ||
+      shortlistCache.marks !== marks
+    )
+      shortlistCache = {
+        documentId,
+        marks,
+        indexed: new Map(),
+        count: 0,
+      }
+    if (Object.keys(marks).length) {
+      for (let i = shortlistCache.count; i < snapshot.directories.length; i++) {
+        const node = snapshot.directories[i]!
+        const key = policyPath(node.path)
+        if (Object.hasOwn(marks, key)) shortlistCache.indexed.set(key, node)
+      }
+    }
+    shortlistCache.count = snapshot.directories.length
+    return shortlistCache.indexed
+  }
   async function openFinder(path: string) {
     if (!options.finder && process.platform !== "darwin")
       throw new Error("Finder is available on macOS only")
-    if (
-      !isAbsolute(path) ||
-      !(await lstat(path)).isDirectory() ||
-      (await realpath(path)) !== path
-    )
+    let canonical: string
+    try {
+      if (!isAbsolute(path) || !(await stat(path)).isDirectory())
+        throw new Error("Not a directory")
+      canonical = await realpath(path)
+    } catch {
       throw new Error(
-        "This directory moved or contains a symlink. Rescan before opening it."
+        `Cannot show “${path}” in Finder. The folder is missing or inaccessible; check permissions or rescan.`
       )
-    if (options.finder) await options.finder(path)
+    }
+    if (options.finder) await options.finder(canonical)
     else
       await new Promise<void>((resolve, reject) =>
         execFile(
           "/usr/bin/open",
-          ["-a", "Finder", path],
+          ["-R", canonical],
           { timeout: 15000 },
-          (error) =>
-            error
-              ? reject(new Error("Finder could not open this directory"))
-              : resolve()
+          (error, _stdout, stderr) => {
+            if (!error) return resolve()
+            const reason = error.killed
+              ? "The request timed out"
+              : stderr.trim() || error.message
+            reject(new Error(`Finder could not reveal this folder: ${reason}`))
+          }
         )
       )
   }
+
   function summary() {
     const { directories, ...rest } = snapshot
     return {
@@ -500,6 +535,47 @@ export async function startViewer(options: ViewerOptions) {
         })
         return
       }
+      if (req.method === "GET" && url.pathname === "/api/shortlist") {
+        const indexed = shortlistDirectories()
+        json(
+          res,
+          Object.entries(marks)
+            .map(([path, mark]) => {
+              const node = indexed.get(path)
+              return {
+                path,
+                mark,
+                name: basename(path),
+                id: node ? `d${node.id}` : null,
+                bytes: node?.bytes ?? null,
+                partial: node
+                  ? snapshot.status !== "complete" ||
+                    node.state !== "scanned" ||
+                    node.issues > 0 ||
+                    node.excluded > 0
+                  : false,
+                kept: describe(path).kept,
+              }
+            })
+            .sort(
+              (a, b) =>
+                (b.bytes ?? -1) - (a.bytes ?? -1) ||
+                a.path.localeCompare(b.path)
+            )
+        )
+        return
+      }
+      if (req.method === "POST" && url.pathname === "/api/shortlist") {
+        const input = await body(req)
+        if (typeof input.path !== "string" || !Object.hasOwn(marks, input.path))
+          throw new Error("Select a saved shortlisted folder")
+        if (input.action === "clear")
+          marks = clearDirectoryMark(input.path, policyFile)
+        else if (input.action === "finder") await openFinder(input.path)
+        else throw new Error("Unknown shortlist action")
+        json(res, { ok: true })
+        return
+      }
       if (
         req.method === "POST" &&
         ["/api/finder", "/api/mark"].includes(url.pathname)
@@ -513,7 +589,7 @@ export async function startViewer(options: ViewerOptions) {
         if (url.pathname === "/api/mark") {
           if (
             input.mark !== null &&
-            input.mark !== "delete" &&
+            input.mark !== "trash" &&
             input.mark !== "useless"
           )
             throw new Error("Invalid directory mark")

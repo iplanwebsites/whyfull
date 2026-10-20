@@ -89,3 +89,15 @@ button {
   stroke: var(--foreground);
   stroke-width: 2px;
 }
+
+/* Keep failures visibly red in either theme, including native Finder errors. */
+[data-sonner-toaster] [data-sonner-toast][data-type="error"] {
+  background: #fff1f2;
+  border-color: #fda4af;
+  color: #9f1239;
+}
+.dark [data-sonner-toaster] [data-sonner-toast][data-type="error"] {
+  background: #4c0519;
+  border-color: #be123c;
+  color: #ffe4e6;
+}

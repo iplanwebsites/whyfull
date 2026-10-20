@@ -5,6 +5,7 @@ import type {
   ViewerPreferences,
   TrashPlan,
   ScanDrive,
+  ShortlistEntry,
   WhyfullJsonReport,
 } from "../../../../packages/whyfull/src/viewer-types"
 export type {
@@ -14,6 +15,7 @@ export type {
   ViewerPreferences,
   TrashPlan,
   ScanDrive,
+  ShortlistEntry,
   WhyfullJsonReport,
 }
 
@@ -39,12 +41,23 @@ export class ApiError extends Error {
   }
 }
 
+async function viewerFetch(path: string, init?: RequestInit) {
+  try {
+    return await fetch(path, init)
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") throw error
+    throw new Error(
+      "The viewer is offline. Run whyfull --view with Node.js and open the URL printed in your terminal."
+    )
+  }
+}
+
 export async function api<T>(
   path: string,
   body?: unknown,
   signal?: AbortSignal
 ): Promise<T> {
-  const res = await fetch(`/api/${path}`, {
+  const res = await viewerFetch(`/api/${path}`, {
     signal,
     headers: {
       Authorization: `Bearer ${token}`,
@@ -64,7 +77,7 @@ export async function api<T>(
 }
 
 export async function exportSnapshot(filename = "whyfull-disk.json") {
-  const response = await fetch("/api/export", {
+  const response = await viewerFetch("/api/export", {
     headers: { Authorization: `Bearer ${token}` },
   })
   if (!response.ok) throw new Error((await response.json()).error)
@@ -90,7 +103,7 @@ export function formatSize(value: number | undefined) {
 export async function importReport(file: File): Promise<ViewerStatus> {
   if (file.size > 8 * 1024 ** 3)
     throw new Error("Reports must be smaller than 8 GiB")
-  const response = await fetch("/api/import", {
+  const response = await viewerFetch("/api/import", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
