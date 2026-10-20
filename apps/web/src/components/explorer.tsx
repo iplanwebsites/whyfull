@@ -25,6 +25,7 @@ import {
   Eye,
   Ellipsis,
   FolderOpen,
+  Copy,
   Flag,
   X,
 } from "lucide-react"
@@ -82,6 +83,7 @@ import type {
   ViewerPreferences,
   TrashPlan,
 } from "@/lib/api"
+import { copyPath } from "@/lib/clipboard"
 import { chartColors, colorFor } from "@/lib/chart-colors"
 import { Treemap } from "./treemap"
 const loadSunburst = () => import("./sunburst")
@@ -217,6 +219,13 @@ export function Explorer() {
         >
           <FolderOpen />
           Show in Finder
+        </Item>
+        <Item
+          disabled={!enabled || !node?.path}
+          onClick={() => void copyPath(node!.path!)}
+        >
+          <Copy />
+          Copy path
         </Item>
         <Item
           disabled={busy || !enabled || node?.id === "d0" || node?.kept}

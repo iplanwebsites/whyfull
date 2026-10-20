@@ -16,6 +16,7 @@ import {
   ChevronDown,
   FileJson,
   FolderOpen,
+  Copy,
 } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
@@ -29,6 +30,7 @@ import {
 import { DiagnosticsDialog } from "./diagnostics-dialog"
 import { CleanupShortlist } from "./cleanup-shortlist"
 import { RunnerControls } from "./runner-controls"
+import { copyPath } from "@/lib/clipboard"
 import { api, formatSize, exportSnapshot } from "@/lib/api"
 import type { ViewerStatus, WhyfullJsonReport } from "@/lib/api"
 type ReportSection = "targets" | "caches" | "discovered" | "worktrees"
@@ -331,6 +333,13 @@ function ReportRows({
         >
           <FolderOpen />
           Show in Finder
+        </ContextMenuItem>
+        <ContextMenuItem
+          disabled={!row.path}
+          onClick={() => void copyPath(row.path!)}
+        >
+          <Copy />
+          Copy path
         </ContextMenuItem>
       </ContextMenuContent>
       {expanded && (
