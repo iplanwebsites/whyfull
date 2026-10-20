@@ -37,7 +37,7 @@ import { DiagnosticsDialog } from "./diagnostics-dialog"
 import { CleanupShortlist } from "./cleanup-shortlist"
 import { RunnerControls } from "./runner-controls"
 import { copyPath } from "@/lib/clipboard"
-import { api, formatSize, exportSnapshot } from "@/lib/api"
+import { api, formatSize, exportSnapshot, isTinyMetadata } from "@/lib/api"
 import type { ViewerStatus, WhyfullJsonReport } from "@/lib/api"
 type ReportSection = "targets" | "caches" | "discovered" | "worktrees"
 interface LocationState {
@@ -162,9 +162,20 @@ export function ReportViewer({
       rows
         .filter(
           (row) =>
-            `${row.name} ${row.path ?? ""}`
+            (`${row.name} ${row.path ?? ""}`
               .toLocaleLowerCase()
-              .includes(query.toLocaleLowerCase()) &&
+              .includes(query.toLocaleLowerCase()) ||
+              row.children.some((child) =>
+                `${child.name} ${child.path}`
+                  .toLocaleLowerCase()
+                  .includes(query.toLocaleLowerCase())
+              )) &&
+            (query ||
+              row.bytes === null ||
+              !isTinyMetadata(
+                row.path?.split("/").at(-1) ?? row.name,
+                row.bytes ?? 0
+              )) &&
             (tier === "all" || row.tier === tier) &&
             (!markedOnly ||
               !!locations.data?.find((item) => item.path === row.path)?.mark ||
@@ -349,7 +360,14 @@ export function ReportViewer({
               {filtered.slice(page * 100, (page + 1) * 100).map((row) => (
                 <ReportRows
                   key={row.id}
-                  row={row}
+                  row={{
+                    ...row,
+                    children: query
+                      ? row.children
+                      : row.children.filter(
+                          (child) => !isTinyMetadata(child.name, child.bytes)
+                        ),
+                  }}
                   upperLimit={Math.max(...rows.map((item) => item.bytes ?? 0))}
                   expanded={expanded === row.id}
                   finderAvailable={status.finderAvailable}

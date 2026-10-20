@@ -112,3 +112,5 @@ export async function importReport(file: File): Promise<ViewerStatus> {
     throw new ApiError(result.error ?? "Could not open report", response.status)
   return result
 }
+
+export { isTinyMetadata } from "../../../../packages/whyfull/src/viewer-noise"

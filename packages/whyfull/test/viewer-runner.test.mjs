@@ -443,3 +443,74 @@ test(
     }
   }
 )
+
+test("viewer hides negligible files by default, preserves chart totals and IDs, and reveals them on request", async () => {
+  const root = fixture()
+  let viewer
+  try {
+    mkdirSync(join(root, "small-project"))
+    writeFileSync(join(root, "small-project", "readme.txt"), "keep visible")
+    writeFileSync(join(root, "movie.bin"), Buffer.alloc(16 * 1024 * 1024))
+    for (const name of [
+      ".DS_Store",
+      "._photo.jpg",
+      "Thumbs.db",
+      "desktop.ini",
+      "tiny.txt",
+    ])
+      writeFileSync(join(root, name), Buffer.alloc(4096))
+    writeFileSync(join(root, "._large"), Buffer.alloc(128 * 1024))
+    viewer = await startViewer({
+      root,
+      open: false,
+      workers: 1,
+      policyFile: join(root, "config.json"),
+    })
+    for (let i = 0; i < 200 && viewer.snapshot.status === "scanning"; i++)
+      await new Promise((resolve) => setTimeout(resolve, 10))
+    const url = new URL(viewer.url)
+    const headers = { Authorization: `Bearer ${url.hash.slice(1)}` }
+    const get = async (path) =>
+      (await fetch(`${url.origin}/api/${path}`, { headers })).json()
+    const normal = await get("directory?id=0")
+    assert.deepEqual(
+      normal.entries.map((entry) => entry.name).sort(),
+      ["._large", "movie.bin", "small-project"].sort()
+    )
+    assert.equal(normal.ownFiles, 7, "filtered files remain measured")
+    assert.equal(
+      normal.chart.children.reduce((sum, entry) => sum + entry.value, 0),
+      normal.node.value
+    )
+    assert.equal(
+      normal.chart.children.find((entry) => entry.kind === "remainder").files,
+      5
+    )
+    assert.ok(
+      !normal.chart.children.some((entry) => entry.name === ".DS_Store")
+    )
+    const movie = normal.entries.find((entry) => entry.name === "movie.bin")
+    assert.equal(
+      viewer.snapshot.directories[0].topFiles[Number(movie.id.split("-")[1])]
+        .name,
+      "movie.bin"
+    )
+    const search = await get("directory?id=0&q=.DS_Store")
+    assert.equal(search.entries.length, 1)
+    assert.equal(search.entries[0].name, ".DS_Store")
+    const all = await get("directory?id=0&files=all")
+    assert.equal(all.entries.length, 8)
+    assert.ok(all.entries.some((entry) => entry.name === "tiny.txt"))
+    const project = normal.entries.find(
+      (entry) => entry.name === "small-project"
+    )
+    assert.equal(
+      (await get(`directory?id=${project.id.slice(1)}`)).entries[0].name,
+      "readme.txt",
+      "small files stay visible when they are meaningful within their own folder"
+    )
+  } finally {
+    await viewer?.close()
+    rmSync(root, { recursive: true, force: true })
+  }
+})

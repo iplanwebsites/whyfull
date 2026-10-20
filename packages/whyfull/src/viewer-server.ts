@@ -1,3 +1,4 @@
+import { isNegligibleFile } from "./viewer-noise"
 import { measureFileDistribution } from "./file-distribution"
 import { pipeline } from "node:stream/promises"
 import { DiagnosticRunner } from "./diagnostics"
@@ -223,8 +224,13 @@ export async function startViewer(options: ViewerOptions) {
       value: snapshot.directories[id].bytes,
       kind: "directory",
     }))
+    const visibleFiles = node.topFiles
+      .map((file, i) => ({ file, i }))
+      .filter(
+        ({ file }) => !isNegligibleFile(file.name, file.bytes, node.bytes)
+      )
     children.push(
-      ...node.topFiles.map((file, i) => ({
+      ...visibleFiles.map(({ file, i }) => ({
         id: `f${node.id}-${i}`,
         name: file.name,
         path: join(node.path, file.name),
@@ -235,9 +241,10 @@ export async function startViewer(options: ViewerOptions) {
     )
     const remainder = Math.max(
       0,
-      node.ownBytes - node.topFiles.reduce((sum, f) => sum + f.bytes, 0)
+      node.ownBytes -
+        visibleFiles.reduce((sum, { file }) => sum + file.bytes, 0)
     )
-    const remainingCount = Math.max(0, node.ownFiles - node.topFiles.length)
+    const remainingCount = Math.max(0, node.ownFiles - visibleFiles.length)
     if (remainingCount)
       children.push({
         id: `r${node.id}`,
@@ -606,6 +613,17 @@ export async function startViewer(options: ViewerOptions) {
         const search = (url.searchParams.get("q") ?? "").toLowerCase()
         const sort = url.searchParams.get("sort") === "name" ? "name" : "size"
         entries = entries
+          .filter(
+            (entry) =>
+              search ||
+              url.searchParams.get("files") === "all" ||
+              entry.kind !== "file" ||
+              !isNegligibleFile(
+                String(entry.name),
+                Number(entry.value),
+                node.bytes
+              )
+          )
           .filter((e) => String(e.name).toLowerCase().includes(search))
           .sort(
             (a, b) =>
