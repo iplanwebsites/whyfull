@@ -15,6 +15,7 @@ export interface ViewEntry {
   issues?: number
   excluded?: number
   reason?: string
+  mark?: "delete" | "useless" | null
   kept?: boolean
   directKeep?: boolean
   trashed?: boolean
@@ -56,5 +57,6 @@ export interface ViewerStatus extends Omit<
     supported: boolean
     reason: string | null
   }
+  finderAvailable: boolean
   needsRescan: boolean
 }

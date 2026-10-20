@@ -5,9 +5,12 @@ import { readFileSync } from "node:fs"
 import { Readable } from "node:stream"
 import { lstat, readdir, realpath } from "node:fs/promises"
 import { join } from "node:path"
-import { spawn } from "node:child_process"
+import { execFile, spawn } from "node:child_process"
 import { DiskScanner } from "./filesystem"
 import {
+  loadDirectoryMarks,
+  saveDirectoryMark,
+  policyPath,
   defaultPolicyPath,
   loadDiskPolicy,
   pathWithin,
@@ -32,6 +35,7 @@ export interface ViewerOptions extends DiskScanOptions {
   policyFile?: string
   snapshot?: DiskSnapshot
   saveTo?: string
+  finder?: (path: string) => Promise<void>
   allowTrash?: boolean
 }
 
@@ -50,6 +54,7 @@ export async function startViewer(options: ViewerOptions) {
   let savedPolicy = policy
   let saveError: string | null = null
   let savedPath: string | null = null
+  let marks = loadDirectoryMarks(policyFile)
   let viewerPreferences = loadViewerPreferences(policyFile)
   const trash = new TrashController({
     snapshot: () => snapshot,
@@ -98,6 +103,7 @@ export async function startViewer(options: ViewerOptions) {
       pathWithin(canonical(path), canonical(t.path))
     )?.target
     return {
+      mark: marks[policyPath(path)] ?? null,
       kept,
       directKeep,
       trashed: [...trash.moved].some((p) => pathWithin(path, p)),
@@ -200,6 +206,7 @@ export async function startViewer(options: ViewerOptions) {
       snapshotMode: !!options.snapshot,
       viewer: viewerPreferences,
       cleanup: trash.status(),
+      finderAvailable: !!options.finder || process.platform === "darwin",
       needsRescan: trash.moved.size > 0,
     }
   }
@@ -419,6 +426,58 @@ export async function startViewer(options: ViewerOptions) {
           ownFiles: node.ownFiles,
           retainedFiles: node.topFiles.length,
         })
+        return
+      }
+      if (
+        req.method === "POST" &&
+        ["/api/finder", "/api/mark"].includes(url.pathname)
+      ) {
+        const input = await body(req)
+        if (typeof input.id !== "string" || !/^d\d+$/.test(input.id))
+          throw new Error("Select a directory from this inventory")
+        const node = snapshot.directories[Number(input.id.slice(1))]
+        if (!node || !pathWithin(node.path, snapshot.root))
+          throw new Error("Unknown directory")
+        if (url.pathname === "/api/mark") {
+          if (
+            input.mark !== null &&
+            input.mark !== "delete" &&
+            input.mark !== "useless"
+          )
+            throw new Error("Invalid directory mark")
+          if (input.mark && node.parent === null)
+            throw new Error("The scan root cannot be marked for cleanup")
+          if (input.mark && describe(node.path).kept)
+            throw new Error(
+              "Remove the keep rule before marking this folder for cleanup"
+            )
+          marks = saveDirectoryMark(node.path, input.mark, policyFile)
+          json(res, { mark: marks[policyPath(node.path)] ?? null })
+        } else {
+          if (!options.finder && process.platform !== "darwin")
+            throw new Error("Finder is available on macOS only")
+          if (
+            !(await lstat(node.path)).isDirectory() ||
+            (await realpath(node.path)) !== node.path
+          )
+            throw new Error(
+              "This directory moved or now contains a symlink. Rescan before opening it."
+            )
+          if (options.finder) await options.finder(node.path)
+          else
+            await new Promise<void>((resolve, reject) =>
+              execFile(
+                "/usr/bin/open",
+                ["-a", "Finder", node.path],
+                { timeout: 15000 },
+                (error) =>
+                  error
+                    ? reject(new Error("Finder could not open this directory"))
+                    : resolve()
+              )
+            )
+          json(res, { opened: true })
+        }
         return
       }
       if (req.method === "POST" && url.pathname === "/api/preferences") {

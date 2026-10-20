@@ -14,6 +14,7 @@ export default function Sunburst({
   onOpen,
   onSelect,
   onHover,
+  onContext,
   onUp,
 }: {
   colors: ChartColors
@@ -22,12 +23,13 @@ export default function Sunburst({
   onOpen: (node: ViewEntry) => void
   onSelect: (node: ViewEntry) => void
   onHover: (node: ViewEntry | null) => void
+  onContext: (node: ViewEntry) => void
   onUp: () => void
 }) {
   const container = useRef<HTMLDivElement>(null)
   const chart = useRef<echarts.EChartsType | null>(null)
-  const callbacks = useRef({ onOpen, onSelect, onHover })
-  callbacks.current = { onOpen, onSelect, onHover }
+  const callbacks = useRef({ onOpen, onSelect, onHover, onContext })
+  callbacks.current = { onOpen, onSelect, onHover, onContext }
   useEffect(() => {
     const instance = echarts.init(container.current!)
     chart.current = instance
@@ -36,6 +38,9 @@ export default function Sunburst({
       if (node.kind === "directory") callbacks.current.onOpen(node)
       else callbacks.current.onSelect(node)
     })
+    instance.on("contextmenu", (event) =>
+      callbacks.current.onContext(event.data as unknown as ViewEntry)
+    )
     instance.on("mouseover", (event) =>
       callbacks.current.onHover(event.data as unknown as ViewEntry)
     )
@@ -55,10 +60,19 @@ export default function Sunburst({
         ...node,
         itemStyle: {
           color: paint.fill,
-          borderColor: paint.stroke,
+          borderColor:
+            node.mark === "delete"
+              ? "#ef4444"
+              : node.mark === "useless"
+                ? "#d69e2e"
+                : paint.stroke,
+          borderType: node.mark ? "dashed" : "solid",
           borderWidth: 1,
         },
-        label: { color: paint.text },
+        label: {
+          color: paint.text,
+          formatter: () => `${node.mark ? "⚑ " : ""}${node.name}`,
+        },
         children: node.children
           ?.filter((n) => n.value > 0)
           .map((n) => prepare(n)),

@@ -21,7 +21,13 @@ TanStack Start app in `apps/web`. TanStack Router owns folder, search, map and
 sort URL state and supports browser back/forward. React Query fetches bounded
 folder summaries. Press Command/Ctrl+K to focus folder search. Last folder, map,
 sort and appearance preferences survive CLI restarts in the config file.
-The compact workspace keeps navigation and tools in one toolbar. Folder counts,
+The compact workspace keeps navigation in the toolbar and view modes, Finder,
+appearance and scan actions in an ellipsis menu. Right-click a breadcrumb, list
+entry, treemap tile or ring to open its Base UI context menu. Directory marks
+(`delete` or `useless`) are saved in the configuration separately from keep/exclude
+rules. Marks are review metadata; they never move or delete files. Finder uses
+only inventory directory IDs, rechecks the live directory, and opens it through
+macOS without a shell. Folder counts,
 scan metadata and explanations live in the details/rules dialogs; selection
 actions appear only when inspecting an entry. Chart colors assign distinct hues
 to the largest siblings and related shades to descendants. The treemap, rings

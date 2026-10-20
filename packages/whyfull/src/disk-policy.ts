@@ -188,3 +188,51 @@ export function saveViewerPreferences(
   updateConfig({ viewer: next }, path)
   return next
 }
+
+export type DirectoryMark = "delete" | "useless"
+export function loadDirectoryMarks(
+  path = defaultPolicyPath()
+): Record<string, DirectoryMark> {
+  try {
+    const config = JSON.parse(readFileSync(path, "utf8"))
+    validate(config)
+    const marks = config.marks ?? {}
+    if (
+      !marks ||
+      typeof marks !== "object" ||
+      Array.isArray(marks) ||
+      Object.keys(marks).length > 10000 ||
+      Object.entries(marks).some(
+        ([key, value]) =>
+          !isAbsolute(key) ||
+          key.includes("\0") ||
+          (value !== "delete" && value !== "useless")
+      )
+    )
+      throw new Error("Invalid directory marks")
+    return Object.fromEntries(
+      Object.entries(marks).map(([key, value]) => [
+        policyPath(normalizePolicyPath(key)),
+        value as DirectoryMark,
+      ])
+    )
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return {}
+    throw error
+  }
+}
+export function saveDirectoryMark(
+  directory: string,
+  mark: DirectoryMark | null,
+  path = defaultPolicyPath()
+) {
+  const marks = loadDirectoryMarks(path)
+  const key = policyPath(normalizePolicyPath(directory))
+  if (mark === null) delete marks[key]
+  else if (mark === "delete" || mark === "useless") marks[key] = mark
+  else throw new Error("Invalid directory mark")
+  if (Object.keys(marks).length > 10000)
+    throw new Error("Too many directory marks")
+  updateConfig({ marks }, path)
+  return marks
+}

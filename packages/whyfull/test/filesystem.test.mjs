@@ -349,3 +349,94 @@ test("cleanup starts in demo, consumes previews once, and enforces native Trash 
     rmSync(root, { recursive: true, force: true })
   }
 })
+
+test("directory marks persist independently of preferences; Finder accepts only unchanged inventory directories", async () => {
+  const root = realpathSync(fixture()),
+    config = join(root, "config.json"),
+    opened = []
+  let viewer
+  try {
+    viewer = await startViewer({
+      root,
+      workers: 1,
+      open: false,
+      policyFile: config,
+      finder: async (path) => {
+        opened.push(path)
+      },
+    })
+    for (let i = 0; i < 100 && viewer.snapshot.status === "scanning"; i++)
+      await new Promise((r) => setTimeout(r, 10))
+    const snapshot = viewer.snapshot
+    const url = new URL(viewer.url),
+      headers = {
+        Authorization: `Bearer ${url.hash.slice(1)}`,
+        "Content-Type": "application/json",
+      }
+    const post = (endpoint, body) =>
+      fetch(`${url.origin}/api/${endpoint}`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+      })
+    const folder = snapshot.directories.find((d) => d.name === "nested"),
+      id = `d${folder.id}`
+    assert.equal((await post("mark", { id, mark: "delete" })).status, 200)
+    assert.equal((await post("preferences", { view: "sunburst" })).status, 200)
+    assert.equal((await post("mark", { id, mark: "useless" })).status, 200)
+    assert.equal((await post("finder", { id, path: "/etc" })).status, 200)
+    assert.deepEqual(
+      opened,
+      [folder.path],
+      "client-supplied arbitrary paths are ignored"
+    )
+    assert.equal((await post("finder", { id: "f0-0" })).status, 400)
+    assert.equal((await post("finder", { id: "d99999999" })).status, 400)
+    assert.equal((await post("mark", { id: "d0", mark: "delete" })).status, 400)
+    assert.equal((await post("mark", { id, mark: "bogus" })).status, 400)
+    const kept = snapshot.directories.find((d) => d.name === "keep")
+    await post("policy", { id: kept.id, action: "keep" })
+    assert.equal(
+      (await post("mark", { id: `d${kept.id}`, mark: "delete" })).status,
+      400
+    )
+    const altered = snapshot.directories.find((d) => d.name === "skip-sibling")
+    rmSync(altered.path, { recursive: true })
+    symlinkSync(root, altered.path)
+    assert.equal((await post("finder", { id: `d${altered.id}` })).status, 400)
+    assert.equal(opened.length, 1)
+    assert.equal(
+      readFileSync(join(folder.path, "deep/data.bin")).length,
+      65536,
+      "marks leave inventory files intact"
+    )
+    await viewer.close()
+    viewer = await startViewer({
+      root,
+      open: false,
+      snapshot,
+      policyFile: config,
+    })
+    const reopened = new URL(viewer.url),
+      auth = { Authorization: `Bearer ${reopened.hash.slice(1)}` }
+    const data = await (
+      await fetch(`${reopened.origin}/api/directory?id=0`, { headers: auth })
+    ).json()
+    assert.equal(data.entries.find((entry) => entry.id === id).mark, "useless")
+    const status = await (
+      await fetch(`${reopened.origin}/api/status`, { headers: auth })
+    ).json()
+    assert.equal(status.viewer.view, "sunburst")
+    assert.ok(status.policy.keep.includes(kept.path))
+    const cleared = await fetch(`${reopened.origin}/api/mark`, {
+      method: "POST",
+      headers: { ...auth, "Content-Type": "application/json" },
+      body: JSON.stringify({ id, mark: null }),
+    })
+    assert.equal(cleared.status, 200)
+    assert.deepEqual(JSON.parse(readFileSync(config)).marks, {})
+  } finally {
+    await viewer?.close()
+    rmSync(root, { recursive: true, force: true })
+  }
+})

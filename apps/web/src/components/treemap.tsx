@@ -13,6 +13,7 @@ export function Treemap({
   onOpen,
   onSelect,
   onHover,
+  onContext,
 }: {
   colors: ChartColors
   dark: boolean
@@ -20,6 +21,7 @@ export function Treemap({
   onOpen: (node: ViewEntry) => void
   onSelect: (node: ViewEntry) => void
   onHover: (node: ViewEntry | null) => void
+  onContext: (node: ViewEntry) => void
 }) {
   const container = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ width: 800, height: 600 })
@@ -56,6 +58,8 @@ export function Treemap({
         return (
           <g key={entry.id}>
             <rect
+              data-entry-id={entry.id}
+              onContextMenu={() => onContext(entry)}
               x={x}
               y={y}
               width={w}
@@ -63,7 +67,14 @@ export function Treemap({
               rx={5}
               fill={paint.fill}
               fillOpacity={entry.trashed ? 0.35 : 1}
-              stroke={paint.stroke}
+              stroke={
+                entry.mark === "delete"
+                  ? "#ef4444"
+                  : entry.mark === "useless"
+                    ? "#d69e2e"
+                    : paint.stroke
+              }
+              strokeDasharray={entry.mark ? "4 2" : undefined}
               strokeWidth={1}
               role="button"
               tabIndex={0}
@@ -83,6 +94,9 @@ export function Treemap({
                 {entry.path ?? entry.name}
                 {"\n"}
                 {formatSize(entry.value)} allocated
+                {entry.mark
+                  ? ` · ${entry.mark === "delete" ? "Marked for deletion" : "Marked as useless"}`
+                  : ""}
               </title>
             </rect>
             {w > 55 && h > 23 && (
