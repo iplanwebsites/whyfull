@@ -84,6 +84,21 @@ test("viewer file loader accepts both generated report formats and rejects inval
         }),
       /Invalid/
     )
+    assert.throws(
+      () =>
+        validateViewerReport({
+          ...report,
+          targets: [
+            {
+              ...report.targets[0],
+              storeVersions: [
+                { name: "v3", path: join(root, "v3"), bytes: -1 },
+              ],
+            },
+          ],
+        }),
+      /Invalid/
+    )
     writeFileSync(file, "not-json")
     await assert.rejects(loadViewerFile(file))
   } finally {
@@ -167,6 +182,70 @@ test("runner imports reports atomically, exports original data, and scans select
     assert.deepEqual(opened, [root])
     assert.equal((await post("report/finder", { path: other })).status, 400)
     assert.equal((await post("cleanup-mode", { mode: "trash" })).status, 400)
+    const childPath = join(root, "child")
+    assert.equal(
+      (await post("report/action", { path: other, action: "trash" })).status,
+      400
+    )
+    assert.equal(
+      (await post("report/action", { path: childPath, action: "trash" }))
+        .status,
+      200
+    )
+    let shortlist = await get("shortlist")
+    assert.equal(shortlist[0].path, childPath)
+    assert.equal(shortlist[0].bytes, 4096)
+    assert.match(shortlist[0].id, /^report:/)
+    assert.equal(
+      (await get("report/locations")).find((item) => item.path === childPath)
+        .mark,
+      "trash"
+    )
+    assert.equal(
+      (await post("report/action", { path: root, action: "keep" })).status,
+      200
+    )
+    assert.equal(
+      (await post("report/action", { path: childPath, action: "trash" }))
+        .status,
+      400
+    )
+    assert.equal(
+      (await post("report/action", { path: root, action: "unkeep" })).status,
+      200
+    )
+    assert.equal(
+      (await post("report/action", { path: childPath, action: "useless" }))
+        .status,
+      200
+    )
+    assert.equal((await get("shortlist"))[0].mark, "useless")
+    assert.equal(
+      (
+        await post("report/action", {
+          path: childPath,
+          action: "shell",
+          command: "echo unsafe",
+        })
+      ).status,
+      400
+    )
+    assert.equal(
+      (await post("report/action", { path: childPath, action: "clear" }))
+        .status,
+      200
+    )
+    assert.equal((await get("shortlist")).length, 0)
+    const inspected = await post("report/action", {
+      path: childPath,
+      action: "scan",
+    })
+    assert.equal(inspected.status, 200)
+    const inspection = await inspected.json()
+    assert.equal(inspection.root, childPath)
+    assert.equal(inspection.cleanup.mode, "demo")
+    assert.equal(inspection.source.kind, "live")
+
     const switched = await post("scan-root", { root: other })
     assert.equal(switched.status, 200)
     assert.equal((await switched.json()).snapshotMode, false)

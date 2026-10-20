@@ -288,6 +288,43 @@ export async function startViewer(options: ViewerOptions) {
     out.children = visible
     return out
   }
+  function reportLocations() {
+    const locations = new Map<
+      string,
+      { path: string; bytes: number | null; partial: boolean }
+    >()
+    const add = (
+      path: string | null,
+      bytes: number | null,
+      partial = false
+    ) => {
+      if (path && isAbsolute(path))
+        locations.set(path, { path, bytes, partial })
+    }
+    for (const target of report?.targets ?? []) {
+      if (target.present || target.denied)
+        add(
+          target.path,
+          target.bytes,
+          !!target.partial ||
+            !!target.detailMeasurementsPartial ||
+            !!target.denied
+        )
+      for (const child of target.children)
+        add(child.path, child.bytes, !!target.detailMeasurementsPartial)
+      for (const version of target.storeVersions ?? [])
+        add(version.path, version.bytes, !!version.partial)
+    }
+    for (const section of [report?.cacheHogs, report?.discovered])
+      for (const item of section?.dirs ?? []) {
+        add(item.path, item.bytes)
+        for (const child of item.children) add(child.path, child.bytes)
+      }
+    for (const cluster of report?.worktrees?.clusters ?? [])
+      for (const item of cluster.worktrees)
+        add(item.path, item.bytes, item.partial)
+    return locations
+  }
   let shortlistCache: {
     documentId: string
     marks: typeof marks
@@ -624,30 +661,42 @@ export async function startViewer(options: ViewerOptions) {
       }
       if (req.method === "POST" && url.pathname === "/api/diagnostics") {
         const input = await body(req)
-        if (input.action === "run") json(res, diagnostics.run(input.id))
+        if (input.action === "run")
+          json(res, diagnostics.run(input.id, input.options))
         else if (input.action === "cancel") json(res, diagnostics.cancel())
         else throw new Error("Unknown diagnostic action")
         return
       }
       if (req.method === "GET" && url.pathname === "/api/shortlist") {
         const indexed = shortlistDirectories()
+        const reportItems = new Map(
+          [...reportLocations().values()].map((item) => [
+            policyPath(item.path),
+            item,
+          ])
+        )
         json(
           res,
           Object.entries(marks)
             .map(([path, mark]) => {
               const node = indexed.get(path)
+              const reportItem = reportItems.get(path)
               return {
                 path,
                 mark,
                 name: basename(path),
-                id: node ? `d${node.id}` : null,
-                bytes: node?.bytes ?? null,
+                id: node
+                  ? `d${node.id}`
+                  : reportItem
+                    ? `report:${reportItem.path}`
+                    : null,
+                bytes: node?.bytes ?? reportItem?.bytes ?? null,
                 partial: node
                   ? snapshot.status !== "complete" ||
                     node.state !== "scanned" ||
                     node.issues > 0 ||
                     node.excluded > 0
-                  : false,
+                  : (reportItem?.partial ?? false),
                 kept: describe(path).kept,
               }
             })
@@ -761,32 +810,79 @@ export async function startViewer(options: ViewerOptions) {
         json(res, summary())
         return
       }
-      if (req.method === "POST" && url.pathname === "/api/report/finder") {
-        const input = await body(req),
-          path = input.path
-        const paths = report
-          ? [
-              ...report.targets.flatMap((t) => [
-                t.path,
-                ...t.children.map((c) => c.path),
-              ]),
-              ...(report.cacheHogs?.dirs ?? []).flatMap((d) => [
-                d.path,
-                ...d.children.map((c) => c.path),
-              ]),
-              ...(report.discovered?.dirs ?? []).flatMap((d) => [
-                d.path,
-                ...d.children.map((c) => c.path),
-              ]),
-              ...(report.worktrees?.clusters ?? []).flatMap((c) =>
-                c.worktrees.map((w) => w.path)
-              ),
-            ]
-          : []
-        if (typeof path !== "string" || !paths.includes(path))
+      if (req.method === "POST" && url.pathname === "/api/diagnostics/report") {
+        if (switching) throw new Error("Wait for the report to finish opening")
+        const generated = diagnostics.report((await body(req)).startedAt)
+        scanner?.cancel()
+        scanner = null
+        trash.setMode("demo")
+        trash.moved.clear()
+        report = generated
+        snapshot = emptyViewerSnapshot()
+        snapshotMode = true
+        sourceName = "Local diagnostic report"
+        documentId = randomUUID()
+        json(res, summary())
+        return
+      }
+      if (req.method === "GET" && url.pathname === "/api/report/locations") {
+        if (!report) throw new Error("No CLI report is open")
+        json(
+          res,
+          [...reportLocations().values()].map((item) => ({
+            ...item,
+            ...describe(item.path),
+          }))
+        )
+        return
+      }
+      if (
+        req.method === "POST" &&
+        ["/api/report/finder", "/api/report/action"].includes(url.pathname)
+      ) {
+        const input = await body(req)
+        const item =
+          typeof input.path === "string"
+            ? [...reportLocations().values()].find(
+                (location) =>
+                  policyPath(location.path) === policyPath(input.path as string)
+              )
+            : undefined
+        if (!item || !isAbsolute(item.path))
           throw new Error("Select a location from the open report")
-        await openFinder(path)
-        json(res, { opened: true })
+        const action = url.pathname.endsWith("/finder")
+          ? "finder"
+          : input.action
+        if (action === "finder") await openFinder(item.path)
+        else if (action === "scan") {
+          const path = await realpath(item.path)
+          if (!(await lstat(path)).isDirectory())
+            throw new Error("Choose a folder to inspect")
+          startScan(path)
+          json(res, summary())
+          return
+        } else if (["trash", "useless", "clear"].includes(String(action))) {
+          if (action !== "clear" && describe(item.path).kept)
+            throw new Error("Remove the keep rule before marking this location")
+          marks = saveDirectoryMark(
+            item.path,
+            action === "clear" ? null : (action as "trash" | "useless"),
+            policyFile
+          )
+        } else if (action === "keep" || action === "unkeep") {
+          const next = {
+            ...savedPolicy,
+            keep: savedPolicy.keep.filter(
+              (path) => policyPath(path) !== policyPath(item.path)
+            ),
+          }
+          if (action === "keep") next.keep.push(item.path)
+          saveDiskPolicy(next, policyFile)
+          savedPolicy = next
+          if (action === "keep")
+            marks = saveDirectoryMark(item.path, null, policyFile)
+        } else throw new Error("Choose a supported report action")
+        json(res, action === "finder" ? { opened: true } : { ok: true })
         return
       }
       if (req.method === "GET" && url.pathname === "/api/drives") {

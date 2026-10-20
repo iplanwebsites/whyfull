@@ -266,3 +266,22 @@ breadcrumbs/list/chart, search and page folders, read all direct files, save and
 remove Keep/Exclude rules in a temporary config, pause/export/import a snapshot,
 and check mobile layout. macOS has been exercised locally; verify native Windows
 and Linux behavior before claiming equivalent platform performance.
+
+### Report actions
+
+CLI reports support tier and shortlist filters, expandable recommendations, and
+per-location actions. Choose a recommendation in the action selector and apply
+it: shortlist for Trash, mark as useless, keep, or inspect with a scoped live scan.
+The same controls are available on child entries through their context menu.
+Report marks share the persistent cleanup shortlist with filesystem scans and
+retain report sizes (which may overlap). Marking never moves files. Saved reports
+stay in demo mode; inspect a folder before reviewing any real native Trash move.
+Recommendation text is available to copy, and is never interpreted as shell input.
+
+**Run report** opens the diagnostic runner with adjustable children per location,
+exact measurement, cache discovery, and worktree discovery. It runs the bundled
+read-only CLI with fixed, validated arguments. The trace retains command status
+and errors; successful runs offer **Open report** to display the structured
+results. The current document stays open until that action is chosen. Report
+output is bounded to 64 MiB, and traces remain bounded to 256 KiB. Options from
+the open report are used as the starting point for another run.

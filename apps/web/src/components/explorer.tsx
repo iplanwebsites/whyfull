@@ -979,7 +979,11 @@ export function Explorer() {
             </section>
           </div>
         </main>
-        <DiagnosticsDialog open={diagnostics} onOpenChange={setDiagnostics} />
+        <DiagnosticsDialog
+          open={diagnostics}
+          onOpenChange={setDiagnostics}
+          onReport={documentChanged}
+        />
         <CleanupShortlist
           open={shortlist}
           onOpenChange={setShortlist}

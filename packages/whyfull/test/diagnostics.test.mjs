@@ -1,6 +1,11 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { DiagnosticRunner, diagnosticCommands } from "../dist/index.mjs"
+import {
+  DiagnosticRunner,
+  diagnosticCommands,
+  reportArguments,
+  buildJsonReport,
+} from "../dist/index.mjs"
 const command = (id, script, timeoutMs = 5000) => ({
   id,
   label: id,
@@ -137,6 +142,41 @@ test("CLI opens home by default and exposes only fixed diagnostic commands over 
     ).json()
     assert.ok(commands.commands.some((item) => item.id === "whyfull"))
     assert.equal((await fetch(`${url.origin}/api/diagnostics`)).status, 401)
+    const runReport = await fetch(`${url.origin}/api/diagnostics`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        action: "run",
+        id: "whyfull",
+        options: { top: 3, exact: false, caches: false, worktrees: false },
+      }),
+    })
+    assert.equal(runReport.status, 200)
+    let generated
+    for (let i = 0; i < 1200; i++) {
+      const state = await (
+        await fetch(`${url.origin}/api/diagnostics`, { headers })
+      ).json()
+      generated = state.runs.find((run) => run.id === "whyfull")
+      if (!state.running) break
+      await new Promise((resolve) => setTimeout(resolve, 25))
+    }
+    assert.equal(generated.status, "complete", generated.trace)
+    assert.equal(generated.reportAvailable, true)
+    const opened = await fetch(`${url.origin}/api/diagnostics/report`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ startedAt: generated.startedAt }),
+    })
+    assert.equal(opened.status, 200)
+    assert.equal((await opened.json()).source.kind, "report")
+    const report = await (
+      await fetch(`${url.origin}/api/report`, { headers })
+    ).json()
+    assert.equal(report.options.top, 3)
+    assert.equal(report.options.cacheScan, false)
+    assert.equal(report.options.worktrees, false)
+
     const invalid = await fetch(`${url.origin}/api/diagnostics`, {
       method: "POST",
       headers,
@@ -162,4 +202,61 @@ test("CLI opens home by default and exposes only fixed diagnostic commands over 
     await closed
     rmSync(root, { recursive: true, force: true })
   }
+})
+
+test("report options produce fixed CLI arguments and completed JSON becomes a report, not raw trace", async () => {
+  assert.deepEqual(
+    reportArguments({ top: 12, exact: true, caches: false, worktrees: false }),
+    ["--json", "--top", "12", "--exact", "--no-cache-scan", "--no-worktrees"]
+  )
+  for (const top of [-1, 101, 1.5, "5; echo bad"])
+    assert.throws(
+      () =>
+        reportArguments({ top, exact: false, caches: true, worktrees: false }),
+      /options/
+    )
+  assert.throws(
+    () =>
+      reportArguments({ top: 5, exact: "yes", caches: true, worktrees: false }),
+    /options/
+  )
+  const report = buildJsonReport({
+    report: {
+      platform: process.platform,
+      volume: null,
+      targets: [],
+      denied: 0,
+      partial: 0,
+      exact: false,
+      total: 0,
+      generatedAt: new Date().toISOString(),
+    },
+    options: {},
+    durationMs: 1,
+  })
+  const runner = new DiagnosticRunner([
+    {
+      ...command(
+        "report",
+        `process.stdout.write(${JSON.stringify(JSON.stringify(report))})`
+      ),
+      report: true,
+    },
+    {
+      ...command("invalid", 'process.stdout.write("not a report")'),
+      report: true,
+    },
+  ])
+  runner.run("report")
+  assert.throws(() => runner.report("old run"), /complete/)
+  const run = (await finished(runner)).runs[0]
+  assert.equal(run.reportAvailable, true)
+  assert.deepEqual(runner.report(run.startedAt), report)
+  assert.match(run.trace, /Report ready/)
+  assert.doesNotMatch(run.trace, /schemaVersion/)
+  runner.run("invalid")
+  const failed = (await finished(runner)).runs[1]
+  assert.equal(failed.status, "failed")
+  assert.equal(failed.reportAvailable, false)
+  assert.throws(() => runner.report(run.startedAt), /complete/)
 })

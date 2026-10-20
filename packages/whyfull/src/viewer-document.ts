@@ -73,6 +73,11 @@ export function validateViewerReport(value: unknown): WhyfullJsonReport {
       !["AUTO", "REBUILD", "JUDGEMENT", "APP", "DATA"].includes(target.tier) ||
       (target.path !== null && typeof target.path !== "string") ||
       (target.bytes !== null && !number(target.bytes)) ||
+      (target.storeVersions !== undefined &&
+        (!Array.isArray(target.storeVersions) ||
+          target.storeVersions.some(
+            (item) => !location(item as unknown as Record<string, unknown>)
+          ))) ||
       !Array.isArray(target.children) ||
       target.children.some(
         (child) => !location(child as unknown as Record<string, unknown>)

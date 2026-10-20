@@ -11,17 +11,46 @@ import {
 } from "@workspace/ui/components/dialog"
 import { toast } from "@workspace/ui/components/sonner"
 import { api } from "@/lib/api"
-import type { DiagnosticsStatus } from "@/lib/api"
+import type { DiagnosticsStatus, ViewerStatus } from "@/lib/api"
 
 export function DiagnosticsDialog({
   open,
   onOpenChange,
+  onReport,
+  initialCommand = "space",
+  initialOptions,
 }: {
   open: boolean
   onOpenChange: (value: boolean) => void
+  onReport?: (status: ViewerStatus) => Promise<void>
+  initialCommand?: string
+  initialOptions?: {
+    top: number
+    exact: boolean
+    caches: boolean
+    worktrees: boolean
+  }
 }) {
   const client = useQueryClient()
-  const [selected, setSelected] = useState("space")
+  const [selected, setSelected] = useState(initialCommand)
+  const [options, setOptions] = useState({
+    top: 5,
+    exact: false,
+    caches: true,
+    worktrees: false,
+  })
+  useEffect(() => {
+    if (open) setSelected(initialCommand)
+  }, [open, initialCommand])
+  useEffect(() => {
+    if (open && initialOptions) setOptions(initialOptions)
+  }, [
+    open,
+    initialOptions?.top,
+    initialOptions?.exact,
+    initialOptions?.caches,
+    initialOptions?.worktrees,
+  ])
   const [busy, setBusy] = useState(false)
   const notified = useRef(new Set<string>())
   const result = useQuery({
@@ -49,7 +78,11 @@ export function DiagnosticsDialog({
     try {
       client.setQueryData(
         ["diagnostics"],
-        await api<DiagnosticsStatus>("diagnostics", { action, id: command?.id })
+        await api<DiagnosticsStatus>("diagnostics", {
+          action,
+          id: command?.id,
+          ...(action === "run" && command?.id === "whyfull" ? { options } : {}),
+        })
       )
     } catch (error) {
       toast.error(error instanceof Error ? error.message : String(error))
@@ -58,7 +91,7 @@ export function DiagnosticsDialog({
     }
   }
   const trace = command
-    ? `$ ${command.command}\n${run ? `${run.trace}\n[${run.status}${run.exitCode !== null ? ` · exit ${run.exitCode}` : ""}]${run.truncated ? "\n[Output limited to 256 KiB]" : ""}` : ""}`
+    ? `$ ${run?.command ?? command.command}\n${run ? `${run.trace}\n[${run.status}${run.exitCode !== null ? ` · exit ${run.exitCode}` : ""}]${run.truncated ? "\n[Output limited to 256 KiB]" : ""}` : ""}`
     : ""
   async function copy() {
     try {
@@ -76,7 +109,8 @@ export function DiagnosticsDialog({
         <DialogHeader>
           <DialogTitle>Diagnostics</DialogTitle>
           <DialogDescription>
-            Read-only system commands. Choose one to run locally.
+            Read-only commands. Adjust a report scan, then open its locations
+            and recommendations.
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-wrap items-center gap-2">
@@ -122,6 +156,64 @@ export function DiagnosticsDialog({
             <Copy />
           </Button>
         </div>
+        {command?.id === "whyfull" && (
+          <fieldset
+            disabled={busy || data?.running}
+            className="flex flex-wrap items-center gap-3 text-xs"
+          >
+            <label className="flex items-center gap-2">
+              Children per location
+              <InputNumber
+                value={options.top}
+                onChange={(top) => setOptions({ ...options, top })}
+              />
+            </label>
+            {(
+              [
+                ["exact", "Exact sizes"],
+                ["caches", "Find caches"],
+                ["worktrees", "Find worktrees"],
+              ] as const
+            ).map(([key, label]) => (
+              <label key={key} className="flex items-center gap-1.5">
+                <input
+                  type="checkbox"
+                  checked={options[key]}
+                  onChange={(event) =>
+                    setOptions({ ...options, [key]: event.target.checked })
+                  }
+                />
+                {label}
+              </label>
+            ))}
+          </fieldset>
+        )}
+        {run?.reportAvailable && onReport && (
+          <Button
+            size="sm"
+            disabled={busy}
+            onClick={() =>
+              void (async () => {
+                setBusy(true)
+                try {
+                  const next = await api<ViewerStatus>("diagnostics/report", {
+                    startedAt: run.startedAt,
+                  })
+                  await onReport(next)
+                  onOpenChange(false)
+                } catch (error) {
+                  toast.error(
+                    error instanceof Error ? error.message : String(error)
+                  )
+                } finally {
+                  setBusy(false)
+                }
+              })()
+            }
+          >
+            Open report
+          </Button>
+        )}
         <textarea
           aria-label="Diagnostic trace"
           readOnly
@@ -131,5 +223,25 @@ export function DiagnosticsDialog({
         />
       </DialogContent>
     </Dialog>
+  )
+}
+
+function InputNumber({
+  value,
+  onChange,
+}: {
+  value: number
+  onChange: (value: number) => void
+}) {
+  return (
+    <input
+      type="number"
+      min={0}
+      max={100}
+      aria-label="Children per location"
+      value={value}
+      onChange={(event) => onChange(Number(event.target.value))}
+      className="h-8 w-16 rounded-md border bg-background px-2"
+    />
   )
 }

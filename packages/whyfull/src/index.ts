@@ -65,7 +65,11 @@ export { listScanDrives, defaultScanRoot } from "./drives"
 
 export type { ScanDrive } from "./drives"
 
-export { DiagnosticRunner, diagnosticCommands } from "./diagnostics"
+export {
+  DiagnosticRunner,
+  diagnosticCommands,
+  reportArguments,
+} from "./diagnostics"
 
 export {
   measureFileDistribution,
