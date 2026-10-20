@@ -1,14 +1,12 @@
+import { loadViewerFile } from "./viewer-document"
+import { defaultScanRoot } from "./drives"
+import { basename } from "node:path"
 import mri from "mri"
-import { homedir } from "node:os"
 import { accessSync, constants } from "node:fs"
 import { dirname, resolve } from "node:path"
 import { defaultScanWorkers, scanFilesystem } from "./filesystem"
 import { loadDiskPolicy, normalizePolicyPath } from "./disk-policy"
-import {
-  loadDiskSnapshot,
-  saveDiskSnapshot,
-  startViewer,
-} from "./viewer-server"
+import { saveDiskSnapshot, startViewer } from "./viewer-server"
 import { human } from "./size"
 import type { DiskScanOptions } from "./filesystem-types"
 import { diskSnapshotChunks } from "./disk-snapshot"
@@ -26,6 +24,7 @@ export async function runDiskCli(argv: string[]): Promise<void> {
         "exclude",
         "json-file",
         "snapshot",
+        "report",
         "config",
       ],
       alias: Object.fromEntries(
@@ -41,6 +40,7 @@ export async function runDiskCli(argv: string[]): Promise<void> {
           "exclude",
           "json-file",
           "snapshot",
+          "report",
           "config",
           "allow-trash",
         ].map((key) => [key, key])
@@ -50,11 +50,13 @@ export async function runDiskCli(argv: string[]): Promise<void> {
         unknown = flag
       },
     })
-    if (unknown || raw._.length)
+    const positional =
+      raw.view && raw._.length === 1 ? String(raw._[0]) : undefined
+    if (unknown || (raw._.length && !positional))
       throw new Error(`Unexpected argument ${unknown || raw._[0]}`)
     if (raw.help) {
       process.stdout.write(
-        "whyfull --view [--root <directory>] [--workers 1..32] [--engine sync|async]\nwhyfull --scan --root <directory> --json-file <new-file>\nwhyfull --view --snapshot <file> [--no-open]\n--allow-trash enables native macOS Trash for live viewers; demo is always the default.\n--exclude <directory> may be repeated. --config <file> selects saved Keep/Exclude rules.\n"
+        "whyfull --view [--root <directory>] [--workers 1..32] [--engine sync|async]\nwhyfull --scan --root <directory> --json-file <new-file>\nwhyfull --view --report <file> [--no-open] (disk snapshots or CLI JSON reports)\n--allow-trash enables native macOS Trash for live viewers; demo is always the default.\n--exclude <directory> may be repeated. --config <file> selects saved Keep/Exclude rules.\n"
       )
       return
     }
@@ -71,8 +73,13 @@ export async function runDiskCli(argv: string[]): Promise<void> {
     if (engine !== "sync" && engine !== "async")
       throw new Error("--engine must be sync or async")
     if (raw.view && raw.scan) throw new Error("Choose --view or --scan")
-    const snapshotPath = one("snapshot")
-    if (snapshotPath && !raw.view) throw new Error("--snapshot requires --view")
+    const snapshotPath = one("snapshot") ?? one("report") ?? positional
+    if (positional && (one("snapshot") || one("report")))
+      throw new Error("Choose one report file")
+    if (one("snapshot") && one("report"))
+      throw new Error("Choose --snapshot or --report")
+    if (snapshotPath && !raw.view)
+      throw new Error("Opening a report requires --view")
     if (
       snapshotPath &&
       ["root", "workers", "engine", "exclude", "json-file"].some(
@@ -99,9 +106,7 @@ export async function runDiskCli(argv: string[]): Promise<void> {
     if (excludes.some((p: unknown) => typeof p !== "string" || !p))
       throw new Error("--exclude requires a directory")
     const policyFile = one("config") ? resolve(one("config")!) : undefined
-    const root =
-      one("root") ??
-      (process.platform === "darwin" ? "/System/Volumes/Data" : homedir())
+    const root = one("root") ?? defaultScanRoot()
     const policy = loadDiskPolicy(policyFile)
     const options: DiskScanOptions = {
       root,
@@ -120,12 +125,15 @@ export async function runDiskCli(argv: string[]): Promise<void> {
         allowTrash: raw["allow-trash"] === true,
         open: raw.open,
         saveTo,
-        snapshot: snapshotPath
-          ? await loadDiskSnapshot(snapshotPath)
-          : undefined,
+        ...(snapshotPath
+          ? {
+              ...(await loadViewerFile(snapshotPath)),
+              sourceName: basename(snapshotPath),
+            }
+          : {}),
       })
       process.stdout.write(
-        `\n  whyfull · Local disk explorer\n  ${viewer.url}\n\n  ${snapshotPath ? "Viewing saved snapshot" : `Scanning ${viewer.snapshot.root} · ${workers} workers · ${engine}`}\n  Press Ctrl+C to stop the viewer.\n\n`
+        `\n  whyfull · Local disk explorer\n  ${viewer.url}\n\n  ${snapshotPath ? "Viewing saved report" : `Scanning ${viewer.snapshot.root} · ${workers} workers · ${engine}`}\n  Press Ctrl+C to stop the viewer.\n\n`
       )
       process.once("SIGINT", () => {
         void viewer.close()

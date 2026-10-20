@@ -29,13 +29,16 @@ whyfull --view --root ~/Library --workers 4
 whyfull --view --exclude ~/Pictures --exclude ~/Music
 whyfull --scan --root ~/Downloads --json-file disk.json
 whyfull --view --snapshot disk.json
+whyfull --view --report caches.json
+# From the workspace runner:
+pnpm viewer --report caches.json
 ```
 
-On macOS, the default root is `/System/Volumes/Data`; elsewhere it is the home
-directory. Scanning stays on one filesystem, skips symlinks, reads metadata
+On macOS, the default root is `/System/Volumes/Data`; elsewhere it is the system
+drive root. Scanning stays on one filesystem, skips symlinks, reads metadata
 only, and reports inaccessible locations as undercounts. macOS-protected
 locations may require Full Disk Access for the launching terminal. Ctrl+C stops
-the viewer and its workers. Nothing is uploaded. Cleanup starts in demo mode.
+the viewer and its workers. Nothing leaves your computer. Cleanup starts in demo mode.
 
 In folder details, **Keep** leaves sizes visible and suppresses cleanup advice.
 **Exclude** skips the folder and its descendants on future scans; its size is
@@ -45,6 +48,12 @@ changed exclusions. Preferences are stored privately in
 `~/` paths. Use `--config <file>` for another settings file. CLI exclusions are
 temporary. These preferences apply to the filesystem viewer/scanner; the
 original known-target report is unchanged.
+
+Use the drive dropdown to scan another mounted volume or **Open report…** to view
+a CLI `whyfull-report` JSON report or a `whyfull-disk` snapshot. The viewer streams
+imports to private temporary storage and removes it after parsing. CLI reports
+show known targets, discovered caches and worktrees separately because their
+measurements may overlap. Errors and action feedback appear as toasts.
 
 The JS scanner measures every accessible regular file once and retains every
 directory plus its largest 32 direct files. Smaller direct files are grouped;
@@ -274,6 +283,21 @@ The root workspace links that package locally, so `npx --no-install whyfull`
 also runs this checkout's built CLI and cannot fall back to the hosted package.
 Development currently requires Node 22.18 or newer; the published CLI supports
 Node 18.15 or newer.
+
+### Brochure website
+
+`apps/brochure` is the standalone public website for `whyfull.app`.
+`apps/web` remains the bundled local disk viewer. To work on the brochure:
+
+```bash
+pnpm --filter @whyfull/brochure dev
+pnpm --filter @whyfull/brochure build
+```
+
+The brochure runs at `http://127.0.0.1:3001` and builds to
+`apps/brochure/dist` for static hosting. See
+[`apps/brochure/README.md`](https://github.com/iplanwebsites/whyfull/blob/main/apps/brochure/README.md)
+for template provenance and hosting setup.
 
 ## Native experiment
 

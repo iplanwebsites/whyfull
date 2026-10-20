@@ -21,7 +21,11 @@ TanStack Start app in `apps/web`. TanStack Router owns folder, search, map and
 sort URL state and supports browser back/forward. React Query fetches bounded
 folder summaries. Press Command/Ctrl+K to focus folder search. Last folder, map,
 sort and appearance preferences survive CLI restarts in the config file.
-The compact workspace keeps navigation in the toolbar and view modes, Finder,
+The compact workspace keeps drive selection and breadcrumbs in the toolbar,
+without a product-name banner. Errors and action feedback use Sonner toasts.
+The drive selector defaults to macOS Data and lists other mounted volumes; choosing
+a drive cancels the previous scan and starts a fresh inventory in demo mode.
+It also opens saved JSON reports without restarting the runner. View modes, Finder,
 appearance and scan actions in an ellipsis menu. Right-click a breadcrumb, list
 entry, treemap tile or ring to open its Base UI context menu. Directory marks
 (`delete` or `useless`) are saved in the configuration separately from keep/exclude
@@ -110,6 +114,16 @@ Incomplete/cancelled scans remain labelled incomplete when opened later. Save
 snapshots after a scan completes or is cancelled; do not serialize a changing
 inventory. Snapshot imports never continue scanning or read live file lists.
 
+`whyfull --view --report file.json` and `pnpm viewer --report file.json` accept both
+report formats; a single positional file after `--view` works too. The UI drive
+menu includes **Open report…**. Imports stream to owner-only temporary files
+(up to 8 GiB), validate before replacing the current document, and clean up those
+files afterward. CLI target/cache reports are bounded to 64 MiB, show sections,
+measurement lower bounds, drill-downs and tool cleanup advice, and explicitly
+label overlapping totals. Finder actions accept only locations in the open report.
+Drive changes are restricted to discovered mount roots, with native Trash still
+requiring the original `--allow-trash` capability and explicit opt-in.
+
 The local server exposes authenticated status, directory summaries, export,
 policy updates, cancellation and rescan endpoints. Directory navigation uses
 IDs from the scan; there is no general-purpose filesystem-read endpoint. Tokens
@@ -173,7 +187,8 @@ The measurements were separate warm runs and are not cold-start guarantees.
 `pnpm build` builds the TanStack Start SPA first, then the library, CLI and
 filesystem worker. Only `apps/web/dist/client` is copied into the CLI package.
 Vite and the Start SSR/prerender server are build tools; production uses the
-small authenticated Node HTTP server. An asset manifest allows hashed JS/CSS,
+small authenticated Node HTTP server. Static assets are cached per runner instance so rebuilding locally does not break
+an already open viewer. An asset manifest allows hashed JS/CSS,
 local fonts and SPA navigation fallbacks. Inline shell scripts receive CSP hashes.
 The chart rings load lazily; the horizontal SVG treemap has no chart dependency.
 Bundled dependency license texts are included in `dist/viewer/THIRD_PARTY.txt`.

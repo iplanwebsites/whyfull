@@ -22,7 +22,8 @@
     "check": "pnpm docs:check && pnpm format:check && pnpm typecheck && pnpm test",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,mjs,json,css,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mjs,json,css,md}\"",
-    "clean": "turbo clean && rm -rf node_modules"
+    "clean": "turbo clean && rm -rf node_modules",
+    "viewer": "node packages/whyfull/dist/cli.mjs --view"
   },
   "devDependencies": {
     "prettier": "^3.8.3",

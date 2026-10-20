@@ -1,3 +1,5 @@
+export type { ScanDrive } from "./drives"
+export type { WhyfullJsonReport } from "./types"
 import type { DiskSnapshot, DiskPolicy } from "./filesystem-types"
 import type { ViewerPreferences } from "./disk-policy"
 export type { ViewerPreferences } from "./disk-policy"
@@ -50,6 +52,8 @@ export interface ViewerStatus extends Omit<
   saveError: string | null
   savedPath: string | null
   snapshotMode: boolean
+  documentId: string
+  source: { kind: "live" | "snapshot" | "report"; name: string | null }
   viewer: ViewerPreferences
   cleanup: {
     mode: "demo" | "trash"

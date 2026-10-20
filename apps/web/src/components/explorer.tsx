@@ -1,3 +1,6 @@
+import { toast } from "@workspace/ui/components/sonner"
+import { RunnerControls, useDrives } from "./runner-controls"
+import { ReportViewer } from "./report-viewer"
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import {
@@ -87,12 +90,13 @@ export function Explorer() {
   const [page, setPage] = useState(0),
     [selected, setSelected] = useState<ViewEntry | null>(null),
     [hover, setHover] = useState<ViewEntry | null>(null),
-    [message, setMessage] = useState(""),
-    [busy, setBusy] = useState(false),
+    [changing, setChanging] = useState(false),
+    [working, setBusy] = useState(false),
     [context, setContext] = useState<ViewEntry | null>(null),
     [plan, setPlan] = useState<TrashPlan | null>(null),
     [enable, setEnable] = useState(false),
     [exclude, setExclude] = useState<ViewEntry | null>(null)
+  const busy = working || changing
   const restored = useRef(false),
     input = useRef<HTMLInputElement>(null)
   const status = useQuery({
@@ -102,13 +106,14 @@ export function Explorer() {
       query.state.data?.status === "scanning" ? 1500 : 5000,
     enabled: hasToken(),
   })
+  const drives = useDrives()
   const s = status.data,
     view = search.view ?? s?.viewer.view ?? "treemap",
     sort = search.sort ?? s?.viewer.sort ?? "size"
   const directory = useQuery({
     queryKey: [
       "directory",
-      s?.startedAt,
+      s?.documentId,
       search.id,
       search.path,
       search.q,
@@ -122,7 +127,7 @@ export function Explorer() {
         undefined,
         signal
       ),
-    enabled: !!s,
+    enabled: !!s && s.source.kind !== "report" && !changing,
     refetchInterval: s?.status === "scanning" ? 2500 : false,
   })
   const d = directory.data
@@ -211,19 +216,39 @@ export function Explorer() {
       </>
     )
   }
+  async function documentChanged(next: ViewerStatus) {
+    restored.current = true
+    setSelected(null)
+    setHover(null)
+    setContext(null)
+    setPlan(null)
+    setPage(0)
+    await navigate({
+      search: (prev) => ({
+        ...prev,
+        id: 0,
+        path: next.source.kind === "report" ? undefined : next.root,
+        q: undefined,
+        files: undefined,
+        panel: undefined,
+      }),
+    })
+    client.setQueryData(["status"], next)
+    client.removeQueries({ queryKey: ["directory"] })
+  }
   function url(patch: Partial<typeof search>, replace = false) {
     void navigate({ search: (prev) => ({ ...prev, ...patch }), replace })
     setPage(0)
     setSelected(null)
+    setHover(null)
   }
   async function run(action: () => Promise<unknown>) {
     setBusy(true)
-    setMessage("")
     try {
       await action()
       await client.invalidateQueries()
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : String(error))
+      toast.error(error instanceof Error ? error.message : String(error))
     } finally {
       setBusy(false)
     }
@@ -250,7 +275,7 @@ export function Explorer() {
   }
   async function policy(node: ViewEntry, action: string) {
     await api("policy", { id: Number(node.id.slice(1)), action })
-    setMessage(
+    toast.success(
       action === "exclude"
         ? "Exclusion saved. Rescan to update the map."
         : "Keep rule saved. This folder is protected from Trash moves."
@@ -260,9 +285,27 @@ export function Explorer() {
   useEffect(() => {
     if (!s || restored.current) return
     restored.current = true
-    if (search.id === undefined && !search.path && s.viewer.lastPath)
+    if (
+      s.source.kind !== "report" &&
+      search.id === undefined &&
+      !search.path &&
+      s.viewer.lastPath
+    )
       url({ path: s.viewer.lastPath })
   }, [s])
+  useEffect(() => {
+    if (s?.status === "failed")
+      toast.error(s.saveError ?? "The scan could not finish", {
+        id: "scan-failed",
+      })
+  }, [s?.status, s?.saveError])
+  useEffect(() => {
+    if (s?.saveError) toast.error(s.saveError, { id: "scan-error" })
+  }, [s?.saveError])
+  useEffect(() => {
+    if (s?.needsRescan)
+      toast.info("Rescan to refresh sizes", { id: `rescan-${s.documentId}` })
+  }, [s?.needsRescan, s?.documentId])
   useEffect(() => {
     const theme = s?.viewer.theme ?? "light"
     document.documentElement.classList.toggle(
@@ -294,11 +337,15 @@ export function Explorer() {
         </p>
       </main>
     )
-  if (!s)
+  if (!s) return <main className="p-12">Loading…</main>
+  if (s.source.kind === "report")
     return (
-      <main className="p-12">
-        {status.error?.message ?? "Loading your local inventory…"}
-      </main>
+      <ReportViewer
+        key={s.documentId}
+        status={s}
+        onChanged={documentChanged}
+        onPendingChange={setChanging}
+      />
     )
   const focus = selected ?? d?.node,
     canAct =
@@ -322,13 +369,12 @@ export function Explorer() {
         }}
       >
         <header className="flex shrink-0 flex-wrap items-center gap-2 border-b px-3 py-2">
-          <span
-            className="mr-1 flex items-center gap-1.5 text-sm font-semibold"
-            title="whyfull"
-          >
-            <HardDrive className="size-4" />
-            whyfull
-          </span>
+          <RunnerControls
+            status={s}
+            disabled={busy}
+            onChanged={documentChanged}
+            onPendingChange={setChanging}
+          />
           <Button
             size="icon-sm"
             variant="ghost"
@@ -341,27 +387,33 @@ export function Explorer() {
           </Button>
           <Breadcrumb className="min-w-0 flex-1 overflow-x-auto">
             <BreadcrumbList className="flex-nowrap gap-1">
-              {d?.crumbs.map((crumb, i) => (
-                <BreadcrumbItem key={crumb.id}>
-                  {i > 0 && <BreadcrumbSeparator />}
-                  <button
-                    className="max-w-36 truncate text-xs hover:text-foreground"
-                    title={crumb.path}
-                    data-entry-id={`d${crumb.id}`}
-                    onClick={() =>
-                      open({
-                        id: `d${crumb.id}`,
-                        kind: "directory",
-                        name: crumb.name,
-                        path: crumb.path,
-                        value: 0,
-                      })
-                    }
-                  >
-                    {i === 0 ? crumb.path : crumb.name}
-                  </button>
-                </BreadcrumbItem>
-              ))}
+              {d?.crumbs
+                .filter(
+                  (crumb, index) =>
+                    index !== 0 ||
+                    !drives.data?.some((drive) => drive.id === crumb.path)
+                )
+                .map((crumb, i) => (
+                  <BreadcrumbItem key={crumb.id}>
+                    {i > 0 && <BreadcrumbSeparator />}
+                    <button
+                      className="max-w-36 truncate text-xs hover:text-foreground"
+                      title={crumb.path}
+                      data-entry-id={`d${crumb.id}`}
+                      onClick={() =>
+                        open({
+                          id: `d${crumb.id}`,
+                          kind: "directory",
+                          name: crumb.name,
+                          path: crumb.path,
+                          value: 0,
+                        })
+                      }
+                    >
+                      {crumb.name}
+                    </button>
+                  </BreadcrumbItem>
+                ))}
             </BreadcrumbList>
           </Breadcrumb>
           {d?.node.mark && (
@@ -444,7 +496,7 @@ export function Explorer() {
                 onCheckedChange={(checked) =>
                   checked
                     ? void run(() => api("cleanup-mode", { mode: "demo" }))
-                    : (setMessage(""), setEnable(true))
+                    : setEnable(true)
                 }
               >
                 <Eye />
@@ -494,28 +546,17 @@ export function Explorer() {
           </DropdownMenu>
         </header>
         <main className="flex min-h-0 flex-1 flex-col gap-2 p-2">
-          {(message || s.needsRescan) && (
-            <div
-              role="status"
-              className="mb-4 flex items-center justify-between rounded-lg border bg-muted px-4 py-3 text-sm"
-            >
-              {message || "Files moved to Trash. Rescan to refresh sizes."}
-              <Button size="sm" variant="ghost" onClick={() => setMessage("")}>
-                Dismiss
-              </Button>
-            </div>
-          )}
           <div className="explorer-grid flex-1 overflow-hidden rounded-xl border">
             <section className="flex min-w-0 flex-col bg-muted/25">
               <div className="relative min-h-0 flex-1">
                 {directory.error ? (
-                  <div role="alert" className="p-8 text-sm">
-                    {directory.error.message}
+                  <div className="p-3">
                     <Button
-                      variant="link"
-                      onClick={() => url({ id: 0, path: undefined })}
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => url({ id: 0, path: s.root })}
                     >
-                      Return to scan root
+                      Back to root
                     </Button>
                   </div>
                 ) : d ? (
@@ -727,7 +768,6 @@ export function Explorer() {
                           variant="outline"
                           disabled={busy}
                           onClick={() => {
-                            setMessage("")
                             setExclude(focus)
                           }}
                         >
@@ -863,11 +903,6 @@ export function Explorer() {
               {formatSize(plan?.bytes)} allocated · preview expires in 60
               seconds
             </p>
-            {message && (
-              <p role="alert" className="text-sm text-destructive">
-                {message}
-              </p>
-            )}
             <AlertDialogFooter>
               <Button variant="outline" onClick={() => setPlan(null)}>
                 Cancel
@@ -881,7 +916,7 @@ export function Explorer() {
                       { planId: plan!.id }
                     )
                     setPlan(null)
-                    setMessage(result.message)
+                    toast.success(result.message)
                   })
                 }
               >
@@ -899,11 +934,6 @@ export function Explorer() {
                   "Cleanup will move selected items to macOS Trash after a preview. Every new session starts in demo mode."}
               </AlertDialogDescription>
             </AlertDialogHeader>
-            {message && (
-              <p role="alert" className="text-sm text-destructive">
-                {message}
-              </p>
-            )}
             <AlertDialogFooter>
               <Button variant="outline" onClick={() => setEnable(false)}>
                 Keep demo mode
@@ -937,11 +967,6 @@ export function Explorer() {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <p className="break-all text-sm">{exclude?.path}</p>
-            {message && (
-              <p role="alert" className="text-sm text-destructive">
-                {message}
-              </p>
-            )}
             <AlertDialogFooter>
               <Button variant="outline" onClick={() => setExclude(null)}>
                 Cancel

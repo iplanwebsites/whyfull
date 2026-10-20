@@ -1,10 +1,25 @@
+import { pipeline } from "node:stream/promises"
+import { tmpdir } from "node:os"
+import { listScanDrives } from "./drives"
+import type { ScanDrive } from "./drives"
+import {
+  emptyViewerSnapshot,
+  loadViewerFile,
+  validateViewerReport,
+} from "./viewer-document"
+import type { WhyfullJsonReport } from "./types"
 import { createServer } from "node:http"
 import type { IncomingMessage, ServerResponse } from "node:http"
-import { createHash, randomBytes, timingSafeEqual } from "node:crypto"
-import { readFileSync } from "node:fs"
-import { Readable } from "node:stream"
-import { lstat, readdir, realpath } from "node:fs/promises"
-import { join } from "node:path"
+import {
+  createHash,
+  randomBytes,
+  randomUUID,
+  timingSafeEqual,
+} from "node:crypto"
+import { createWriteStream, readFileSync } from "node:fs"
+import { Readable, Transform } from "node:stream"
+import { lstat, readdir, realpath, mkdtemp, rm } from "node:fs/promises"
+import { basename, isAbsolute, join } from "node:path"
 import { execFile, spawn } from "node:child_process"
 import { DiskScanner } from "./filesystem"
 import {
@@ -34,6 +49,9 @@ export interface ViewerOptions extends DiskScanOptions {
   open?: boolean
   policyFile?: string
   snapshot?: DiskSnapshot
+  report?: WhyfullJsonReport
+  sourceName?: string
+  drives?: () => ScanDrive[]
   saveTo?: string
   finder?: (path: string) => Promise<void>
   allowTrash?: boolean
@@ -47,10 +65,21 @@ export async function startViewer(options: ViewerOptions) {
     keep: [...policy.keep, ...(options.policy?.keep ?? [])],
     exclude: [...policy.exclude, ...(options.policy?.exclude ?? [])],
   }
-  let scanner = options.snapshot
+  if (options.report && options.snapshot)
+    throw new Error("Choose a report or a snapshot")
+  let report = options.report ? validateViewerReport(options.report) : null
+  let snapshotMode = !!options.snapshot || !!report
+  let sourceName = options.sourceName ?? null
+  let documentId = randomUUID()
+  const drives = options.drives ?? listScanDrives
+  let switching = false
+  let scanner = snapshotMode
     ? null
     : new DiskScanner({ ...options, policy: scanPolicy })
-  let snapshot = options.snapshot ?? scanner!.snapshot
+  let snapshot =
+    options.snapshot ?? (report ? emptyViewerSnapshot() : scanner!.snapshot)
+  // Avoid retaining a multi-gigabyte initial inventory after switching documents.
+  options = { ...options, snapshot: undefined, report: undefined }
   let savedPolicy = policy
   let saveError: string | null = null
   let savedPath: string | null = null
@@ -63,7 +92,7 @@ export async function startViewer(options: ViewerOptions) {
       exclude: [...savedPolicy.exclude, ...snapshot.policy.exclude],
     }),
     allowTrash: options.allowTrash,
-    snapshotMode: !!options.snapshot,
+    snapshotMode: () => snapshotMode,
   })
   const assets = JSON.parse(
     readFileSync(new URL("./viewer/assets.json", import.meta.url), "utf8")
@@ -71,6 +100,13 @@ export async function startViewer(options: ViewerOptions) {
   const shell = readFileSync(
     new URL("./viewer/index.html", import.meta.url),
     "utf8"
+  )
+  // Keep running viewers consistent when a local rebuild replaces dist files.
+  const assetContents = new Map(
+    Object.values(assets).map((asset) => [
+      asset.file,
+      readFileSync(new URL(`./viewer/${asset.file}`, import.meta.url)),
+    ])
   )
   const scriptHashes = [
     ...shell.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi),
@@ -190,6 +226,31 @@ export async function startViewer(options: ViewerOptions) {
     out.children = visible
     return out
   }
+  async function openFinder(path: string) {
+    if (!options.finder && process.platform !== "darwin")
+      throw new Error("Finder is available on macOS only")
+    if (
+      !isAbsolute(path) ||
+      !(await lstat(path)).isDirectory() ||
+      (await realpath(path)) !== path
+    )
+      throw new Error(
+        "This directory moved or contains a symlink. Rescan before opening it."
+      )
+    if (options.finder) await options.finder(path)
+    else
+      await new Promise<void>((resolve, reject) =>
+        execFile(
+          "/usr/bin/open",
+          ["-a", "Finder", path],
+          { timeout: 15000 },
+          (error) =>
+            error
+              ? reject(new Error("Finder could not open this directory"))
+              : resolve()
+        )
+      )
+  }
   function summary() {
     const { directories, ...rest } = snapshot
     return {
@@ -203,7 +264,12 @@ export async function startViewer(options: ViewerOptions) {
       policyFile,
       saveError,
       savedPath,
-      snapshotMode: !!options.snapshot,
+      snapshotMode,
+      documentId,
+      source: {
+        kind: report ? "report" : snapshotMode ? "snapshot" : "live",
+        name: sourceName,
+      },
       viewer: viewerPreferences,
       cleanup: trash.status(),
       finderAvailable: !!options.finder || process.platform === "darwin",
@@ -259,9 +325,7 @@ export async function startViewer(options: ViewerOptions) {
             ? "no-store"
             : "public, max-age=3600",
         })
-        res.end(
-          readFileSync(new URL(`./viewer/${asset.file}`, import.meta.url))
-        )
+        res.end(assetContents.get(asset.file))
         return
       }
       const auth = Buffer.from(
@@ -279,6 +343,14 @@ export async function startViewer(options: ViewerOptions) {
         return
       }
       if (req.method === "GET" && url.pathname === "/api/export") {
+        if (report) {
+          res.setHeader(
+            "Content-Disposition",
+            'attachment; filename="whyfull-report.json"'
+          )
+          json(res, report)
+          return
+        }
         if (snapshot.status === "scanning") {
           json(
             res,
@@ -346,7 +418,7 @@ export async function startViewer(options: ViewerOptions) {
           }))
         )
         if (url.searchParams.get("files") === "all") {
-          if (options.snapshot) {
+          if (snapshotMode) {
             json(
               res,
               {
@@ -454,28 +526,7 @@ export async function startViewer(options: ViewerOptions) {
           marks = saveDirectoryMark(node.path, input.mark, policyFile)
           json(res, { mark: marks[policyPath(node.path)] ?? null })
         } else {
-          if (!options.finder && process.platform !== "darwin")
-            throw new Error("Finder is available on macOS only")
-          if (
-            !(await lstat(node.path)).isDirectory() ||
-            (await realpath(node.path)) !== node.path
-          )
-            throw new Error(
-              "This directory moved or now contains a symlink. Rescan before opening it."
-            )
-          if (options.finder) await options.finder(node.path)
-          else
-            await new Promise<void>((resolve, reject) =>
-              execFile(
-                "/usr/bin/open",
-                ["-a", "Finder", node.path],
-                { timeout: 15000 },
-                (error) =>
-                  error
-                    ? reject(new Error("Finder could not open this directory"))
-                    : resolve()
-              )
-            )
+          await openFinder(node.path)
           json(res, { opened: true })
         }
         return
@@ -540,28 +591,108 @@ export async function startViewer(options: ViewerOptions) {
         json(res, summary())
         return
       }
+      if (req.method === "POST" && url.pathname === "/api/report/finder") {
+        const input = await body(req),
+          path = input.path
+        const paths = report
+          ? [
+              ...report.targets.flatMap((t) => [
+                t.path,
+                ...t.children.map((c) => c.path),
+              ]),
+              ...(report.cacheHogs?.dirs ?? []).flatMap((d) => [
+                d.path,
+                ...d.children.map((c) => c.path),
+              ]),
+              ...(report.discovered?.dirs ?? []).flatMap((d) => [
+                d.path,
+                ...d.children.map((c) => c.path),
+              ]),
+              ...(report.worktrees?.clusters ?? []).flatMap((c) =>
+                c.worktrees.map((w) => w.path)
+              ),
+            ]
+          : []
+        if (typeof path !== "string" || !paths.includes(path))
+          throw new Error("Select a location from the open report")
+        await openFinder(path)
+        json(res, { opened: true })
+        return
+      }
+      if (req.method === "GET" && url.pathname === "/api/drives") {
+        json(res, drives())
+        return
+      }
+      if (req.method === "GET" && url.pathname === "/api/report") {
+        if (!report) throw new Error("No CLI report is open")
+        json(res, report)
+        return
+      }
+      if (req.method === "POST" && url.pathname === "/api/import") {
+        if (switching) throw new Error("Another report is being opened")
+        const maximum = 8 * 1024 ** 3
+        if (Number(req.headers["content-length"]) > maximum)
+          throw new Error("Report exceeds the 8 GiB import limit")
+        switching = true
+        let folder: string | undefined
+        try {
+          folder = await mkdtemp(join(tmpdir(), "whyfull-viewer-"))
+          const file = join(folder, "report.json")
+          let bytes = 0
+          const limit = new Transform({
+            transform(chunk, _encoding, done) {
+              bytes += chunk.length
+              done(
+                bytes > maximum
+                  ? new Error("Report exceeds the 8 GiB import limit")
+                  : null,
+                chunk
+              )
+            },
+          })
+          await pipeline(
+            req,
+            limit,
+            createWriteStream(file, { flags: "wx", mode: 0o600 })
+          )
+          const loaded = await loadViewerFile(file)
+          const name = basename(
+            decodeURIComponent(
+              String(req.headers["x-whyfull-name"] ?? "report.json")
+            )
+          ).slice(0, 255)
+          scanner?.cancel()
+          scanner = null
+          trash.setMode("demo")
+          trash.moved.clear()
+          snapshot = loaded.snapshot ?? emptyViewerSnapshot()
+          report = loaded.report ?? null
+          snapshotMode = true
+          sourceName = name
+          documentId = randomUUID()
+          saveError = null
+          savedPath = null
+          json(res, summary())
+        } finally {
+          switching = false
+          if (folder) await rm(folder, { recursive: true, force: true })
+        }
+        return
+      }
+      if (req.method === "POST" && url.pathname === "/api/scan-root") {
+        if (switching) throw new Error("Wait for the report to finish opening")
+        const input = await body(req),
+          drive = drives().find((d) => d.id === input.root)
+        if (!drive) throw new Error("Select an available drive")
+        startScan(drive.id)
+        json(res, summary())
+        return
+      }
       if (req.method === "POST" && url.pathname === "/api/rescan") {
-        if (options.snapshot) {
-          json(res, { error: "Open a live scan to rescan" }, 409)
-          return
-        }
-        if (snapshot.status === "scanning") {
-          json(res, { error: "A scan is already running" }, 409)
-          return
-        }
-        scanner = new DiskScanner({
-          ...options,
-          policy: {
-            keep: savedPolicy.keep,
-            exclude: [
-              ...savedPolicy.exclude,
-              ...(options.policy?.exclude ?? []),
-            ],
-          },
-        })
-        snapshot = scanner.snapshot
-        trash.moved.clear()
-        run()
+        if (snapshotMode) throw new Error("Select a drive to start a live scan")
+        if (snapshot.status === "scanning")
+          throw new Error("A scan is already running")
+        startScan(snapshot.root)
         json(res, summary())
         return
       }
@@ -576,22 +707,55 @@ export async function startViewer(options: ViewerOptions) {
         )
     })
   })
-  function run() {
-    void scanner!
+  function startScan(root: string) {
+    if (switching) throw new Error("Wait for the report to finish opening")
+    const next = new DiskScanner({
+      ...options,
+      root,
+      policy: {
+        keep: savedPolicy.keep,
+        exclude: [...savedPolicy.exclude, ...(options.policy?.exclude ?? [])],
+      },
+    })
+    scanner?.cancel()
+    trash.setMode("demo")
+    trash.moved.clear()
+    scanner = next
+    snapshot = next.snapshot
+    report = null
+    snapshotMode = false
+    sourceName = null
+    documentId = randomUUID()
+    saveError = null
+    savedPath = null
+    run(false)
+  }
+  function run(save = true) {
+    const current = scanner!
+    void current
       .run()
       .then(async (result) => {
-        if (options.saveTo && result.status === "complete" && !savedPath) {
+        if (current !== scanner) return
+        if (
+          save &&
+          options.saveTo &&
+          result.status === "complete" &&
+          !savedPath
+        ) {
           try {
             await saveDiskSnapshot(result, options.saveTo)
-            savedPath = options.saveTo
+            if (current === scanner) savedPath = options.saveTo
           } catch (error) {
-            saveError = error instanceof Error ? error.message : String(error)
+            if (current === scanner)
+              saveError = error instanceof Error ? error.message : String(error)
           }
         }
       })
       .catch((error) => {
-        snapshot.status = "failed"
-        saveError = error instanceof Error ? error.message : String(error)
+        if (current === scanner) {
+          snapshot.status = "failed"
+          saveError = error instanceof Error ? error.message : String(error)
+        }
       })
   }
   await new Promise<void>((resolve, reject) => {

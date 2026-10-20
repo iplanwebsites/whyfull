@@ -59,3 +59,8 @@ export type {
   WhyfullJsonReport,
   BuildJsonReportOptions,
 } from "./types"
+
+export { loadViewerFile, validateViewerReport } from "./viewer-document"
+export { listScanDrives, defaultScanRoot } from "./drives"
+
+export type { ScanDrive } from "./drives"

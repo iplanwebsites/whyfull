@@ -4,6 +4,8 @@ import type {
   ViewEntry,
   ViewerPreferences,
   TrashPlan,
+  ScanDrive,
+  WhyfullJsonReport,
 } from "../../../../packages/whyfull/src/viewer-types"
 export type {
   ViewerStatus,
@@ -11,6 +13,8 @@ export type {
   ViewEntry,
   ViewerPreferences,
   TrashPlan,
+  ScanDrive,
+  WhyfullJsonReport,
 }
 
 let token = ""
@@ -59,7 +63,7 @@ export async function api<T>(
   return value as T
 }
 
-export async function exportSnapshot() {
+export async function exportSnapshot(filename = "whyfull-disk.json") {
   const response = await fetch("/api/export", {
     headers: { Authorization: `Bearer ${token}` },
   })
@@ -67,7 +71,7 @@ export async function exportSnapshot() {
   const url = URL.createObjectURL(await response.blob())
   const anchor = document.createElement("a")
   anchor.href = url
-  anchor.download = "whyfull-disk.json"
+  anchor.download = filename
   anchor.click()
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
@@ -81,4 +85,22 @@ export function formatSize(value: number | undefined) {
     i++
   }
   return `${n.toLocaleString(undefined, { maximumFractionDigits: i > 1 ? (n < 10 ? 2 : 1) : 0 })} ${units[i]}`
+}
+
+export async function importReport(file: File): Promise<ViewerStatus> {
+  if (file.size > 8 * 1024 ** 3)
+    throw new Error("Reports must be smaller than 8 GiB")
+  const response = await fetch("/api/import", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      "X-Whyfull-Name": encodeURIComponent(file.name),
+    },
+    body: file,
+  })
+  const result = await response.json()
+  if (!response.ok)
+    throw new ApiError(result.error ?? "Could not open report", response.status)
+  return result
 }

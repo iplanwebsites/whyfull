@@ -54,7 +54,7 @@ export class TrashController {
       snapshot: () => DiskSnapshot
       policy: () => DiskPolicy
       allowTrash?: boolean
-      snapshotMode?: boolean
+      snapshotMode?: boolean | (() => boolean)
       executor?: (path: string) => Promise<void>
     }
   ) {}
@@ -63,12 +63,15 @@ export class TrashController {
     const supported =
       !!this.options.executor ||
       (process.platform === "darwin" && existsSync("/usr/bin/trash"))
+    const snapshotMode =
+      typeof this.options.snapshotMode === "function"
+        ? this.options.snapshotMode()
+        : this.options.snapshotMode
     return {
       mode: this.mode,
       supported,
-      enabled:
-        !!this.options.allowTrash && !this.options.snapshotMode && supported,
-      reason: this.options.snapshotMode
+      enabled: !!this.options.allowTrash && !snapshotMode && supported,
+      reason: snapshotMode
         ? "Saved inventories support demos only. Start a live scan to move files to Trash."
         : !supported
           ? "Native Trash is supported on macOS 14 or newer. Demo mode is available here."

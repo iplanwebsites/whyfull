@@ -28,6 +28,7 @@ const HELP = `
     --engine <name>   sync or async metadata (for scan benchmarks)
     --exclude <dir>   skip a directory and descendants; repeatable
     --snapshot <file> open a saved disk inventory with --view
+    --report <file>   open a CLI JSON report or disk snapshot with --view
     --allow-trash     enable macOS Trash capability (viewer still starts in demo)
     --no-open         start --view without opening the browser
     --json            versioned, machine-readable output on stdout
@@ -167,7 +168,7 @@ function parseArgs(argv: string[]): CliOptions {
 if (
   process.argv
     .slice(2)
-    .some((arg) => ["--view", "--scan", "--snapshot"].includes(arg))
+    .some((arg) => ["--view", "--scan", "--snapshot", "--report"].includes(arg))
 ) {
   await runDiskCli(process.argv.slice(2))
 } else {
