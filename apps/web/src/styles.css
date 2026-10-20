@@ -49,11 +49,6 @@ button {
   font-size: 10px;
   font-weight: 400;
 }
-.tile-parent {
-  flex-direction: row;
-  justify-content: space-between;
-  gap: 8px;
-}
 .map-tile {
   cursor: pointer;
   transition: filter 0.12s;

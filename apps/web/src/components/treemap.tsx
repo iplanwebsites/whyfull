@@ -41,11 +41,7 @@ export function Treemap({
     observer.observe(element)
     return () => observer.disconnect()
   }, [])
-  function tiles(
-    entries: ViewEntry[],
-    bounds: Rect,
-    depth = 0
-  ): React.ReactNode {
+  function tiles(entries: ViewEntry[], bounds: Rect): React.ReactNode {
     return horizontalTreemap(entries, bounds)
       .filter(({ rect }) => rect.width > 2 && rect.height > 2)
       .map(({ entry, rect }) => {
@@ -54,18 +50,14 @@ export function Treemap({
           y = rect.y + 1.5,
           w = Math.max(0, rect.width - 3),
           h = Math.max(0, rect.height - 3)
-        const nested =
-          depth < 1 &&
-          h > 105 &&
-          w > 150 &&
-          entry.children?.some((child) => child.value > 0)
         const fileGroup =
           (entry.kind === "remainder" || entry.kind === "group") &&
           entry.files !== undefined
         const label = fileGroup
           ? `${formatCount(entry.files!)} ${entry.files === 1 ? "file" : "files"}`
           : entry.name
-        const largeCount = fileGroup && w > 240 && h > 140
+        const largeLabel = w > 240 && h > 140
+        const largeCount = fileGroup && largeLabel
         const countSize = Math.min(64, Math.max(28, Math.min(w / 7, h / 4)))
         const open = () =>
           entry.kind === "directory" ? onOpen(entry) : onSelect(entry)
@@ -120,18 +112,13 @@ export function Treemap({
                 y={y + 7}
                 width={Math.max(0, w - 20)}
                 height={
-                  nested
-                    ? 27
-                    : largeCount
-                      ? Math.min(h - 12, countSize * 2 + 20)
-                      : Math.min(h - 12, 50)
+                  largeCount
+                    ? Math.min(h - 12, countSize * 2 + 20)
+                    : Math.min(h - 12, 70)
                 }
                 pointerEvents="none"
               >
-                <div
-                  className={`tile-label ${nested ? "tile-parent" : ""}`}
-                  style={{ color: paint.text }}
-                >
+                <div className="tile-label" style={{ color: paint.text }}>
                   <span
                     style={
                       largeCount
@@ -141,7 +128,9 @@ export function Treemap({
                             fontWeight: 600,
                             letterSpacing: "-0.035em",
                           }
-                        : undefined
+                        : largeLabel
+                          ? { fontSize: 26, fontWeight: 600 }
+                          : undefined
                     }
                   >
                     {label}
@@ -154,7 +143,9 @@ export function Treemap({
                             marginTop: 6,
                             fontWeight: 500,
                           }
-                        : undefined
+                        : largeLabel
+                          ? { fontSize: 20, fontWeight: 500 }
+                          : undefined
                     }
                   >
                     {formatSize(entry.value, root.value)}
@@ -162,12 +153,6 @@ export function Treemap({
                 </div>
               </foreignObject>
             )}
-            {nested &&
-              tiles(
-                entry.children!,
-                { x: x + 5, y: y + 38, width: w - 10, height: h - 43 },
-                depth + 1
-              )}
           </g>
         )
       })

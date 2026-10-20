@@ -261,6 +261,15 @@ test("loopback viewer authenticates requests, preserves measured data, and suppo
     ).json()
     assert.equal(kept.node.kept, true)
     assert.ok(kept.node.value > 0)
+    const keepBefore = data.chart.children.find(
+      (entry) => entry.id === `d${keep.id}`
+    )
+    assert.deepEqual(
+      kept.node.colorPath,
+      keepBefore.colorPath,
+      "directory color ancestry survives drilling down"
+    )
+    assert.deepEqual(kept.chart.colorPath, kept.node.colorPath)
     assert.equal(
       kept.chart.children.reduce(
         (count, child) =>

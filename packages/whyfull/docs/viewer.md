@@ -11,7 +11,7 @@ The two views follow familiar disk-navigation conventions:
 [GrandPerspective's](https://grandperspectiv.sourceforge.net/) proportional rectangles. Both
 share the same current directory, breadcrumbs, ranked list, and details panel.
 Sunburst rings show up to three levels; treemaps use horizontal-biased weighted
-partitions with two visible label levels. Clicking
+partitions showing one directory level at a time, without inset child cards. Clicking
 a directory navigates; the center/up button ascends. The list provides keyboard
 navigation, search, paging, and access to folders too small for chart labels.
 Folder navigation retains the previous chart, breadcrumbs and rows until the next
@@ -45,9 +45,15 @@ Start the Node.js runner with `node packages/whyfull/dist/cli.mjs --view --repor
 Folder counts,
 scan metadata and explanations live in the details/rules dialogs; selection
 actions appear only when inspecting an entry. Chart colors assign distinct hues
-to the largest siblings and related shades to descendants. The treemap, rings
-and list share the same colors, with tinted edges and theme-specific fills;
-label foregrounds are selected for at least 4.5:1 contrast.
+through OKLCH coordinates anchored to size-ranked inventory ancestry. Drilling
+into a folder preserves its color exactly. The largest child stays nearest its
+parent; successive levels alternate hue-led and lightness/chroma-led forks, with
+smaller but bounded variation deeper down. Lightness bounces at its bounds to avoid
+flattening siblings into identical tints. Colors may overlap across branches;
+there is no unique-color-per-directory promise. Constant-lightness/hue chroma
+reduction maps colors into sRGB consistently for SVG, canvas and list dots.
+The treemap, rings and list share the same colors, with tinted edges and
+theme-specific fills; label foregrounds retain at least 4.5:1 contrast.
 
 Cleanup defaults to demo on every server start; the mode is never persisted.
 `--allow-trash` enables the capability for a live scan, but users must still turn

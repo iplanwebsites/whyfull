@@ -161,11 +161,51 @@ export async function startViewer(options: ViewerOptions) {
           }),
     }
   }
+  let colorDocument = ""
+  let colorState = ""
+  const colorPaths = new Map<number, number[]>()
+  const siblingRanks = new Map<number, Map<number, number>>()
+  function resetColors() {
+    colorDocument = documentId
+    colorState = snapshot.status
+    colorPaths.clear()
+    siblingRanks.clear()
+  }
+  function colorPath(node: DiskDirectory): number[] {
+    if (colorDocument !== documentId || colorState !== snapshot.status)
+      resetColors()
+    const cached = colorPaths.get(node.id)
+    if (cached) return cached
+    if (node.parent === null) {
+      colorPaths.set(node.id, [])
+      return []
+    }
+    const parent = snapshot.directories[node.parent]!
+    let ranks = siblingRanks.get(parent.id)
+    if (!ranks) {
+      ranks = new Map(
+        [...parent.children]
+          .sort(
+            (a, b) =>
+              snapshot.directories[b]!.bytes - snapshot.directories[a]!.bytes ||
+              snapshot.directories[a]!.path.localeCompare(
+                snapshot.directories[b]!.path
+              )
+          )
+          .map((id, rank) => [id, rank])
+      )
+      siblingRanks.set(parent.id, ranks)
+    }
+    const path = [...colorPath(parent), ranks.get(node.id) ?? 0]
+    colorPaths.set(node.id, path)
+    return path
+  }
   function tree(node: DiskDirectory, depth: number): Record<string, unknown> {
     const out: Record<string, unknown> = {
       id: `d${node.id}`,
       name: node.name,
       path: node.path,
+      colorPath: colorPath(node),
       value: node.bytes,
       apparentBytes: node.apparentBytes,
       kind: "directory",
@@ -433,6 +473,7 @@ export async function startViewer(options: ViewerOptions) {
         return
       }
       if (req.method === "GET" && url.pathname === "/api/directory") {
+        if (snapshot.status === "scanning") resetColors()
         let id = Number(url.searchParams.get("id") ?? 0)
         const requestedPath = url.searchParams.get("path")
         if (requestedPath && snapshot.directories[id]?.path !== requestedPath)

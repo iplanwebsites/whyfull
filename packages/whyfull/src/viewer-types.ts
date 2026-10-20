@@ -10,6 +10,7 @@ export interface ViewEntry {
   name: string
   path?: string
   value: number
+  colorPath?: number[]
   apparentBytes?: number
   kind: "directory" | "file" | "remainder" | "group"
   state?: string
