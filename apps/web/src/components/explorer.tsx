@@ -491,42 +491,73 @@ export function Explorer() {
             >
               <Ellipsis />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-60">
+            <DropdownMenuContent align="end" className="w-80">
               <DropdownMenuGroup>
                 <DropdownMenuLabel>View options</DropdownMenuLabel>
-                <DropdownMenuRadioGroup
-                  aria-label="View options"
-                  className="mx-1 mb-1 flex gap-1 rounded-lg bg-muted p-1"
-                  value={view}
-                  onValueChange={(value) => {
-                    const next = value as "treemap" | "sunburst"
-                    void run(async () => {
-                      if (next === "sunburst" && !Sunburst) {
-                        const module = await loadSunburst()
-                        setSunburst(() => module.default)
-                      }
-                      url({ view: next })
-                      await prefs({ view: next })
-                    })
-                  }}
-                >
-                  <DropdownMenuRadioItem
-                    value="treemap"
-                    closeOnClick={false}
-                    className="flex-1 justify-center px-2 py-1.5 text-xs data-checked:bg-background data-checked:text-foreground data-checked:shadow-sm [&>[data-slot=dropdown-menu-radio-item-indicator]]:hidden"
+                <div className="mx-1 mb-1 flex items-center gap-2">
+                  <DropdownMenuRadioGroup
+                    aria-label="View options"
+                    className="flex min-w-0 flex-1 gap-1 rounded-lg bg-muted p-1"
+                    value={view}
+                    onValueChange={(value) => {
+                      const next = value as "treemap" | "sunburst"
+                      void run(async () => {
+                        if (next === "sunburst" && !Sunburst) {
+                          const module = await loadSunburst()
+                          setSunburst(() => module.default)
+                        }
+                        url({ view: next })
+                        await prefs({ view: next })
+                      })
+                    }}
                   >
-                    <LayoutGrid />
-                    Treemap
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem
-                    value="sunburst"
-                    closeOnClick={false}
-                    className="flex-1 justify-center px-2 py-1.5 text-xs data-checked:bg-background data-checked:text-foreground data-checked:shadow-sm [&>[data-slot=dropdown-menu-radio-item-indicator]]:hidden"
+                    <DropdownMenuRadioItem
+                      value="treemap"
+                      closeOnClick={false}
+                      className="flex-1 justify-center px-2 py-1.5 text-xs data-checked:bg-background data-checked:text-foreground data-checked:shadow-sm [&>[data-slot=dropdown-menu-radio-item-indicator]]:hidden"
+                    >
+                      <LayoutGrid />
+                      Treemap
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem
+                      value="sunburst"
+                      closeOnClick={false}
+                      className="flex-1 justify-center px-2 py-1.5 text-xs data-checked:bg-background data-checked:text-foreground data-checked:shadow-sm [&>[data-slot=dropdown-menu-radio-item-indicator]]:hidden"
+                    >
+                      <ChartPie />
+                      Radial
+                    </DropdownMenuRadioItem>
+                  </DropdownMenuRadioGroup>
+                  <DropdownMenuRadioGroup
+                    aria-label="Appearance"
+                    className="flex shrink-0 gap-1 rounded-lg bg-muted p-1"
+                    value={dark ? "dark" : "light"}
+                    onValueChange={(value) =>
+                      void run(() =>
+                        prefs({ theme: value as "light" | "dark" })
+                      )
+                    }
                   >
-                    <ChartPie />
-                    Radial
-                  </DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
+                    <DropdownMenuRadioItem
+                      value="light"
+                      aria-label="Light mode"
+                      title="Light mode"
+                      closeOnClick={false}
+                      className="justify-center px-2 py-1.5 data-checked:bg-background data-checked:text-foreground data-checked:shadow-sm [&>[data-slot=dropdown-menu-radio-item-indicator]]:hidden"
+                    >
+                      <Sun />
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem
+                      value="dark"
+                      aria-label="Dark mode"
+                      title="Dark mode"
+                      closeOnClick={false}
+                      className="justify-center px-2 py-1.5 data-checked:bg-background data-checked:text-foreground data-checked:shadow-sm [&>[data-slot=dropdown-menu-radio-item-indicator]]:hidden"
+                    >
+                      <Moon />
+                    </DropdownMenuRadioItem>
+                  </DropdownMenuRadioGroup>
+                </div>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
@@ -580,20 +611,6 @@ export function Explorer() {
               >
                 <Download />
                 Export snapshot
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() =>
-                  void run(() =>
-                    prefs({
-                      theme: s.viewer.theme === "dark" ? "light" : "dark",
-                    })
-                  )
-                }
-              >
-                {s.viewer.theme === "dark" ? <Sun /> : <Moon />}
-                {s.viewer.theme === "dark"
-                  ? "Light appearance"
-                  : "Dark appearance"}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
