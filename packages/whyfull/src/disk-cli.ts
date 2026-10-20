@@ -57,7 +57,7 @@ export async function runDiskCli(argv: string[]): Promise<void> {
       throw new Error(`Unexpected argument ${unknown || raw._[0]}`)
     if (raw.help) {
       process.stdout.write(
-        "whyfull --view [--root <directory>] [--workers 1..32] [--engine sync|async]\nwhyfull --scan --root <directory> --json-file <new-file>\nwhyfull --view --report <file> [--no-open] (disk snapshots or CLI JSON reports)\n--allow-trash enables native macOS Trash for live viewers; demo is always the default.\n--exclude <directory> may be repeated. --config <file> selects saved Keep/Exclude rules.\n"
+        "npx whyfull ui [--root <directory>] [--report <file>] [--no-open]\nnpx whyfull app (alias for ui; opens your default browser)\nwhyfull --view [--root <directory>] [--workers 1..32] [--engine sync|async]\nwhyfull --scan --root <directory> --json-file <new-file>\nwhyfull --view --report <file> [--no-open] (disk snapshots or CLI JSON reports)\n--allow-trash enables native macOS Trash for live viewers; demo is always the default.\n--exclude <directory> may be repeated. --config <file> selects saved Keep/Exclude rules.\n"
       )
       return
     }

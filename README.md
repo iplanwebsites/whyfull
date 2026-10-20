@@ -16,7 +16,9 @@ npx whyfull
 Explore a full filesystem in the bundled local viewer:
 
 ```bash
-npx whyfull --view
+npx whyfull ui
+# Equivalent:
+npx whyfull app
 ```
 
 Switch between a **sunburst** (concentric folder rings) and **treemap**, with

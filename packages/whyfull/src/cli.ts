@@ -19,6 +19,8 @@ const HELP = `
 
   Usage
     npx whyfull [options]
+    npx whyfull ui [viewer options]
+    npx whyfull app [viewer options]
 
   Options
     --view            open the local treemap / sunburst disk explorer
@@ -165,14 +167,18 @@ function parseArgs(argv: string[]): CliOptions {
   }
 }
 
+const argv = process.argv.slice(2)
+const viewerCommand = ["ui", "app"].includes(argv[0]?.toLowerCase())
+const args = viewerCommand ? ["--view", ...argv.slice(1)] : argv
 if (
-  process.argv
-    .slice(2)
-    .some((arg) => ["--view", "--scan", "--snapshot", "--report"].includes(arg))
+  viewerCommand ||
+  args.some((arg) =>
+    ["--view", "--scan", "--snapshot", "--report"].includes(arg)
+  )
 ) {
-  await runDiskCli(process.argv.slice(2))
+  await runDiskCli(args)
 } else {
-  const opts = parseArgs(process.argv.slice(2))
+  const opts = parseArgs(args)
 
   if (opts.help) {
     process.stdout.write(HELP)

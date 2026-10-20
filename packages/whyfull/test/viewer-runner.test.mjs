@@ -336,3 +336,110 @@ test("large file directories report the true count and can start a scoped live l
     rmSync(root, { recursive: true, force: true })
   }
 })
+
+test(
+  "ui and app launch the bundled viewer, open the default browser, and preserve report/no-open options",
+  { skip: process.platform === "win32" },
+  async () => {
+    const { spawn } = await import("node:child_process")
+    const { once } = await import("node:events")
+    const { delimiter } = await import("node:path")
+    const { fileURLToPath } = await import("node:url")
+    const { existsSync, unlinkSync } = await import("node:fs")
+    const root = fixture()
+    const launchLog = join(root, "browser.json")
+    const reportFile = join(root, "report.json")
+    writeFileSync(reportFile, JSON.stringify(reportFor(root)))
+    // Observe the OS opener contract without launching real browsers in tests.
+    writeFileSync(
+      join(root, process.platform === "darwin" ? "open" : "xdg-open"),
+      `#!${process.execPath}\nrequire('node:fs').writeFileSync(${JSON.stringify(launchLog)}, JSON.stringify(process.argv.slice(2)))\n`,
+      { mode: 0o700 }
+    )
+    try {
+      for (const entry of [
+        { args: ["ui", "--root", root], opens: true, kind: "live" },
+        { args: ["app", "--root", root], opens: true, kind: "live" },
+        {
+          args: ["ui", "--no-open", "--root", root],
+          opens: false,
+          kind: "live",
+        },
+        {
+          args: ["app", reportFile, "--no-open"],
+          opens: false,
+          kind: "report",
+        },
+      ]) {
+        if (existsSync(launchLog)) unlinkSync(launchLog)
+        const child = spawn(
+          process.execPath,
+          [
+            fileURLToPath(new URL("../dist/cli.mjs", import.meta.url)),
+            ...entry.args,
+            "--config",
+            join(root, "config.json"),
+          ],
+          {
+            env: {
+              ...process.env,
+              PATH: `${root}${delimiter}${process.env.PATH}`,
+            },
+            stdio: ["ignore", "pipe", "pipe"],
+          }
+        )
+        const closed = once(child, "close")
+        try {
+          const url = await new Promise((resolve, reject) => {
+            let output = ""
+            const timer = setTimeout(
+              () => reject(new Error(`Viewer did not start: ${output}`)),
+              10000
+            )
+            child.stdout.on("data", (chunk) => {
+              output += chunk
+              const match = output.match(
+                /http:\/\/127\.0\.0\.1:\d+\/#([a-f0-9]{64})/
+              )
+              if (match) {
+                clearTimeout(timer)
+                resolve(new URL(match[0]))
+              }
+            })
+            child.on("error", (error) => {
+              clearTimeout(timer)
+              reject(error)
+            })
+            child.on("close", (code) => {
+              clearTimeout(timer)
+              reject(new Error(`Viewer exited ${code}: ${output}`))
+            })
+          })
+          const response = await fetch(`${url.origin}/api/status`, {
+            headers: { Authorization: `Bearer ${url.hash.slice(1)}` },
+          })
+          assert.equal(response.status, 200)
+          const status = await response.json()
+          assert.equal(status.source.kind, entry.kind)
+          assert.equal(status.cleanup.mode, "demo")
+          if (entry.kind === "live") assert.equal(status.root, root)
+          if (entry.opens) {
+            for (let i = 0; i < 100 && !existsSync(launchLog); i++)
+              await new Promise((resolve) => setTimeout(resolve, 10))
+            assert.deepEqual(JSON.parse(readFileSync(launchLog, "utf8")), [
+              url.href,
+            ])
+          } else {
+            await new Promise((resolve) => setTimeout(resolve, 100))
+            assert.equal(existsSync(launchLog), false)
+          }
+        } finally {
+          child.kill("SIGTERM")
+          await closed
+        }
+      }
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  }
+)

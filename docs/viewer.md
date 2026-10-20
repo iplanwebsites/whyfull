@@ -4,6 +4,23 @@ The browser UI and scanner are JavaScript, built from the repository's TypeScrip
 library and a React frontend. No Rust toolchain, native addon, hosted
 service, CDN, or Electron installation is needed.
 
+## Launch
+
+```sh
+npx whyfull ui
+npx whyfull app
+npx whyfull ui --root ~/Downloads
+npx whyfull ui --report report.json
+npx whyfull ui report.json
+```
+
+`ui` and `app` are aliases for `--view`. Both start the bundled local server,
+open the user's default browser, and scan the home directory unless another root
+or a saved report is selected. Use `--no-open` to print the private viewer URL
+without launching a browser. Keep the terminal running; Ctrl+C stops the viewer.
+All existing viewer options, including `--config` and `--allow-trash`, work with
+either command. Demo mode remains the default.
+
 ## Design
 
 The two views follow familiar disk-navigation conventions:
