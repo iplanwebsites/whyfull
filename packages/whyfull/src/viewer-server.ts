@@ -1,3 +1,4 @@
+import { measureFileDistribution } from "./file-distribution"
 import { pipeline } from "node:stream/promises"
 import { DiagnosticRunner } from "./diagnostics"
 import { tmpdir, homedir } from "node:os"
@@ -561,6 +562,19 @@ export async function startViewer(options: ViewerOptions) {
           fileScope:
             url.searchParams.get("files") === "all" ? "all" : "largest",
         })
+        return
+      }
+      if (req.method === "POST" && url.pathname === "/api/file-distribution") {
+        const input = await body(req)
+        if (typeof input.id !== "string" || !/^d\d+$/.test(input.id))
+          throw new Error("Select a directory from this inventory")
+        const node = snapshot.directories[Number(input.id.slice(1))]
+        if (!node || !pathWithin(node.path, snapshot.root))
+          throw new Error("Unknown directory")
+        if (node.state === "excluded") throw new Error("Directory is excluded")
+        const controller = new AbortController()
+        res.once("close", () => controller.abort())
+        json(res, await measureFileDistribution(node.path, controller.signal))
         return
       }
       if (req.method === "GET" && url.pathname === "/api/diagnostics") {

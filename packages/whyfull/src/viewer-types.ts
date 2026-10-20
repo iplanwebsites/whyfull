@@ -80,3 +80,5 @@ export interface ShortlistEntry {
 }
 
 export type { DiagnosticsStatus } from "./diagnostics"
+
+export type { FileDistribution } from "./file-distribution"

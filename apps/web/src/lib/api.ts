@@ -6,6 +6,7 @@ import type {
   TrashPlan,
   ScanDrive,
   DiagnosticsStatus,
+  FileDistribution,
   ShortlistEntry,
   WhyfullJsonReport,
 } from "../../../../packages/whyfull/src/viewer-types"
@@ -17,6 +18,7 @@ export type {
   TrashPlan,
   ScanDrive,
   DiagnosticsStatus,
+  FileDistribution,
   ShortlistEntry,
   WhyfullJsonReport,
 }

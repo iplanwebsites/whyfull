@@ -2,6 +2,7 @@ import { toast } from "@workspace/ui/components/sonner"
 import { RunnerControls, useDrives } from "./runner-controls"
 import { DiagnosticsDialog } from "./diagnostics-dialog"
 import { CleanupShortlist } from "./cleanup-shortlist"
+import { FileDistribution } from "./file-distribution"
 import { ReportViewer } from "./report-viewer"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
@@ -104,6 +105,7 @@ export function Explorer() {
     [plan, setPlan] = useState<TrashPlan | null>(null),
     [enable, setEnable] = useState(false),
     [exclude, setExclude] = useState<ViewEntry | null>(null)
+  const [mapForPath, setMapForPath] = useState<string | null>(null)
   const [Sunburst, setSunburst] = useState<SunburstComponent | null>(null)
   const busy = working || changing
   const restored = useRef(false),
@@ -160,6 +162,8 @@ export function Explorer() {
   const d = directory.data
   const manyFiles = !!d && d.ownFiles > d.retainedFiles
   const limitedFiles = manyFiles && d?.fileScope === "largest"
+  const fileHeavy =
+    manyFiles && !!d && d.ownBytes > 0 && d.ownBytes >= d.node.value * 0.9
   const largestShare =
     d && d.ownBytes > 0 ? d.largestFileBytes / d.ownBytes : null
   const dark =
@@ -523,6 +527,7 @@ export function Explorer() {
                           const module = await loadSunburst()
                           setSunburst(() => module.default)
                         }
+                        setMapForPath(d?.node.path ?? null)
                         url({ view: next })
                         await prefs({ view: next })
                       })
@@ -649,8 +654,25 @@ export function Explorer() {
                       Back to root
                     </Button>
                   </div>
+                ) : d && fileHeavy && mapForPath !== d.node.path ? (
+                  <FileDistribution
+                    key={`${s.documentId}:${d.node.id}`}
+                    directory={d}
+                    documentId={s.documentId}
+                    onMap={() => setMapForPath(d.node.path ?? null)}
+                  />
                 ) : d ? (
                   <>
+                    {fileHeavy && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="absolute right-3 top-3 z-10"
+                        onClick={() => setMapForPath(null)}
+                      >
+                        File sizes
+                      </Button>
+                    )}
                     {view === "treemap" ? (
                       <Treemap
                         root={d.chart}

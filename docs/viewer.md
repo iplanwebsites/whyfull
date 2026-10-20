@@ -65,6 +65,16 @@ that no single file dominates. **List all files** reads live filenames with pagi
 inventory without rescanning the whole drive. Search explicitly names its limited
 scope while only the largest filenames are available.
 
+File-heavy folders default to a **File sizes** panel instead of an almost-solid
+remainder ring. It shows average and largest sizes, then buckets with separate
+file-count and allocated-space bars so sidecars and rare outliers remain visible.
+**Measure file sizes** explicitly reads every direct file’s metadata, with eight
+concurrent stat calls and no content reads. Size ranges use logical file sizes;
+space bars use allocated bytes per filename (shared blocks can overlap). Results
+are labelled live, timestamped and cached in the browser per inventory/folder;
+refresh is explicit. Saved reports are never used to estimate missing buckets or
+silently replaced. **Show map** restores the treemap/radial view.
+
 File groups use compact counts such as **14k files**, with allocated size beneath.
 Large treemap blocks scale up the count for readability. Tooltips and accessible
 labels retain exact counts; file-only groups preserve counts across chart limits.
