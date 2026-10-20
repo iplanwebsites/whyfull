@@ -33,7 +33,6 @@ button {
   font-size: 12px;
   font-weight: 500;
   line-height: 1.25;
-  text-shadow: 0 1px 2px #0003;
 }
 .tile-label span {
   overflow: hidden;
@@ -42,7 +41,6 @@ button {
 }
 .tile-label span + span {
   font-size: 10px;
-  opacity: 0.85;
   font-weight: 400;
 }
 .tile-parent {
@@ -54,12 +52,6 @@ button {
   cursor: pointer;
   transition: filter 0.12s;
   outline: none;
-}
-.map-tile:hover,
-.map-tile:focus-visible {
-  filter: brightness(1.1);
-  stroke: var(--foreground);
-  stroke-width: 2px;
 }
 @media (max-width: 640px) {
   .disk-workspace {
@@ -80,4 +72,20 @@ button {
     min-height: 300px;
     max-height: 65svh;
   }
+}
+
+/* Quiet neutral gutters; tile edges come from each branch's own hue. */
+.explorer-grid > section:first-child {
+  background: #e4e8ef;
+}
+.dark .explorer-grid > section:first-child {
+  background: #202630;
+}
+.map-tile:hover {
+  filter: brightness(1.05);
+  stroke-width: 1.5px;
+}
+.map-tile:focus-visible {
+  stroke: var(--foreground);
+  stroke-width: 2px;
 }

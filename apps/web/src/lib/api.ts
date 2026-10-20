@@ -82,21 +82,3 @@ export function formatSize(value: number | undefined) {
   }
   return `${n.toLocaleString(undefined, { maximumFractionDigits: i > 1 ? (n < 10 ? 2 : 1) : 0 })} ${units[i]}`
 }
-
-const palette = [
-  "#7d9270",
-  "#b2966d",
-  "#6c9391",
-  "#9690ae",
-  "#b28272",
-  "#7a93ac",
-  "#a3a578",
-  "#719c89",
-]
-export function entryColor(node: Pick<ViewEntry, "path" | "name" | "kind">) {
-  if (node.kind === "group" || node.kind === "remainder") return "#acb4a7"
-  let hash = 0
-  for (const c of node.path ?? node.name)
-    hash = (hash * 31 + c.charCodeAt(0)) | 0
-  return palette[(hash >>> 0) % palette.length]
-}

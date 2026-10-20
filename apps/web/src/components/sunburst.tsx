@@ -1,17 +1,23 @@
+import { colorFor } from "@/lib/chart-colors"
+import type { ChartColors } from "@/lib/chart-colors"
 import { useEffect, useRef } from "react"
 import * as echarts from "echarts/core"
 import { SunburstChart } from "echarts/charts"
 import { CanvasRenderer } from "echarts/renderers"
-import { entryColor, formatSize } from "@/lib/api"
+import { formatSize } from "@/lib/api"
 import type { ViewEntry } from "@/lib/api"
 echarts.use([SunburstChart, CanvasRenderer])
 export default function Sunburst({
   root,
+  colors,
+  dark,
   onOpen,
   onSelect,
   onHover,
   onUp,
 }: {
+  colors: ChartColors
+  dark: boolean
   root: ViewEntry
   onOpen: (node: ViewEntry) => void
   onSelect: (node: ViewEntry) => void
@@ -43,22 +49,21 @@ export default function Sunburst({
     }
   }, [])
   useEffect(() => {
-    const prepare = (
-      node: ViewEntry,
-      inherited?: string
-    ): Record<string, unknown> => ({
-      ...node,
-      itemStyle: {
-        color: inherited ?? entryColor(node),
-        borderColor: document.documentElement.classList.contains("dark")
-          ? "#171717"
-          : "#ffffff",
-        borderWidth: 2,
-      },
-      children: node.children
-        ?.filter((n) => n.value > 0)
-        .map((n) => prepare(n, inherited ?? entryColor(node))),
-    })
+    const prepare = (node: ViewEntry): Record<string, unknown> => {
+      const paint = colorFor(colors, node, dark)
+      return {
+        ...node,
+        itemStyle: {
+          color: paint.fill,
+          borderColor: paint.stroke,
+          borderWidth: 1,
+        },
+        label: { color: paint.text },
+        children: node.children
+          ?.filter((n) => n.value > 0)
+          .map((n) => prepare(n)),
+      }
+    }
     chart.current?.setOption(
       {
         series: [
@@ -83,23 +88,21 @@ export default function Sunburst({
               {
                 r0: "49%",
                 r: "74%",
-                itemStyle: { opacity: 0.8 },
                 label: { fontSize: 9 },
               },
               {
                 r0: "74%",
                 r: "94%",
-                itemStyle: { opacity: 0.55 },
                 label: { show: false },
               },
             ],
-            emphasis: { focus: "ancestor" },
+            emphasis: { focus: "none", itemStyle: { borderWidth: 2 } },
           },
         ],
       },
       true
     )
-  }, [root])
+  }, [root, colors, dark])
   return (
     <div className="relative h-full min-h-0">
       <div

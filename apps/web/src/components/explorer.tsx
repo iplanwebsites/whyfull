@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react"
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   HardDrive,
@@ -45,13 +45,7 @@ import {
   AlertDialogFooter,
 } from "@workspace/ui/components/alert-dialog"
 import { Route } from "@/routes/index"
-import {
-  api,
-  formatSize,
-  entryColor,
-  exportSnapshot,
-  hasToken,
-} from "@/lib/api"
+import { api, formatSize, exportSnapshot, hasToken } from "@/lib/api"
 import type {
   ViewerStatus,
   DirectoryView,
@@ -59,6 +53,7 @@ import type {
   ViewerPreferences,
   TrashPlan,
 } from "@/lib/api"
+import { chartColors, colorFor } from "@/lib/chart-colors"
 import { Treemap } from "./treemap"
 const Sunburst = lazy(() => import("./sunburst"))
 
@@ -107,6 +102,12 @@ export function Explorer() {
     refetchInterval: s?.status === "scanning" ? 2500 : false,
   })
   const d = directory.data
+  const dark =
+    s?.viewer.theme === "dark" ||
+    (s?.viewer.theme === "system" &&
+      typeof window !== "undefined" &&
+      matchMedia("(prefers-color-scheme: dark)").matches)
+  const colors = useMemo(() => chartColors(d?.chart, dark), [d?.chart, dark])
   function url(patch: Partial<typeof search>, replace = false) {
     void navigate({ search: (prev) => ({ ...prev, ...patch }), replace })
     setPage(0)
@@ -384,6 +385,8 @@ export function Explorer() {
                   {view === "treemap" ? (
                     <Treemap
                       root={d.chart}
+                      colors={colors}
+                      dark={dark}
                       onOpen={open}
                       onSelect={setSelected}
                       onHover={setHover}
@@ -391,6 +394,8 @@ export function Explorer() {
                   ) : (
                     <Sunburst
                       root={d.chart}
+                      colors={colors}
+                      dark={dark}
                       onOpen={open}
                       onSelect={setSelected}
                       onHover={setHover}
@@ -462,7 +467,7 @@ export function Explorer() {
                 >
                   <span
                     className="size-2 shrink-0 rounded-sm"
-                    style={{ background: entryColor(entry) }}
+                    style={{ background: colorFor(colors, entry, dark).fill }}
                   />
                   <button
                     className="flex min-w-0 flex-1 items-center gap-2 text-left"

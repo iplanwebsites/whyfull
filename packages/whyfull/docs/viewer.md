@@ -23,7 +23,10 @@ folder summaries. Press Command/Ctrl+K to focus folder search. Last folder, map,
 sort and appearance preferences survive CLI restarts in the config file.
 The compact workspace keeps navigation and tools in one toolbar. Folder counts,
 scan metadata and explanations live in the details/rules dialogs; selection
-actions appear only when inspecting an entry.
+actions appear only when inspecting an entry. Chart colors assign distinct hues
+to the largest siblings and related shades to descendants. The treemap, rings
+and list share the same colors, with tinted edges and theme-specific fills;
+label foregrounds are selected for at least 4.5:1 contrast.
 
 Cleanup defaults to demo on every server start; the mode is never persisted.
 `--allow-trash` enables the capability for a live scan, but users must still turn

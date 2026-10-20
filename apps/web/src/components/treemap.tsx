@@ -1,15 +1,21 @@
+import { colorFor } from "@/lib/chart-colors"
+import type { ChartColors } from "@/lib/chart-colors"
 import { useEffect, useRef, useState } from "react"
 import { horizontalTreemap } from "@/lib/treemap-layout"
 import type { Rect } from "@/lib/treemap-layout"
-import { entryColor, formatSize } from "@/lib/api"
+import { formatSize } from "@/lib/api"
 import type { ViewEntry } from "@/lib/api"
 
 export function Treemap({
   root,
+  colors,
+  dark,
   onOpen,
   onSelect,
   onHover,
 }: {
+  colors: ChartColors
+  dark: boolean
   root: ViewEntry
   onOpen: (node: ViewEntry) => void
   onSelect: (node: ViewEntry) => void
@@ -30,17 +36,16 @@ export function Treemap({
   function tiles(
     entries: ViewEntry[],
     bounds: Rect,
-    depth = 0,
-    inherited?: string
+    depth = 0
   ): React.ReactNode {
     return horizontalTreemap(entries, bounds)
       .filter(({ rect }) => rect.width > 2 && rect.height > 2)
       .map(({ entry, rect }) => {
-        const color = inherited ?? entryColor(entry)
-        const x = rect.x + 2,
-          y = rect.y + 2,
-          w = Math.max(0, rect.width - 4),
-          h = Math.max(0, rect.height - 4)
+        const paint = colorFor(colors, entry, dark)
+        const x = rect.x + 1.5,
+          y = rect.y + 1.5,
+          w = Math.max(0, rect.width - 3),
+          h = Math.max(0, rect.height - 3)
         const nested =
           depth < 1 &&
           h > 105 &&
@@ -56,10 +61,10 @@ export function Treemap({
               width={w}
               height={h}
               rx={5}
-              fill={color}
-              fillOpacity={entry.trashed ? 0.35 : depth ? 0.65 : 1}
-              stroke="var(--background)"
-              strokeWidth={2}
+              fill={paint.fill}
+              fillOpacity={entry.trashed ? 0.35 : 1}
+              stroke={paint.stroke}
+              strokeWidth={1}
               role="button"
               tabIndex={0}
               aria-label={`${entry.name}, ${formatSize(entry.value)}${entry.kind === "directory" ? ", open folder" : ""}`}
@@ -88,7 +93,10 @@ export function Treemap({
                 height={nested ? 27 : Math.min(h - 12, 50)}
                 pointerEvents="none"
               >
-                <div className={`tile-label ${nested ? "tile-parent" : ""}`}>
+                <div
+                  className={`tile-label ${nested ? "tile-parent" : ""}`}
+                  style={{ color: paint.text }}
+                >
                   <span>{entry.name}</span>
                   <span>{formatSize(entry.value)}</span>
                 </div>
@@ -98,8 +106,7 @@ export function Treemap({
               tiles(
                 entry.children!,
                 { x: x + 5, y: y + 38, width: w - 10, height: h - 43 },
-                depth + 1,
-                color
+                depth + 1
               )}
           </g>
         )
