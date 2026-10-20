@@ -1,0 +1,19 @@
+{
+  "name": "@whyfull/desktop",
+  "version": "0.0.2",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "desktop:build": "node scripts/tauri.mjs build",
+    "cli:archive": "node scripts/archive-cli.mjs",
+    "tauri": "tauri",
+    "runtime:prepare": "node scripts/prepare.mjs",
+    "test:runtime": "node --test test/*.test.mjs",
+    "desktop:dev": "node scripts/tauri.mjs dev",
+    "dmg": "node scripts/dmg.mjs"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.4",
+    "esbuild": "^0.28.2"
+  }
+}

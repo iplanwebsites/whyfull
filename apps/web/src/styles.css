@@ -25,29 +25,6 @@ button {
 .ranked-list {
   overscroll-behavior: contain;
 }
-.tile-label {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  color: #fff;
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1.25;
-}
-.tile-label span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.tile-label span + span {
-  font-size: 10px;
-  font-weight: 400;
-}
-.map-tile {
-  cursor: pointer;
-  transition: filter 0.12s;
-  outline: none;
-}
 @media (max-width: 767px) {
   .disk-workspace {
     height: auto;
@@ -68,14 +45,6 @@ button {
 .dark .explorer-chart {
   background: #202630;
 }
-.map-tile:hover {
-  filter: brightness(1.05);
-  stroke-width: 1.5px;
-}
-.map-tile:focus-visible {
-  stroke: var(--foreground);
-  stroke-width: 2px;
-}
 
 /* Keep failures visibly red in either theme, including native Finder errors. */
 [data-sonner-toaster] [data-sonner-toast][data-type="error"] {
@@ -87,9 +56,4 @@ button {
   background: #4c0519;
   border-color: #be123c;
   color: #ffe4e6;
-}
-
-.map-tile[data-hovered="true"] {
-  filter: brightness(1.06);
-  stroke-width: 3px;
 }

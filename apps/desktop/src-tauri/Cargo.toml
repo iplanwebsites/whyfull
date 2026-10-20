@@ -1,0 +1,23 @@
+[package]
+name = "whyfull-desktop"
+version = "0.0.2"
+description = "Whyfull disk explorer and command-line reports"
+authors = ["Felix Menard"]
+license = "Apache-2.0"
+edition = "2021"
+rust-version = "1.90"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-single-instance = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+url = "2"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_System_Console"] }

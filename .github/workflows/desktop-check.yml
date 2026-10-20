@@ -1,0 +1,45 @@
+name: Desktop checks
+on:
+  pull_request:
+    paths:
+      - "apps/desktop/**"
+      - "apps/web/**"
+      - "packages/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/desktop-*.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, ubuntu-22.04, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.23.2"
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+      - name: Install Linux prerequisites
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xdg-utils
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm desktop:prepare
+      - run: pnpm --filter @whyfull/desktop test:runtime
+      - run: cargo fmt --manifest-path apps/desktop/src-tauri/Cargo.toml --check
+      - run: cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --locked
+      - run: pnpm --filter @whyfull/desktop tauri build --no-bundle --config src-tauri/version.conf.json
+      - name: Verify native command-line entry without a display
+        run: node apps/desktop/scripts/check-native.mjs

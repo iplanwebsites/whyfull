@@ -1,3 +1,4 @@
+import "./disk-charts.css"
 import { isHoveredEntry } from "@/lib/chart-hover"
 import { colorFor } from "@/lib/chart-colors"
 import type { ChartColors } from "@/lib/chart-colors"
@@ -155,30 +156,25 @@ export default function Sunburst({
   }, [hovered, root, colors, dark])
   const label = hovered ?? root
   return (
-    <div className="relative h-full min-h-0" style={{ containerType: "size" }}>
-      <div
-        className="pointer-events-none absolute left-3 top-3 z-10 max-w-[60%] truncate text-base font-semibold"
-        title={root.path ?? root.name}
-      >
+    <div className="whyfull-sunburst">
+      <div className="whyfull-sunburst-title" title={root.path ?? root.name}>
         {root.name}
       </div>
       <div
         ref={container}
         role="img"
         aria-label="Concentric directory rings; use the folder list for keyboard navigation"
-        className="absolute inset-0"
+        className="whyfull-sunburst-canvas"
       />
       <button
         onClick={onUp}
         aria-label="Go to parent folder"
         title={label.path ?? label.name}
         style={{ width: "32cqmin" }}
-        className="absolute left-1/2 top-1/2 flex aspect-square -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center gap-2 rounded-full bg-background px-4 text-center"
+        className="whyfull-sunburst-center"
       >
-        <span className="line-clamp-3 w-full break-words text-[clamp(16px,2.8cqmin,28px)] font-semibold leading-tight tracking-tight">
-          {label.name}
-        </span>
-        <span className="text-[clamp(11px,1.8cqmin,16px)] text-muted-foreground tabular-nums">
+        <span className="whyfull-sunburst-name">{label.name}</span>
+        <span className="whyfull-sunburst-size">
           {formatSize(label.value, root.value)}
         </span>
       </button>

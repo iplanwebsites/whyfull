@@ -1,0 +1,192 @@
+name: Desktop and standalone CLI release
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: Release channel (auto follows the package version)
+        type: choice
+        options: [auto, stable, preview]
+        default: auto
+      macos_signing:
+        description: macOS signing (auto uses notarized for stable, unsigned for previews)
+        type: choice
+        options: [auto, notarized, unsigned]
+        default: auto
+permissions:
+  contents: write
+concurrency:
+  group: desktop-release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      release_id: ${{ steps.draft.outputs.id }}
+      tag: ${{ steps.info.outputs.tag }}
+      preview: ${{ steps.info.outputs.preview }}
+      channel: ${{ steps.info.outputs.channel }}
+      macos_signing: ${{ steps.info.outputs.macosSigning }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.23.2"
+      - name: Validate release identity and channel
+        id: info
+        env:
+          RELEASE_CHANNEL: ${{ inputs.channel }}
+          MACOS_SIGNING: ${{ inputs.macos_signing }}
+        run: node apps/desktop/scripts/release-info.mjs >> "$GITHUB_OUTPUT"
+      - name: Test release metadata validation
+        run: node --test apps/desktop/test/release.test.mjs
+      - name: Create or reuse a draft
+        id: draft
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ steps.info.outputs.tag }}
+          RELEASE_PREVIEW: ${{ steps.info.outputs.preview }}
+          MACOS_SIGNING: ${{ steps.info.outputs.macosSigning }}
+        shell: bash
+        run: |
+          if ! gh release view "$RELEASE_TAG" --json id,isDraft > "$RUNNER_TEMP/release.json"; then
+            if [ "$RELEASE_PREVIEW" = true ]; then
+              cp apps/desktop/release-notes-preview.md "$RUNNER_TEMP/notes.md"
+            else
+              cp apps/desktop/release-notes-stable.md "$RUNNER_TEMP/notes.md"
+            fi
+            if [ "$MACOS_SIGNING" = notarized ]; then
+              printf '\nmacOS: Developer ID signed and notarized.\n' >> "$RUNNER_TEMP/notes.md"
+            else
+              printf '\nmacOS: unsigned preview; see the first-launch instructions above.\n' >> "$RUNNER_TEMP/notes.md"
+            fi
+            gh release create "$RELEASE_TAG" --target "$GITHUB_SHA" --draft --prerelease="$RELEASE_PREVIEW" --title "Whyfull $RELEASE_TAG" --notes-file "$RUNNER_TEMP/notes.md"
+          fi
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG" > "$RUNNER_TEMP/release.json"
+          node --input-type=module <<'JS'
+          import { readFileSync, appendFileSync } from 'node:fs'
+          const release = JSON.parse(readFileSync(`${process.env.RUNNER_TEMP}/release.json`))
+          if (!release.draft) throw new Error('Refusing to change an already published release')
+          if (release.prerelease !== (process.env.RELEASE_PREVIEW === 'true')) throw new Error('Existing release channel does not match')
+          appendFileSync(process.env.GITHUB_OUTPUT, `id=${release.id}\n`)
+          JS
+          # A rerun must become eligible again only after every platform succeeds.
+          gh release delete-asset "$RELEASE_TAG" downloads.json --yes 2>/dev/null || true
+          gh release delete-asset "$RELEASE_TAG" SHA256SUMS.txt --yes 2>/dev/null || true
+  release:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15
+            bundles: app,dmg
+          - os: macos-15-intel
+            bundles: app,dmg
+          - os: ubuntu-22.04
+            bundles: appimage,deb
+          - os: windows-latest
+            bundles: nsis
+    runs-on: ${{ matrix.os }}
+    env:
+      WHYFULL_UPDATER_PUBLIC_KEY: ${{ needs.prepare.outputs.preview == 'false' && vars.WHYFULL_UPDATER_PUBLIC_KEY || '' }}
+      TAURI_SIGNING_PRIVATE_KEY: ${{ needs.prepare.outputs.preview == 'false' && secrets.TAURI_SIGNING_PRIVATE_KEY || '' }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      APPLE_CERTIFICATE: ${{ needs.prepare.outputs.macos_signing == 'notarized' && secrets.APPLE_CERTIFICATE || '' }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ needs.prepare.outputs.macos_signing == 'notarized' && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}
+      APPLE_SIGNING_IDENTITY: ${{ needs.prepare.outputs.macos_signing == 'unsigned' && '-' || secrets.APPLE_SIGNING_IDENTITY }}
+      APPLE_ID: ${{ needs.prepare.outputs.macos_signing == 'notarized' && secrets.APPLE_ID || '' }}
+      APPLE_PASSWORD: ${{ needs.prepare.outputs.macos_signing == 'notarized' && secrets.APPLE_PASSWORD || '' }}
+      APPLE_TEAM_ID: ${{ needs.prepare.outputs.macos_signing == 'notarized' && secrets.APPLE_TEAM_ID || '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.23.2"
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+      - name: Install Linux prerequisites
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xdg-utils
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Validate macOS release signing
+        if: runner.os == 'macOS' && needs.prepare.outputs.macos_signing == 'notarized'
+        shell: bash
+        run: |
+          test -n "$APPLE_CERTIFICATE" && test -n "$APPLE_CERTIFICATE_PASSWORD"
+          test -n "$APPLE_SIGNING_IDENTITY" && test -n "$APPLE_ID"
+          test -n "$APPLE_PASSWORD" && test -n "$APPLE_TEAM_ID"
+      - run: pnpm desktop:prepare
+      - run: pnpm --filter @whyfull/desktop test:runtime
+      - run: cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --locked
+      - name: Configure updates for stable releases only
+        shell: bash
+        env:
+          RELEASE_PREVIEW: ${{ needs.prepare.outputs.preview }}
+        run: |
+          if [ "$RELEASE_PREVIEW" = true ]; then
+            node apps/desktop/scripts/configure.mjs --release --preview
+          else
+            node apps/desktop/scripts/configure.mjs --release
+          fi
+      - name: Build installers into the draft
+        id: tauri
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: apps/desktop
+          tauriScript: pnpm tauri
+          args: --config src-tauri/version.conf.json --bundles ${{ matrix.bundles }}
+          releaseId: ${{ needs.prepare.outputs.release_id }}
+          updaterJsonPreferNsis: true
+          uploadUpdaterJson: ${{ needs.prepare.outputs.preview == 'false' }}
+      - name: Verify native command-line entry without a display
+        run: node apps/desktop/scripts/check-native.mjs
+      - name: Verify macOS signing and notarization
+        if: runner.os == 'macOS' && needs.prepare.outputs.macos_signing == 'notarized'
+        run: |
+          codesign --verify --deep --strict apps/desktop/src-tauri/target/release/bundle/macos/Whyfull.app
+          spctl --assess --type execute --verbose apps/desktop/src-tauri/target/release/bundle/macos/Whyfull.app
+      - name: Package standalone CLI with checksums
+        run: pnpm --filter @whyfull/desktop cli:archive
+      - name: Attach Windows CLI archive
+        if: runner.os == 'Windows'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+        run: gh release upload "$RELEASE_TAG" apps/desktop/dist/*.zip* --clobber
+      - name: Attach Unix CLI archive
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+        run: gh release upload "$RELEASE_TAG" apps/desktop/dist/*.tar.gz* --clobber
+  finalize:
+    needs: [prepare, release]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.23.2"
+      - name: Validate all downloads and publish metadata to the draft
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+          RELEASE_CHANNEL: ${{ needs.prepare.outputs.channel }}
+          MACOS_SIGNING: ${{ needs.prepare.outputs.macos_signing }}
+        run: |
+          gh release download "$RELEASE_TAG" --dir "$RUNNER_TEMP/whyfull-release"
+          node apps/desktop/scripts/release-manifest.mjs "$RUNNER_TEMP/whyfull-release"
+          gh release upload "$RELEASE_TAG" "$RUNNER_TEMP/whyfull-release/downloads.json" "$RUNNER_TEMP/whyfull-release/SHA256SUMS.txt" --clobber
+          printf 'Draft ready for install testing: https://github.com/%s/releases/tag/%s\n' "$GITHUB_REPOSITORY" "$RELEASE_TAG" >> "$GITHUB_STEP_SUMMARY"

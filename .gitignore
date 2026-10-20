@@ -10,7 +10,11 @@ dist/
 .env*
 !.env.example
 
-# Local credentials and signing material
+# Local credentials, Cloudflare state, and signing material
+.wrangler/
+.dev.vars*
+.aws/
+.ssh/
 .envrc
 .netrc
 .npmrc
@@ -25,3 +29,10 @@ dist/
 
 # Per-machine Claude Code settings
 .claude/settings.local.json
+
+# Tauri build output and locally generated release configuration
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/runtime/
+apps/desktop/src-tauri/version.conf.json
+apps/desktop/src-tauri/binaries/
+apps/desktop/src-tauri/gen/

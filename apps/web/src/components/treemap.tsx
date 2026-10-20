@@ -1,3 +1,4 @@
+import "./disk-charts.css"
 import { isHoveredEntry } from "@/lib/chart-hover"
 import { colorFor } from "@/lib/chart-colors"
 import type { ChartColors } from "@/lib/chart-colors"
@@ -168,7 +169,7 @@ export function Treemap({
       })
   }
   return (
-    <div ref={container} className="h-full min-h-0 w-full">
+    <div ref={container} className="whyfull-treemap">
       {size.width > 0 && size.height > 0 && (
         <svg
           width="100%"
