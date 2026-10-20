@@ -1,0 +1,6 @@
+.wrangler/
+.dev.vars*
+# Generated from the fictional source fixture during dev/build.
+public/demo-snapshot.json
+
+/public/skills/

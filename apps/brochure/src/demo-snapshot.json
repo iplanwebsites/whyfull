@@ -1,0 +1,440 @@
+{
+  "format": "whyfull-disk",
+  "schemaVersion": 1,
+  "root": "/Example",
+  "startedAt": "2026-01-01T00:00:00.000Z",
+  "completedAt": "2026-01-01T00:00:00.000Z",
+  "durationMs": 0,
+  "status": "complete",
+  "workers": 1,
+  "engine": "sync",
+  "files": 13,
+  "skippedLinks": 0,
+  "issues": 0,
+  "policy": {
+    "keep": [],
+    "exclude": []
+  },
+  "directories": [
+    {
+      "id": 0,
+      "parent": null,
+      "path": "/Example",
+      "name": "Example Mac",
+      "children": [1, 5, 9, 13, 16],
+      "topFiles": [],
+      "ownBytes": 0,
+      "ownApparentBytes": 0,
+      "ownFiles": 0,
+      "bytes": 343597383680,
+      "apparentBytes": 343597383680,
+      "files": 13,
+      "directories": 18,
+      "issues": 0,
+      "excluded": 0,
+      "state": "scanned"
+    },
+    {
+      "id": 1,
+      "parent": 0,
+      "path": "/Example/AI models",
+      "name": "AI models",
+      "children": [2, 3, 4],
+      "topFiles": [],
+      "ownBytes": 0,
+      "ownApparentBytes": 0,
+      "ownFiles": 0,
+      "bytes": 158913789952,
+      "apparentBytes": 158913789952,
+      "files": 3,
+      "directories": 3,
+      "issues": 0,
+      "excluded": 0,
+      "state": "scanned"
+    },
+    {
+      "id": 2,
+      "parent": 1,
+      "path": "/Example/AI models/Ollama",
+      "name": "Ollama",
+      "children": [],
+      "topFiles": [
+        {
+          "name": "example-data.bin",
+          "bytes": 98784247808,
+          "apparentBytes": 98784247808
+        }
+      ],
+      "ownBytes": 98784247808,
+      "ownApparentBytes": 98784247808,
+      "ownFiles": 1,
+      "bytes": 98784247808,
+      "apparentBytes": 98784247808,
+      "files": 1,
+      "directories": 0,
+      "issues": 0,
+      "excluded": 0,
+      "state": "scanned"
+    },
+    {
+      "id": 3,
+      "parent": 1,
+      "path": "/Example/AI models/Hugging Face",
+      "name": "Hugging Face",
+      "children": [],
+      "topFiles": [
+        {
+          "name": "example-data.bin",
+          "bytes": 42949672960,
+          "apparentBytes": 42949672960
+        }
+      ],
+      "ownBytes": 42949672960,
+      "ownApparentBytes": 42949672960,
+      "ownFiles": 1,
+      "bytes": 42949672960,
+      "apparentBytes": 42949672960,
+      "files": 1,
+      "directories": 0,
+      "issues": 0,
+      "excluded": 0,
+      "state": "scanned"
+    },
+    {
+      "id": 4,
+      "parent": 1,
+      "path": "/Example/AI models/Model experiments",
+      "name": "Model experiments",
+      "children": [],
+      "topFiles": [
+        {
+          "name": "example-data.bin",
+          "bytes": 17179869184,
+          "apparentBytes": 17179869184
+        }
+      ],
+      "ownBytes": 17179869184,
+      "ownApparentBytes": 17179869184,
+      "ownFiles": 1,
+      "bytes": 17179869184,
+      "apparentBytes": 17179869184,
+      "files": 1,
+      "directories": 0,
+      "issues": 0,
+      "excluded": 0,
+      "state": "scanned"
+    },
+    {
+      "id": 5,
+      "parent": 0,
+      "path": "/Example/Docker",
+      "name": "Docker",
+      "children": [6, 7, 8],
+      "topFiles": [],
+      "ownBytes": 0,
+      "ownApparentBytes": 0,
+      "ownFiles": 0,
+      "bytes": 68719476736,
+      "apparentBytes": 68719476736,
+      "files": 3,
+      "directories": 3,
+      "issues": 0,
+      "excluded": 0,
+      "state": "scanned"
+    },
+    {
+      "id": 6,
+      "parent": 5,
+      "path": "/Example/Docker/Build cache",
+      "name": "Build cache",
+      "children": [],
+      "topFiles": [
+        {
+          "name": "example-data.bin",
+          "bytes": 40802189312,
+          "apparentBytes": 40802189312
+        }
+      ],
+      "ownBytes": 40802189312,
+      "ownApparentBytes": 40802189312,
+      "ownFiles": 1,
+      "bytes": 40802189312,
+      "apparentBytes": 40802189312,
+      "files": 1,
+      "directories": 0,
+      "issues": 0,
+      "excluded": 0,
+      "state": "scanned"
+    },
+    {
+      "id": 7,
+      "parent": 5,
+      "path": "/Example/Docker/Images",
+      "name": "Images",
+      "children": [],
+      "topFiles": [
+        {
+          "name": "example-data.bin",
+          "bytes": 19327352832,
+          "apparentBytes": 19327352832
+        }
+      ],
+      "ownBytes": 19327352832,
+      "ownApparentBytes": 19327352832,
+      "ownFiles": 1,
+      "bytes": 19327352832,
+      "apparentBytes": 19327352832,
+      "files": 1,
+      "directories": 0,
+      "issues": 0,
+      "excluded": 0,
+      "state": "scanned"
+    },
+    {
+      "id": 8,
+      "parent": 5,
+      "path": "/Example/Docker/Volumes",
+      "name": "Volumes",
+      "children": [],
+      "topFiles": [
+        {
+          "name": "example-data.bin",
+          "bytes": 8589934592,
+          "apparentBytes": 8589934592
+        }
+      ],
+      "ownBytes": 8589934592,
+      "ownApparentBytes": 8589934592,
+      "ownFiles": 1,
+      "bytes": 8589934592,
+      "apparentBytes": 8589934592,
+      "files": 1,
+      "directories": 0,
+      "issues": 0,
+      "excluded": 0,
+      "state": "scanned"
+    },
+    {
+      "id": 9,
+      "parent": 0,
+      "path": "/Example/Developer caches",
+      "name": "Developer caches",
+      "children": [10, 11, 12],
+      "topFiles": [],
+      "ownBytes": 0,
+      "ownApparentBytes": 0,
+      "ownFiles": 0,
+      "bytes": 51539607552,
+      "apparentBytes": 51539607552,
+      "files": 3,
+      "directories": 3,
+      "issues": 0,
+      "excluded": 0,
+      "state": "scanned"
+    },
+    {
+      "id": 10,
+      "parent": 9,
+      "path": "/Example/Developer caches/pnpm store",
+      "name": "pnpm store",
+      "children": [],
+      "topFiles": [
+        {
+          "name": "example-data.bin",
+          "bytes": 23622320128,
+          "apparentBytes": 23622320128
+        }
+      ],
+      "ownBytes": 23622320128,
+      "ownApparentBytes": 23622320128,
+      "ownFiles": 1,
+      "bytes": 23622320128,
+      "apparentBytes": 23622320128,
+      "files": 1,
+      "directories": 0,
+      "issues": 0,
+      "excluded": 0,
+      "state": "scanned"
+    },
+    {
+      "id": 11,
+      "parent": 9,
+      "path": "/Example/Developer caches/Xcode DerivedData",
+      "name": "Xcode DerivedData",
+      "children": [],
+      "topFiles": [
+        {
+          "name": "example-data.bin",
+          "bytes": 19327352832,
+          "apparentBytes": 19327352832
+        }
+      ],
+      "ownBytes": 19327352832,
+      "ownApparentBytes": 19327352832,
+      "ownFiles": 1,
+      "bytes": 19327352832,
+      "apparentBytes": 19327352832,
+      "files": 1,
+      "directories": 0,
+      "issues": 0,
+      "excluded": 0,
+      "state": "scanned"
+    },
+    {
+      "id": 12,
+      "parent": 9,
+      "path": "/Example/Developer caches/Project builds",
+      "name": "Project builds",
+      "children": [],
+      "topFiles": [
+        {
+          "name": "example-data.bin",
+          "bytes": 8589934592,
+          "apparentBytes": 8589934592
+        }
+      ],
+      "ownBytes": 8589934592,
+      "ownApparentBytes": 8589934592,
+      "ownFiles": 1,
+      "bytes": 8589934592,
+      "apparentBytes": 8589934592,
+      "files": 1,
+      "directories": 0,
+      "issues": 0,
+      "excluded": 0,
+      "state": "scanned"
+    },
+    {
+      "id": 13,
+      "parent": 0,
+      "path": "/Example/Applications",
+      "name": "Applications",
+      "children": [14, 15],
+      "topFiles": [],
+      "ownBytes": 0,
+      "ownApparentBytes": 0,
+      "ownFiles": 0,
+      "bytes": 38654705664,
+      "apparentBytes": 38654705664,
+      "files": 2,
+      "directories": 2,
+      "issues": 0,
+      "excluded": 0,
+      "state": "scanned"
+    },
+    {
+      "id": 14,
+      "parent": 13,
+      "path": "/Example/Applications/Video Editor.app",
+      "name": "Video Editor.app",
+      "children": [],
+      "topFiles": [
+        {
+          "name": "example-data.bin",
+          "bytes": 25769803776,
+          "apparentBytes": 25769803776
+        }
+      ],
+      "ownBytes": 25769803776,
+      "ownApparentBytes": 25769803776,
+      "ownFiles": 1,
+      "bytes": 25769803776,
+      "apparentBytes": 25769803776,
+      "files": 1,
+      "directories": 0,
+      "issues": 0,
+      "excluded": 0,
+      "state": "scanned"
+    },
+    {
+      "id": 15,
+      "parent": 13,
+      "path": "/Example/Applications/Old IDE.app",
+      "name": "Old IDE.app",
+      "children": [],
+      "topFiles": [
+        {
+          "name": "example-data.bin",
+          "bytes": 12884901888,
+          "apparentBytes": 12884901888
+        }
+      ],
+      "ownBytes": 12884901888,
+      "ownApparentBytes": 12884901888,
+      "ownFiles": 1,
+      "bytes": 12884901888,
+      "apparentBytes": 12884901888,
+      "files": 1,
+      "directories": 0,
+      "issues": 0,
+      "excluded": 0,
+      "state": "scanned"
+    },
+    {
+      "id": 16,
+      "parent": 0,
+      "path": "/Example/Downloads",
+      "name": "Downloads",
+      "children": [17, 18],
+      "topFiles": [],
+      "ownBytes": 0,
+      "ownApparentBytes": 0,
+      "ownFiles": 0,
+      "bytes": 25769803776,
+      "apparentBytes": 25769803776,
+      "files": 2,
+      "directories": 2,
+      "issues": 0,
+      "excluded": 0,
+      "state": "scanned"
+    },
+    {
+      "id": 17,
+      "parent": 16,
+      "path": "/Example/Downloads/Installers",
+      "name": "Installers",
+      "children": [],
+      "topFiles": [
+        {
+          "name": "example-data.bin",
+          "bytes": 17179869184,
+          "apparentBytes": 17179869184
+        }
+      ],
+      "ownBytes": 17179869184,
+      "ownApparentBytes": 17179869184,
+      "ownFiles": 1,
+      "bytes": 17179869184,
+      "apparentBytes": 17179869184,
+      "files": 1,
+      "directories": 0,
+      "issues": 0,
+      "excluded": 0,
+      "state": "scanned"
+    },
+    {
+      "id": 18,
+      "parent": 16,
+      "path": "/Example/Downloads/Archives",
+      "name": "Archives",
+      "children": [],
+      "topFiles": [
+        {
+          "name": "example-data.bin",
+          "bytes": 8589934592,
+          "apparentBytes": 8589934592
+        }
+      ],
+      "ownBytes": 8589934592,
+      "ownApparentBytes": 8589934592,
+      "ownFiles": 1,
+      "bytes": 8589934592,
+      "apparentBytes": 8589934592,
+      "files": 1,
+      "directories": 0,
+      "issues": 0,
+      "excluded": 0,
+      "state": "scanned"
+    }
+  ]
+}

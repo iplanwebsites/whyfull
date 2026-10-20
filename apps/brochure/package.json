@@ -4,12 +4,26 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --host 127.0.0.1 --port 3001",
-    "build": "vite build",
-    "preview": "vite preview --host 127.0.0.1 --port 3001",
-    "typecheck": "node --check src/main.js"
+    "dev": "node scripts/prepare-demo.mjs && vite --host 127.0.0.1 --port 3001",
+    "build": "node scripts/prepare-demo.mjs && vite build",
+    "preview": "pnpm build && wrangler dev --ip 127.0.0.1 --port 3001",
+    "typecheck": "node --check src/main.js && node --check src/download.js && tsc --noEmit && tsc --project tsconfig.client.json --noEmit",
+    "deploy": "pnpm build && wrangler deploy",
+    "deploy:dry-run": "pnpm build && wrangler deploy --dry-run",
+    "test": "node --experimental-strip-types --test test/*.test.mjs"
   },
   "devDependencies": {
-    "vite": "^8"
+    "vite": "^8",
+    "wrangler": "^4",
+    "typescript": "^5.7.2",
+    "@vitejs/plugin-react": "^6",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/node": "^22"
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "echarts": "^6.1.0"
   }
 }

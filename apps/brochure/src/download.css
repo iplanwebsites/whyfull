@@ -1,0 +1,255 @@
+.wf-download [hidden] {
+  display: none !important;
+}
+.wf-download-hero {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 72px;
+  align-items: center;
+  padding: 88px 0 64px;
+}
+.wf-download-eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--wf-home-muted);
+  margin-bottom: 20px !important;
+}
+.wf-download-terminal {
+  background: #292b23;
+  color: #faf9f2;
+  border-radius: 4px;
+  padding: 24px 30px;
+  transform: rotate(1deg);
+}
+.wf-download-terminal > div {
+  border-bottom: 1px solid #faf9f233;
+  padding-bottom: 16px;
+  font-size: 13px;
+}
+.wf-download-terminal > div span {
+  color: #e2e99a;
+  margin-right: 12px;
+}
+.wf-download-terminal pre {
+  margin: 24px 0 8px;
+  line-height: 1.7;
+  font-size: 15px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.wf-download-terminal-comment {
+  color: #b8bea3;
+}
+.wf-download-section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.wf-download-platforms {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 32px;
+  gap: 24px;
+}
+.wf-download-platform {
+  border: 1px solid var(--wf-home-line);
+  border-radius: 4px;
+  padding: 28px;
+  min-width: 0;
+}
+.wf-download-platform[data-matched] {
+  border-color: var(--wf-home-accent);
+  box-shadow: inset 0 3px var(--wf-home-accent);
+}
+.wf-download-platform-title {
+  display: flex;
+  gap: 16px;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.wf-download-platform-title h3 {
+  font-size: 26px;
+}
+.wf-download-match {
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  color: var(--wf-home-accent);
+  font-weight: 600;
+}
+.wf-download-platform > p {
+  margin-top: 14px;
+  color: var(--wf-home-muted);
+  font-size: 14px;
+}
+.wf-download-links {
+  display: grid;
+  gap: 10px;
+  margin: 24px 0;
+}
+.wf-download-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--wf-home-line);
+  border-radius: 3px;
+  font-size: 14px;
+  text-decoration: none;
+  line-height: 1.5;
+}
+.wf-download-button[href]:hover {
+  border-color: var(--wf-home-accent);
+  background: #626d300c;
+}
+.wf-download-button span {
+  font-size: 10px;
+  color: var(--wf-home-muted);
+  white-space: nowrap;
+}
+.wf-download-button[aria-disabled="true"] {
+  color: var(--wf-home-muted);
+  background: #dedfd122;
+  cursor: default;
+}
+.wf-download-warning {
+  background: #e2e99a55;
+  padding: 12px 14px;
+  border-left: 2px solid var(--wf-home-accent);
+}
+.wf-download-details {
+  border-top: 1px solid var(--wf-home-line);
+  padding: 22px 0;
+  font-size: 15px;
+}
+.wf-download-details summary {
+  cursor: pointer;
+  font-weight: 500;
+}
+.wf-download-details summary .wf-download-match {
+  margin-left: 16px;
+}
+.wf-download-details p {
+  margin-top: 18px;
+  max-width: 780px;
+  color: var(--wf-home-muted);
+}
+.wf-download-details ol {
+  max-width: 780px;
+  padding-left: 24px;
+}
+.wf-download-details li + li {
+  margin-top: 8px;
+}
+#linux-downloads {
+  margin-top: 24px;
+}
+.wf-download-inline-links {
+  display: flex;
+  flex-wrap: wrap;
+}
+.wf-download-inline-links a {
+  min-width: 210px;
+}
+.wf-download-release-links {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.wf-download-cli,
+.wf-download-npm {
+  border-top: 1px solid var(--wf-home-line);
+  display: grid;
+  grid-template-columns: 1fr 1.25fr;
+  gap: 72px;
+}
+.wf-download-install-options article + article {
+  border-top: 1px solid var(--wf-home-line);
+  padding-top: 28px;
+  margin-top: 20px;
+}
+.wf-download-agent-link {
+  margin-top: 20px !important;
+}
+.wf-download-install-options p {
+  margin-top: 16px;
+  color: var(--wf-home-muted);
+}
+.wf-download-step {
+  display: inline-flex;
+  border: 1px solid var(--wf-home-line);
+  width: 26px;
+  height: 26px;
+  justify-content: center;
+  align-items: center;
+  font-size: 13px;
+  margin-right: 8px;
+}
+.wf-download-archive-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 20px;
+}
+.wf-download-archive-grid a {
+  font-size: 12px;
+}
+.wf-download .wf-home-command-row {
+  gap: 12px;
+}
+.wf-download .wf-home-command-row pre {
+  min-width: 0;
+}
+.wf-download .wf-home-command-row code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.wf-download-help {
+  border-top: 1px solid var(--wf-home-line);
+  padding-bottom: 88px;
+}
+.wf-download-help h2 {
+  margin-bottom: 36px;
+}
+.wf-download nav [aria-current="page"] {
+  text-decoration: underline;
+}
+@media (max-width: 900px) {
+  .wf-download-hero,
+  .wf-download-cli,
+  .wf-download-npm {
+    gap: 36px;
+  }
+  .wf-download-archive-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 680px) {
+  .wf-download-hero,
+  .wf-download-platforms,
+  .wf-download-cli,
+  .wf-download-npm {
+    grid-template-columns: 1fr;
+  }
+  .wf-download-hero {
+    padding-top: 52px;
+  }
+  .wf-download-terminal {
+    transform: none;
+  }
+  .wf-download-platform {
+    padding: 22px;
+  }
+  .wf-download-archive-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 420px) {
+  .wf-download-archive-grid {
+    grid-template-columns: 1fr;
+  }
+}

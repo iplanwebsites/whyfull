@@ -4,24 +4,98 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#faf9f2" />
-    <title>whyfull — Find where your disk space went.</title>
+    <title>Whyfull — Disk space analyzer for developers and AI agents</title>
     <meta
       name="description"
-      content="Find the space your tools quietly consumed. Explore your disk locally, understand caches and model stores, and choose what to reclaim. Run Whyfull from your terminal or with your coding agent."
+      content="Find the worktrees, Docker caches, and AI models filling your disk. Give your coding agent a measured report with cleanup guidance. Free, open source, and local."
     />
     <link rel="canonical" href="https://whyfull.app/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta property="og:type" content="website" />
     <meta
       property="og:title"
-      content="whyfull — Find where your disk space went."
+      content="Whyfull — Disk space analyzer for developers and AI agents"
     />
     <meta
       property="og:description"
-      content="Your models, caches, and build output add up. Find out where. Run locally from your terminal or with your coding agent."
+      content="Disk usage with context: what created it, what it costs to remove, and how to reclaim it. Built for developers and their coding agents."
     />
     <meta property="og:url" content="https://whyfull.app/" />
     <link rel="stylesheet" href="/src/style.css" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta property="og:site_name" content="Whyfull" />
+    <meta property="og:locale" content="en_US" />
+    <meta
+      property="og:image"
+      content="https://whyfull.app/images/disk-donut.png"
+    />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1536" />
+    <meta property="og:image:height" content="1024" />
+    <meta
+      property="og:image:alt"
+      content="Whyfull disk usage illustration: a segmented 3D donut chart."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Whyfull — Disk space analyzer for developers and AI agents"
+    />
+    <meta
+      name="twitter:description"
+      content="Find the worktrees, Docker caches, and AI models filling your disk. Give your coding agent a measured report with cleanup guidance. Free, open source, and local."
+    />
+    <meta
+      name="twitter:image"
+      content="https://whyfull.app/images/disk-donut.png"
+    />
+    <meta
+      name="twitter:image:alt"
+      content="Whyfull disk usage illustration: a segmented 3D donut chart."
+    />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebPage",
+            "@id": "https://whyfull.app/#page",
+            "url": "https://whyfull.app/",
+            "name": "Whyfull \u2014 Disk space analyzer for developers and AI agents",
+            "description": "Find the worktrees, Docker caches, and AI models filling your disk. Give your coding agent a measured report with cleanup guidance. Free, open source, and local.",
+            "isPartOf": {
+              "@id": "https://whyfull.app/#website"
+            },
+            "about": {
+              "@id": "https://whyfull.app/#software"
+            }
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://whyfull.app/#website",
+            "name": "Whyfull",
+            "url": "https://whyfull.app/"
+          },
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://whyfull.app/#software",
+            "name": "Whyfull",
+            "url": "https://whyfull.app/",
+            "description": "Find the worktrees, Docker caches, and AI models filling your disk. Give your coding agent a measured report with cleanup guidance. Free, open source, and local.",
+            "applicationCategory": "DeveloperApplication",
+            "operatingSystem": "macOS, Windows, Linux",
+            "license": "https://github.com/iplanwebsites/whyfull/blob/main/LICENSE",
+            "downloadUrl": "https://whyfull.app/download/",
+            "image": "https://whyfull.app/images/disk-donut.png",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            }
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div class="wf-home">
@@ -31,261 +105,455 @@
           >whyfull<span class="wf-home-dot">.</span></a
         >
         <nav aria-label="Main navigation">
-          <a href="#how-it-works">How it works</a>
-          <a href="#start">Get started</a>
-          <a href="https://github.com/iplanwebsites/whyfull"
-            >GitHub <span aria-hidden="true">↗</span></a
+          <a href="https://github.com/iplanwebsites/whyfull">Source</a>
+          <a href="https://github.com/iplanwebsites/whyfull#readme">Docs</a>
+          <a href="/download/">Downloads ↗</a>
+          <span class="wf-home-github-star"
+            ><a
+              class="github-button"
+              href="https://github.com/iplanwebsites/whyfull"
+              data-icon="octicon-star"
+              data-show-count="true"
+              aria-label="Star whyfull on GitHub"
+              >Star</a
+            ></span
           >
         </nav>
       </header>
       <main id="main">
         <section class="wf-home-hero" aria-labelledby="hero-title">
           <div>
-            <h1 id="hero-title">
-              Disk full?<br /><em>Find the quiet culprits.</em>
-            </h1>
-            <p class="wf-home-lead">Your tools leave things behind.</p>
+            <h1 id="hero-title">Your disk is full.</h1>
+
             <p class="wf-home-summary">
-              Models you tried once. Caches that kept growing. Builds you forgot
-              about. Whyfull helps you find the space they consumed, understand
-              what made it, and decide what to reclaim.
+              Models, caches, and forgotten worktrees. One report with sizes and
+              cleanup guidance, ready for you or your coding agent.
             </p>
-            <div class="wf-home-actions">
+            <div class="wf-home-actions wf-home-primary-actions">
               <button
                 class="wf-home-button"
                 type="button"
                 data-copy="wf-start-prompt"
+                data-copy-status="wf-hero-copy-status"
               >
-                Copy agent prompt <span aria-hidden="true">↗</span>
+                Copy agent prompt
               </button>
-              <a class="wf-home-text-link" href="#start"
-                >Run it yourself <span aria-hidden="true">↓</span></a
+              <div class="wf-home-secondary-actions">
+                <a class="wf-home-text-link" href="/download/"
+                  >Download the app <span aria-hidden="true">↓</span></a
+                >
+                <a class="wf-home-text-link" href="#start"
+                  >Install the skill <span aria-hidden="true">↓</span></a
+                >
+              </div>
+              <p
+                id="wf-hero-copy-status"
+                class="wf-home-copy-feedback"
+                role="status"
+                aria-live="polite"
               >
+                Paste into your local coding agent.
+              </p>
             </div>
-            <p
-              class="wf-home-copy-status"
-              id="wf-copy-status"
-              role="status"
-              aria-live="polite"
-            >
-              Paste into your coding agent to investigate your disk. Or run one
-              command below.
+            <p class="wf-home-copy-status">
+              Free &amp; open source. Runs locally. No automatic deletion.
             </p>
-            <details class="wf-home-prompt" id="agent-prompt">
-              <summary>View agent prompt</summary>
-              <label for="wf-start-prompt"
-                >Copy this into an agent running on your computer</label
-              >
-              <textarea id="wf-start-prompt" readonly rows="12">
-Help me find where disk space went on this computer using Whyfull (https://github.com/iplanwebsites/whyfull).
-
-1. Check that Node.js and npm are available. Use Node.js 22.18+ for this workflow. If they are missing, explain how to install them before continuing.
-2. Run npx --yes whyfull@latest --json and inspect the report. This reports known tool locations and caches; it does not scan every file on the drive. If package download or filesystem access is unavailable, explain the limitation rather than claiming the scan succeeded.
-3. Summarize the largest findings, what created them, any overlapping measurements, and the tool-specific cleanup commands. Treat sizes as measured usage, not guaranteed reclaimable space. Flag inaccessible paths as incomplete results. Keep local paths and report contents private; do not upload or publish them.
-4. If I want to explore the full disk visually, run npx --yes whyfull@latest --view. For a remote or headless terminal, add --no-open and explain that the viewer runs on the same computer as the command. Offer --root to focus on a folder. Keep the local viewer running while I use it.
-5. Stay in read-only investigation and demo cleanup. Do not delete files, run cleanup commands, enable --allow-trash, or change permissions without my explicit approval. Recommend the owning tool's cleanup command where appropriate and explain what it would remove first.</textarea>
-            </details>
-            <noscript
-              ><p class="wf-home-small">
-                Open “View agent prompt” to select and copy it. The commands
-                below also work without JavaScript.
-              </p></noscript
+          </div>
+          <figure class="wf-home-disk-art">
+            <img
+              src="/images/disk-donut.png"
+              alt="An exploded 3D donut illustrating the mix of developer tools that occupy disk space."
+              width="1536"
+              height="1024"
+              fetchpriority="high"
+            />
+            <span class="wf-home-callout wf-home-callout-models"
+              ><b>AI models</b></span
             >
+            <span class="wf-home-callout wf-home-callout-docker"
+              ><b>Docker cache</b></span
+            >
+            <span class="wf-home-callout wf-home-callout-trees"
+              ><b>Git worktrees</b></span
+            >
+            <span class="wf-home-callout wf-home-callout-packages"
+              ><b>Package &amp; app caches</b></span
+            >
+          </figure>
+        </section>
+        <section
+          id="coverage"
+          class="wf-home-section wf-home-diagnosis"
+          aria-labelledby="how-title"
+        >
+          <h2 id="how-title">It all adds up.</h2>
+          <p>Find the leftovers from the tools you use every day.</p>
+          <div class="wf-home-categories">
+            <section class="wf-home-category">
+              <h3>AI models</h3>
+              <ul>
+                <li>Ollama</li>
+                <li>LM Studio</li>
+                <li>Hugging Face</li>
+                <li>PyTorch & Whisper</li>
+              </ul>
+            </section>
+            <section class="wf-home-category">
+              <h3>App & web caches</h3>
+              <ul>
+                <li>Adobe Camera Raw</li>
+                <li>Spotify</li>
+                <li>Google Chrome</li>
+                <li>VS Code</li>
+              </ul>
+            </section>
+            <section class="wf-home-category">
+              <h3>Package stores</h3>
+              <ul>
+                <li>npm & pnpm</li>
+                <li>pip & uv</li>
+                <li>Cargo</li>
+                <li>Homebrew</li>
+              </ul>
+            </section>
+            <section class="wf-home-category">
+              <h3>Build tools</h3>
+              <ul>
+                <li>Xcode DerivedData</li>
+                <li>iOS Simulators</li>
+                <li>Playwright</li>
+                <li>Electron</li>
+              </ul>
+            </section>
+            <section class="wf-home-category">
+              <h3>Containers</h3>
+              <ul>
+                <li>Docker VM images</li>
+                <li>WSL2 virtual disks</li>
+              </ul>
+            </section>
+            <section class="wf-home-category">
+              <h3>Agents & worktrees</h3>
+              <ul>
+                <li>Codex</li>
+                <li>Claude Code</li>
+                <li>Cursor</li>
+                <li>Windsurf</li>
+              </ul>
+            </section>
           </div>
           <a
-            class="wf-home-poster"
-            href="#start"
-            aria-label="Get started with Whyfull"
+            class="wf-home-text-link"
+            href="https://github.com/iplanwebsites/whyfull/blob/main/packages/whyfull/src/targets-data.ts"
+            >See all supported locations ↗</a
           >
-            <span class="wf-home-pig" aria-hidden="true">💽</span>
-            <span class="wf-home-poster-title"
-              >Less mystery.<br />More space.</span
-            >
-            <span class="wf-home-poster-bottom"
-              >Your disk. Explained. <span aria-hidden="true">↗</span></span
-            >
-          </a>
         </section>
         <section
           id="how-it-works"
           class="wf-home-section"
-          aria-labelledby="why-title"
+          aria-labelledby="workflow-title"
         >
-          <h2 id="why-title">
-            See what’s there.<br />Understand why it’s there.
-          </h2>
-          <div class="wf-home-features">
-            <article>
-              <h3>Start with the usual suspects.</h3>
+          <h2 id="workflow-title">Find it. Understand it. Clear it.</h2>
+          <ol class="wf-home-workflow">
+            <li>
+              <h3><span class="wf-home-step">1</span> Run a report.</h3>
+              <p>Find bulky caches, models, and worktrees.</p>
+            </li>
+            <li>
+              <h3><span class="wf-home-step">2</span> See what can go.</h3>
+              <p>Get sizes, context, and cleanup guidance.</p>
+            </li>
+            <li>
+              <h3><span class="wf-home-step">3</span> Reclaim space.</h3>
               <p>
-                The default report checks known tool locations, from AI model
-                stores to package caches and Git worktrees. Get context about
-                what created the files, with cleanup commands for the tools that
-                own them.
+                Let your agent work through the report, or follow it yourself.
               </p>
-            </article>
-            <article>
-              <h3>Follow the big pieces.</h3>
-              <p>
-                Open the local viewer to explore your filesystem as a treemap or
-                sunburst. Drill into folders, search the largest items, and keep
-                exploring while the scan runs.
-              </p>
-            </article>
-            <article>
-              <h3>Make the call yourself.</h3>
-              <p>
-                Reports read metadata. Viewer cleanup starts in demo mode every
-                session. Keep folders you need, exclude folders from future
-                scans, and review your options before changing anything.
-              </p>
-            </article>
+            </li>
+          </ol>
+          <div class="wf-home-quick-commands">
+            <div>
+              <span class="wf-home-command-label">For your agent</span>
+              <div class="wf-home-command-row">
+                <pre
+                  class="wf-home-command"
+                ><code id="wf-report-command">npx whyfull --json</code></pre>
+                <button
+                  class="wf-home-copy-command"
+                  type="button"
+                  data-copy="wf-report-command"
+                  aria-label="Copy npx whyfull --json"
+                  title="Copy command"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="16"
+                    height="16"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    aria-hidden="true"
+                  >
+                    <rect x="8" y="8" width="12" height="12" rx="2" />
+                    <path
+                      d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div>
+              <span class="wf-home-command-label">For you</span>
+              <div class="wf-home-command-row">
+                <pre
+                  class="wf-home-command"
+                ><code id="wf-text-command">npx whyfull</code></pre>
+                <button
+                  class="wf-home-copy-command"
+                  type="button"
+                  data-copy="wf-text-command"
+                  aria-label="Copy npx whyfull"
+                  title="Copy command"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="16"
+                    height="16"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    aria-hidden="true"
+                  >
+                    <rect x="8" y="8" width="12" height="12" rx="2" />
+                    <path
+                      d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
           </div>
         </section>
         <section
           id="start"
-          class="wf-home-section wf-home-start"
+          class="wf-home-section"
           aria-labelledby="start-title"
         >
-          <div>
-            <h2 id="start-title">One command.<br />A little clarity.</h2>
+          <div class="wf-home-install-card">
+            <h2 id="start-title">Install the agent skill.</h2>
             <p>
-              Open your terminal on the computer you want to inspect. With
-              Node.js and npm installed, run the command below. No global
-              install needed; npm downloads the package on first use.
+              Give your agent the same local reports you can explore in the app.
+              Run this command and choose your agent.
             </p>
             <div class="wf-home-command-row">
               <pre
                 class="wf-home-command"
-              ><code id="wf-view-command">npx whyfull@latest --view</code></pre>
+              ><code id="wf-skill-command">npx skills add iplanwebsites/whyfull --skill whyfull</code></pre>
               <button
                 class="wf-home-copy-command"
                 type="button"
-                data-copy="wf-view-command"
+                data-copy="wf-skill-command"
+                aria-label="Copy skill install command"
+                title="Copy skill install command"
               >
-                Copy command
+                <svg
+                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  aria-hidden="true"
+                >
+                  <rect x="8" y="8" width="12" height="12" rx="2" />
+                  <path
+                    d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"
+                  />
+                </svg>
               </button>
             </div>
-            <p class="wf-home-small">
-              The viewer opens in your browser and runs on your computer. Its
-              assets are bundled and work offline after download. Use a current
-              Node.js release; Node.js 22.18+ is recommended for this workflow.
-            </p>
-            <p class="wf-home-small">
-              Prefer the terminal? Run <code>npx whyfull@latest</code> for the
-              known-tool report, or add <code>--json</code> for your agent. Stop
-              the viewer with <kbd>Ctrl</kbd> + <kbd>C</kbd>.
-            </p>
-            <a
-              class="wf-home-text-link"
-              href="https://github.com/iplanwebsites/whyfull#usage"
-              >Read the command reference <span aria-hidden="true">↗</span></a
-            >
-          </div>
-          <div class="wf-home-code">
-            <div>Pick your starting point</div>
-            <pre><code># Report known tool locations and caches
-npx whyfull@latest
+            <div class="wf-home-install-links">
+              <a href="/skills/whyfull/SKILL.md" download="SKILL.md"
+                >Download SKILL.md ↗</a
+              >
+              <button type="button" data-copy="wf-start-prompt">
+                Copy a one-off prompt
+              </button>
+            </div>
+            <details class="wf-home-prompt" id="agent-prompt">
+              <summary>View agent prompt</summary>
+              <label for="wf-start-prompt">Agent prompt</label
+              ><textarea id="wf-start-prompt" readonly rows="12">
+Help me reclaim disk space on this computer using Whyfull (https://whyfull.app).
 
-# Explore your disk visually
-npx whyfull@latest --view
+Use an installed whyfull command to run whyfull --json. This can be the CLI installed from the desktop app or a standalone installation. Otherwise, run npx --yes whyfull@latest --json. If neither command or filesystem access is available, explain what is needed. The report covers known tool locations, discovered caches, and Git worktrees; it is not a full-drive inventory.
 
-# Focus on one folder (macOS / Linux)
-npx whyfull@latest --view --root ~/Downloads
+Prioritize the largest useful cleanup opportunities. Explain what created the data, the safety tier, and the recommended tool-specific cleanup method. Account for overlapping measurements and incomplete scans; measured usage is not guaranteed reclaimable space.
 
-# Give your agent a structured report
-npx whyfull@latest --json
+Investigate the findings and propose a concrete plan. Use the owning tool’s cleanup commands where appropriate. Carry out cleanup within permissions I have already given you. Ask before deleting personal data, removing worktrees with uncommitted work, or making choices about models, environments, or projects I may still need. If cleanup is not already authorized, ask me to approve the plan first.
 
-# Reopen a saved disk snapshot
-npx whyfull@latest --view --snapshot disk.json</code></pre>
+Keep paths and report contents private. If visual inspection would help, suggest the desktop app or whyfull --view (npx --yes whyfull@latest --view if using npm). After approved cleanup, run the report again and summarize what changed.</textarea>
+            </details>
+            <p
+              id="wf-copy-status"
+              class="wf-home-copy-status"
+              role="status"
+              aria-live="polite"
+            ></p>
           </div>
         </section>
-        <section class="wf-home-section" aria-labelledby="local-title">
-          <h2 id="local-title">Your files stay on your computer.</h2>
+        <section
+          id="questions"
+          class="wf-home-section"
+          aria-labelledby="questions-title"
+        >
+          <h2 id="questions-title">Your disk. Your decisions.</h2>
           <div class="wf-home-features">
             <article>
-              <h3>A local view.</h3>
+              <h3>Does Whyfull delete anything?</h3>
               <p>
-                The authenticated viewer server binds to <code>127.0.0.1</code>.
-                Scans read file metadata, and Whyfull does not upload your disk
-                inventory. An agent you use has its own data handling settings.
+                Scanning doesn’t delete anything. Cleanup is a separate action
+                you control; the optional viewer Trash feature requires
+                confirmation.
               </p>
             </article>
             <article>
-              <h3>Context before cleanup.</h3>
+              <h3>Is every gigabyte reclaimable?</h3>
               <p>
-                Large does not always mean disposable. Shared caches and model
-                stores may overlap. Allocated and logical sizes can differ, and
-                measured space is not guaranteed reclaimable space.
+                No. Some files matter; some caches cost time to rebuild. Whyfull
+                helps you decide what to keep.
               </p>
             </article>
             <article>
-              <h3>Cleanup is a separate decision.</h3>
+              <h3>Where does the report go?</h3>
               <p>
-                Real Trash moves require macOS 14+, an explicit launch flag,
-                enabling Trash in the viewer, and individual confirmation. Saved
-                snapshots support demo cleanup only.
+                Whyfull runs locally. You choose what to share with your agent;
+                reports can include private paths.
               </p>
             </article>
           </div>
         </section>
         <section
-          id="learn"
-          class="wf-home-section"
-          aria-labelledby="learn-title"
+          id="explore"
+          class="wf-home-section wf-home-explore"
+          aria-labelledby="explore-title"
         >
-          <h2 id="learn-title">A few useful next steps.</h2>
-          <p>Start with a report, then go as deep as you need.</p>
-          <ul class="wf-home-examples">
-            <li>
-              <a href="https://github.com/iplanwebsites/whyfull#why-it-exists"
-                ><h3>Why is it full?</h3>
-                <p>
-                  How trying models, building projects, and working with media
-                  quietly fills a drive.
-                </p></a
+          <div class="wf-home-explore-heading">
+            <h2 id="explore-title">Go further. Open any folder.</h2>
+            <p>
+              The app and CLI include the same local disk viewer. Drill into
+              folders, compare their sizes, and find what’s worth clearing out.
+            </p>
+          </div>
+          <div class="wf-home-chart-previews">
+            <figure>
+              <img
+                src="/images/folder-radial.svg"
+                width="520"
+                height="320"
+                loading="lazy"
+                alt="Radial chart showing folders as nested rings"
+              />
+              <figcaption>
+                <h3>Follow the space.</h3>
+                <p>Move through folders with the radial view.</p>
+              </figcaption>
+            </figure>
+            <figure>
+              <img
+                src="/images/folder-treemap.svg"
+                width="520"
+                height="320"
+                loading="lazy"
+                alt="Treemap comparing the relative sizes of folders"
+              />
+              <figcaption>
+                <h3>See what’s biggest.</h3>
+                <p>Compare directories at a glance with the treemap.</p>
+              </figcaption>
+            </figure>
+          </div>
+          <div class="wf-home-explore-actions">
+            <p>Or open the viewer from your terminal:</p>
+            <div class="wf-home-command-row">
+              <pre
+                class="wf-home-command"
+              ><code id="wf-view-command">npx whyfull --view</code></pre>
+              <button
+                class="wf-home-copy-command"
+                type="button"
+                data-copy="wf-view-command"
+                aria-label="Copy npx whyfull --view"
+                title="Copy command"
               >
-            </li>
-            <li>
-              <a
-                href="https://github.com/iplanwebsites/whyfull/blob/main/docs/viewer.md"
-                ><h3>Explore the viewer.</h3>
-                <p>
-                  Learn about scanning, saved snapshots, Keep and Exclude rules,
-                  and demo cleanup.
-                </p></a
+                <svg
+                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  aria-hidden="true"
+                >
+                  <rect x="8" y="8" width="12" height="12" rx="2" />
+                  <path
+                    d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div
+            class="wf-home-download-cta"
+            aria-labelledby="download-cta-title"
+          >
+            <div>
+              <h3 id="download-cta-title">One tool for you and your agent.</h3>
+              <p>
+                Start with a prompt, install the skill for future runs, or
+                explore visually in the app. The desktop app includes the CLI.
+              </p>
+              <p class="wf-home-small">Free. Private. Open source.</p>
+            </div>
+            <div class="wf-home-actions wf-home-primary-actions">
+              <button
+                class="wf-home-button"
+                type="button"
+                data-copy="wf-start-prompt"
+                data-copy-status="wf-closing-copy-status"
               >
-            </li>
-            <li>
-              <a href="https://github.com/iplanwebsites/whyfull/issues"
-                ><h3>Missing a tool?</h3>
-                <p>
-                  Suggest a cache location, report a problem, or help improve
-                  the shared map of where tools store their data.
-                </p></a
+                Copy agent prompt
+              </button>
+              <div class="wf-home-secondary-actions">
+                <a class="wf-home-text-link" href="/download/"
+                  >Download the app <span aria-hidden="true">↓</span></a
+                >
+                <a class="wf-home-text-link" href="#start"
+                  >Install the skill <span aria-hidden="true">↑</span></a
+                >
+              </div>
+              <p
+                id="wf-closing-copy-status"
+                class="wf-home-copy-feedback"
+                role="status"
+                aria-live="polite"
               >
-            </li>
-          </ul>
+                Paste into your local coding agent.
+              </p>
+            </div>
+          </div>
         </section>
-        <aside class="wf-home-license" aria-label="License">
-          <p>
-            Whyfull is open source under Apache 2.0.
-            <a href="https://github.com/iplanwebsites/whyfull/blob/main/LICENSE"
-              >Read the license ↗</a
-            >
-          </p>
-        </aside>
       </main>
       <footer class="wf-home-footer">
         <a class="wf-home-wordmark" href="/">whyfull.</a>
-        <p>A little less “where did it all go?”</p>
+        <p>Open source · Apache 2.0 · Make room for what’s next.</p>
         <nav aria-label="Footer navigation">
-          <a href="https://github.com/iplanwebsites/whyfull#usage">Docs</a
-          ><a href="https://www.npmjs.com/package/whyfull">npm</a
-          ><a href="https://github.com/iplanwebsites/whyfull">Source</a>
+          <a href="/download/">Downloads ↗</a
+          ><a href="https://github.com/iplanwebsites/whyfull">GitHub ↗</a
+          ><a href="https://www.npmjs.com/package/whyfull">npm ↗</a>
         </nav>
       </footer>
     </div>
     <script type="module" src="/src/main.js"></script>
+    <script async defer src="https://buttons.github.io/buttons.js"></script>
   </body>
 </html>

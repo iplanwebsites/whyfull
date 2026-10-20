@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#faf9f2" />
+    <title>Download Whyfull — Desktop app and command line</title>
+    <meta
+      name="description"
+      content="Download Whyfull for macOS, Windows, or Linux. Get the desktop app and its CLI together, or run the standalone command without Node.js."
+    />
+    <link rel="canonical" href="https://whyfull.app/download/" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta
+      property="og:title"
+      content="Download Whyfull — Desktop app and command line"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://whyfull.app/download/" />
+    <meta
+      property="og:description"
+      content="One local disk report. A desktop app, a terminal command, or both. Free and open source."
+    />
+    <link rel="stylesheet" href="/src/style.css" />
+    <link rel="stylesheet" href="/src/download.css" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta property="og:site_name" content="Whyfull" />
+    <meta property="og:locale" content="en_US" />
+    <meta
+      property="og:image"
+      content="https://whyfull.app/images/disk-donut.png"
+    />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1536" />
+    <meta property="og:image:height" content="1024" />
+    <meta
+      property="og:image:alt"
+      content="Whyfull disk usage illustration: a segmented 3D donut chart."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Download Whyfull — Desktop app and command line"
+    />
+    <meta
+      name="twitter:description"
+      content="Download Whyfull for macOS, Windows, or Linux. Get the desktop app and its CLI together, or run the standalone command without Node.js."
+    />
+    <meta
+      name="twitter:image"
+      content="https://whyfull.app/images/disk-donut.png"
+    />
+    <meta
+      name="twitter:image:alt"
+      content="Whyfull disk usage illustration: a segmented 3D donut chart."
+    />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebPage",
+            "@id": "https://whyfull.app/download/#page",
+            "url": "https://whyfull.app/download/",
+            "name": "Download Whyfull \u2014 Desktop app and command line",
+            "description": "Download Whyfull for macOS, Windows, or Linux. Get the desktop app and its CLI together, or run the standalone command without Node.js.",
+            "isPartOf": {
+              "@id": "https://whyfull.app/#website"
+            },
+            "about": {
+              "@id": "https://whyfull.app/#software"
+            }
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <div class="wf-home wf-download">
+      <a class="wf-home-skip" href="#main">Skip to content</a>
+      <header class="wf-home-nav">
+        <a class="wf-home-wordmark" href="/" aria-label="Whyfull home"
+          >whyfull<span class="wf-home-dot">.</span></a
+        >
+        <nav aria-label="Main navigation">
+          <a href="https://github.com/iplanwebsites/whyfull">Source</a
+          ><a href="https://github.com/iplanwebsites/whyfull#readme">Docs</a
+          ><a href="/download/" aria-current="page">Downloads ↗</a>
+        </nav>
+      </header>
+      <main id="main">
+        <section class="wf-download-hero" aria-labelledby="download-title">
+          <div>
+            <p class="wf-download-eyebrow">
+              Free &amp; open source · Runs locally
+            </p>
+            <h1 id="download-title">Make room.<br /><em>Your way.</em></h1>
+            <p class="wf-home-summary">
+              Explore your disk in the app, send a report to your agent, or do
+              both. The desktop download includes the command line.
+            </p>
+            <div class="wf-home-actions">
+              <a class="wf-home-button" href="#desktop"
+                >Download the app <span aria-hidden="true">↓</span></a
+              ><a class="wf-home-text-link" href="#cli"
+                >Install the CLI <span aria-hidden="true">↗</span></a
+              >
+            </div>
+          </div>
+          <aside class="wf-download-terminal" aria-label="Command line example">
+            <div>
+              <span aria-hidden="true">~/</span> Same report. Your terminal.
+            </div>
+            <pre><code><span class="wf-download-terminal-comment"># Find what’s taking up space</span>
+whyfull
+
+<span class="wf-download-terminal-comment"># Give your agent the details</span>
+whyfull --json
+
+<span class="wf-download-terminal-comment"># Open the visual explorer</span>
+whyfull --view</code></pre>
+          </aside>
+        </section>
+        <section
+          id="desktop"
+          class="wf-home-section"
+          aria-labelledby="desktop-title"
+        >
+          <div class="wf-download-section-heading">
+            <h2 id="desktop-title">Get the desktop app.</h2>
+            <a
+              href="https://github.com/iplanwebsites/whyfull/releases"
+              class="wf-home-text-link"
+              id="wf-release-notes"
+              >All releases ↗</a
+            >
+          </div>
+          <p id="wf-release-status" role="status" aria-live="polite">
+            Checking for published downloads…
+          </p>
+          <p id="wf-npm-fallback" class="wf-home-small" hidden>
+            <a href="#npm">Run with npm in the meantime ↓</a>
+          </p>
+          <noscript
+            ><p>
+              Visit
+              <a href="https://github.com/iplanwebsites/whyfull/releases"
+                >GitHub Releases</a
+              >
+              for downloads, versions, and signing details. The installation
+              instructions below work without JavaScript.
+            </p></noscript
+          >
+          <div class="wf-download-platforms">
+            <article
+              class="wf-download-platform"
+              data-platform="macos"
+              aria-labelledby="macos-title"
+            >
+              <div class="wf-download-platform-title">
+                <h3 id="macos-title">macOS</h3>
+                <span class="wf-download-match" hidden>Your platform</span>
+              </div>
+              <p>macOS 11 or later. Choose your Mac’s chip.</p>
+              <div class="wf-download-links">
+                <a
+                  class="wf-download-button"
+                  data-download="desktop-macos-arm64"
+                  aria-disabled="true"
+                  >Apple Silicon <span>DMG</span></a
+                ><a
+                  class="wf-download-button"
+                  data-download="desktop-macos-x64"
+                  aria-disabled="true"
+                  >Intel <span>DMG</span></a
+                >
+              </div>
+              <p class="wf-home-small">
+                Apple menu → About This Mac shows your chip or processor.
+              </p>
+              <p class="wf-download-signing" id="wf-macos-signing">
+                Release signing details appear here when available.
+              </p>
+              <p class="wf-download-warning" id="wf-macos-warning" hidden>
+                <strong>Unsigned preview.</strong> macOS may block first launch.
+                <a href="#macos-help">See how to open it ↓</a>
+              </p>
+            </article>
+            <article
+              class="wf-download-platform"
+              data-platform="windows"
+              aria-labelledby="windows-title"
+            >
+              <div class="wf-download-platform-title">
+                <h3 id="windows-title">Windows</h3>
+                <span class="wf-download-match" hidden>Your platform</span>
+              </div>
+              <p>Windows 10 or later, 64-bit Intel or AMD.</p>
+              <div class="wf-download-links">
+                <a
+                  class="wf-download-button"
+                  data-download="desktop-windows-x64"
+                  aria-disabled="true"
+                  >Download for Windows <span>EXE</span></a
+                >
+              </div>
+              <p class="wf-home-small">
+                Install Whyfull, then launch it from the Start menu.
+              </p>
+              <p class="wf-download-signing" id="wf-windows-signing">
+                Release signing details appear here when available.
+              </p>
+            </article>
+          </div>
+          <details
+            class="wf-download-details"
+            id="linux-downloads"
+            data-platform="linux"
+          >
+            <summary>
+              Linux downloads
+              <span class="wf-download-match" hidden>Your platform</span>
+            </summary>
+            <p>
+              64-bit Intel or AMD. Use AppImage for desktop updates, or a Debian
+              package for Debian/Ubuntu. Desktop builds require system WebKitGTK
+              libraries; see the
+              <a
+                href="https://github.com/iplanwebsites/whyfull/blob/main/apps/desktop/README.md"
+                >platform requirements</a
+              >.
+            </p>
+            <div class="wf-download-links wf-download-inline-links">
+              <a
+                class="wf-download-button"
+                data-download="desktop-linux-x64-appimage"
+                aria-disabled="true"
+                >Linux x64 <span>AppImage</span></a
+              ><a
+                class="wf-download-button"
+                data-download="desktop-linux-x64-deb"
+                aria-disabled="true"
+                >Debian / Ubuntu <span>DEB</span></a
+              >
+            </div>
+            <p class="wf-home-small">
+              Mark the AppImage executable before opening it. Update DEB
+              installations by installing a newer package.
+            </p>
+          </details>
+          <p class="wf-home-small wf-download-release-links">
+            <a id="wf-checksums" hidden>SHA-256 checksums ↗</a
+            ><a href="https://github.com/iplanwebsites/whyfull/releases"
+              >Previous versions and previews ↗</a
+            >
+          </p>
+        </section>
+        <section
+          id="cli"
+          class="wf-home-section wf-download-cli"
+          aria-labelledby="cli-title"
+        >
+          <div>
+            <p class="wf-download-eyebrow">
+              For your terminal &amp; your agent
+            </p>
+            <h2 id="cli-title">One command.<br />Two ways to install.</h2>
+            <p class="wf-home-summary">
+              Both run the same report. Neither needs a separate Node.js
+              installation.
+            </p>
+            <p class="wf-home-small wf-download-agent-link">
+              <a href="/#start">Use the CLI with your coding agent ↗</a>
+            </p>
+          </div>
+          <div class="wf-download-install-options">
+            <article>
+              <h3>
+                <span class="wf-download-step">1</span> Already have the app?
+              </h3>
+              <p>
+                Install it in its permanent location first. On Mac, move it to
+                Applications. Open Whyfull and choose
+                <strong>Whyfull → Install command-line tool…</strong>
+              </p>
+              <p class="wf-home-small">
+                The app shows the launcher location. Add that directory to PATH
+                if needed. The command follows the app when it updates.
+              </p>
+              <div class="wf-home-command-row">
+                <pre
+                  class="wf-home-command"
+                ><code id="wf-cli-report">whyfull --json</code></pre>
+                <button
+                  class="wf-home-copy-command"
+                  type="button"
+                  data-copy="wf-cli-report"
+                >
+                  Copy
+                </button>
+              </div>
+            </article>
+            <article>
+              <h3>
+                <span class="wf-download-step">2</span> Just want the CLI?
+              </h3>
+              <p>
+                Download an archive, extract it, and keep the launcher beside
+                its <code>runtime</code> folder. Run
+                <code>./whyfull</code> (Windows: <code>whyfull.cmd</code>), or
+                add the extracted directory to PATH.
+              </p>
+              <div class="wf-download-archive-grid">
+                <a
+                  class="wf-download-button"
+                  data-download="cli-macos-arm64"
+                  aria-disabled="true"
+                  >Mac · Apple Silicon <span>TAR.GZ</span></a
+                ><a
+                  class="wf-download-button"
+                  data-download="cli-macos-x64"
+                  aria-disabled="true"
+                  >Mac · Intel <span>TAR.GZ</span></a
+                ><a
+                  class="wf-download-button"
+                  data-download="cli-windows-x64"
+                  aria-disabled="true"
+                  >Windows · x64 <span>ZIP</span></a
+                ><a
+                  class="wf-download-button"
+                  data-download="cli-linux-x64"
+                  aria-disabled="true"
+                  >Linux · x64 <span>TAR.GZ</span></a
+                >
+              </div>
+              <p class="wf-home-small">
+                Update by replacing the extracted directory with a newer
+                release. Standalone CLI archives don’t update themselves.
+              </p>
+            </article>
+          </div>
+        </section>
+        <section
+          id="npm"
+          class="wf-home-section wf-download-npm"
+          aria-labelledby="npm-title"
+        >
+          <div>
+            <p class="wf-download-eyebrow">Already using Node.js?</p>
+            <h2 id="npm-title">npm works too.</h2>
+            <p class="wf-home-summary">
+              A small install for scripts, CI, and a quick first report.
+              Requires Node.js 18.15 or later.
+            </p>
+          </div>
+          <div>
+            <p>Run once, using the latest npm release:</p>
+            <div class="wf-home-command-row">
+              <pre
+                class="wf-home-command"
+              ><code id="wf-npx-command">npx whyfull@latest --json</code></pre>
+              <button
+                class="wf-home-copy-command"
+                type="button"
+                data-copy="wf-npx-command"
+              >
+                Copy
+              </button>
+            </div>
+            <p>Or install or update the command:</p>
+            <div class="wf-home-command-row">
+              <pre
+                class="wf-home-command"
+              ><code id="wf-npm-command">npm install -g whyfull@latest</code></pre>
+              <button
+                class="wf-home-copy-command"
+                type="button"
+                data-copy="wf-npm-command"
+              >
+                Copy
+              </button>
+            </div>
+            <p class="wf-home-small">
+              npm manages this installation separately from the desktop app. If
+              you install both, PATH determines which command runs.
+            </p>
+            <p
+              class="wf-home-copy-status"
+              id="wf-copy-status"
+              role="status"
+              aria-live="polite"
+            >
+              Copy a command and run it on the computer you want to inspect.
+            </p>
+          </div>
+        </section>
+        <section
+          id="macos-help"
+          class="wf-home-section wf-download-help"
+          aria-labelledby="help-title"
+        >
+          <h2 id="help-title">A little help getting started.</h2>
+          <details class="wf-download-details" id="wf-macos-help">
+            <summary>Opening an unsigned Mac preview</summary>
+            <p>
+              Unsigned previews haven’t been signed with an Apple Developer ID
+              or notarized by Apple. macOS may prevent them from opening. If you
+              downloaded a preview from this page or our GitHub Releases and
+              trust that copy:
+            </p>
+            <ol>
+              <li>
+                Open the DMG, move Whyfull to Applications, and try launching
+                it.
+              </li>
+              <li>
+                Open <strong>System Settings → Privacy &amp; Security</strong>.
+              </li>
+              <li>
+                Find the message about Whyfull, choose
+                <strong>Open Anyway</strong>, and confirm opening it.
+              </li>
+            </ol>
+            <p>
+              This creates an exception for that app.
+              <a href="https://support.apple.com/en-us/102445"
+                >Read Apple’s instructions ↗</a
+              >. If macOS reports damage or malware, download a fresh copy or
+              <a href="https://github.com/iplanwebsites/whyfull/issues"
+                >report the problem</a
+              >.
+            </p>
+          </details>
+          <details class="wf-download-details">
+            <summary>How do updates work?</summary>
+            <p id="wf-updates-status">
+              Stable desktop releases check for signed updates on launch and
+              from Whyfull → Check for updates…. You choose when to install and
+              restart. Preview builds use manual downloads and don’t follow the
+              stable update channel.
+            </p>
+            <p>
+              The app’s installed CLI uses the updated engine after a desktop
+              update. Running a terminal report does not check for updates.
+              Standalone archives update by directory replacement; npm
+              installations update through npm.
+            </p>
+          </details>
+          <details class="wf-download-details">
+            <summary>Can my coding agent use the report?</summary>
+            <p>
+              Yes. Run <code>whyfull --json</code> and give the results to your
+              agent. Reports may include private file paths; you choose what to
+              share.
+              <a href="/#start"
+                >Install the Whyfull skill or copy the agent prompt ↗</a
+              >
+            </p>
+          </details>
+        </section>
+      </main>
+      <footer class="wf-home-footer">
+        <a class="wf-home-wordmark" href="/">whyfull.</a>
+        <p>Open source · Apache 2.0 · Make room for what’s next.</p>
+        <nav aria-label="Footer navigation">
+          <a href="https://github.com/iplanwebsites/whyfull">GitHub ↗</a
+          ><a href="https://www.npmjs.com/package/whyfull">npm ↗</a>
+        </nav>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+    <script type="module" src="/src/download.js"></script>
+  </body>
+</html>

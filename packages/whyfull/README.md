@@ -1,25 +1,155 @@
 <p align="center">
-  <a href="https://github.com/iplanwebsites/whyfull">
+  <a href="https://whyfull.app/">
     <img src="https://raw.githubusercontent.com/iplanwebsites/whyfull/main/assets/whyfull-banner.jpg" alt="whyfull scanning known developer clutter on a hard drive" width="100%">
   </a>
 </p>
 
-# [whyfull](https://github.com/iplanwebsites/whyfull)
+# [whyfull](https://whyfull.app/)
 
-Find the space your tools quietly consumed—without crawling your whole drive or
-deleting anything for you.
+**Your disk called. It wants its space back.**
+
+That model you tried once. The Docker cache from three projects ago. The worktree
+your coding agent left behind. It all adds up.
+
+Whyfull finds the tools quietly filling your drive and explains **what created
+the data, what it costs to remove, and how to reclaim it**. One report, ready for
+you or your coding agent.
+
+**[Download the app](https://whyfull.app/download/)** ·
+[Visit the website](https://whyfull.app/) · [Give it to your agent](#bring-your-coding-agent)
+
+Free and open source. Scans run locally. No automatic deletion.
+
+## Find out where it went
+
+Run a report in your terminal:
 
 ```bash
 npx whyfull
 ```
 
-Explore a full filesystem in the bundled local viewer:
+You’ll get sizes, safety tiers, and tool-specific cleanup guidance for known
+locations, discovered caches, and Git worktrees. Start with the biggest useful
+opportunities instead of guessing which mysterious folder can go.
+
+Requires [Node.js](https://nodejs.org/) 18.15 or newer. No global install needed.
+
+**Prefer to click around? [Download the desktop app](https://whyfull.app/download/).**
+Explore your disk visually without installing Node.js. The download page lists
+published installers and standalone CLI archives, with setup instructions.
+If a desktop release isn’t available yet, use the command above.
+
+## Find it. Understand it. Clear it.
+
+1. **Find the space hogs.** Spot bulky models, caches, build leftovers, and
+   forgotten worktrees in one report.
+2. **See what’s worth clearing.** Learn what created each folder and whether
+   removing it means a quick download, a long rebuild, or losing real data.
+3. **Reclaim space on your terms.** Follow the owning tool’s cleanup guidance
+   yourself, or have your coding agent work through the findings with you.
+
+A big folder isn’t automatically disposable. Whyfull helps you make that call;
+measured usage isn’t a promise of reclaimable space. Scanning doesn’t delete
+anything, and viewer cleanup starts in demo mode.
+
+### The usual suspects
+
+| Where the space goes         | What Whyfull looks for                                      |
+| ---------------------------- | ----------------------------------------------------------- |
+| Models you meant to try      | Ollama, LM Studio, Hugging Face, PyTorch, and Whisper       |
+| Packages that keep piling up | npm, pnpm, Yarn, pip, uv, Cargo, and Homebrew               |
+| Builds with a long memory    | Xcode DerivedData, iOS Simulators, Playwright, and Electron |
+| Containers with baggage      | Docker VM images and WSL2 virtual disks                     |
+| Agents and their leftovers   | Codex, Claude Code, Cursor, Windsurf, and Git worktrees     |
+| Everyday app clutter         | Adobe Camera Raw, Spotify, Chrome, and VS Code              |
+
+Some of these locations hold settings, offline downloads, or work you still
+need. The report adds context so you can tell the difference.
+[See all supported locations](https://github.com/iplanwebsites/whyfull/blob/main/packages/whyfull/src/targets-data.ts).
+
+## Follow the space
+
+Open the local disk viewer from your terminal:
 
 ```bash
 npx whyfull ui
-# Equivalent:
-npx whyfull app
 ```
+
+Explore folders as nested rings in the **sunburst**, or compare their sizes at a
+glance in the **treemap**. Click into the biggest pieces, search the file list,
+and mark folders to keep or exclude. The desktop app includes the same viewer.
+
+The report starts with known tool locations; the viewer lets you explore a whole
+drive or a folder of your choice. `npx whyfull --view` and `npx whyfull app` also
+open the viewer.
+
+## Bring your coding agent
+
+Give your agent a measured report to investigate:
+
+```bash
+npx whyfull --json
+```
+
+Or install the Whyfull skill and choose your agent:
+
+```bash
+npx skills add iplanwebsites/whyfull --skill whyfull
+```
+
+Then ask:
+
+> Help me reclaim disk space with Whyfull. Find the biggest useful cleanup
+> opportunities, explain what I’d be removing, and propose a plan before cleanup.
+
+The skill helps your agent interpret sizes and safety tiers, investigate
+worktrees, and choose the owning tool’s cleanup method. Reports can contain
+private local paths; choose what you share with your agent.
+
+[Read the skill](https://github.com/iplanwebsites/whyfull/blob/main/skills/whyfull/SKILL.md).
+
+## Why it exists
+
+I built whyfull while working with machine learning, where trying models across
+different apps can quietly leave hundreds of gigabytes in unrelated folders.
+The same problem appears in image, video, audio, and other media work through
+render caches, sample libraries, generated assets, and downloads.
+
+General disk tools tell you which files are large. whyfull starts with a shared
+map of where popular tools tend to store them, then adds context: what created
+the files, how safe they are to reclaim, and the appropriate cleanup command.
+The report provides cleanup commands for the tools that own the data; the viewer
+also supports explicit macOS Trash moves.
+
+## Command reference
+
+If you use Whyfull often, install the command globally:
+
+```bash
+npm install --global whyfull
+whyfull
+```
+
+| Command                           | What it does                                                    |
+| --------------------------------- | --------------------------------------------------------------- |
+| `whyfull`                         | Report known locations, untracked caches, and git worktrees.    |
+| `whyfull --json`                  | Emit one machine-readable report and no presentation text.      |
+| `whyfull --json-file report.json` | Save the JSON report without replacing an existing file.        |
+| `whyfull --top 10`                | Show the ten largest children of each large target.             |
+| `whyfull --no-drill`              | Skip child breakdowns for a quicker scan.                       |
+| `whyfull --exact`                 | Fully count huge package stores instead of using a file budget. |
+| `whyfull --discover`              | Also look for unknown 5 GB+ directories in common user folders. |
+| `whyfull --no-cache-scan`         | Skip the default scan for unknown 250 MB+ user/project caches.  |
+| `whyfull --no-worktrees`          | Skip the default git worktree scan.                             |
+| `whyfull --worktree-age 7`        | Only show worktrees idle for at least seven days.               |
+| `whyfull --all`                   | Include known locations that were not found.                    |
+| `whyfull --help`                  | Show command help.                                              |
+
+The command exits with `0` after a report or help output, and `2` for an invalid
+option or value. Permission-denied locations are marked as undercounts in the
+report rather than treated as a failed run.
+
+## Viewer and scanner details
 
 Switch between a **sunburst** (concentric folder rings) and **treemap**, with
 breadcrumbs and a searchable list of the largest pieces on the right. Click
@@ -73,18 +203,21 @@ contain private local paths, use owner-only permissions, and refuse overwrites.
 See [viewer and scanner development](docs/viewer.md) for the architecture,
 configuration experiments and verification notes.
 
-## Why it exists
+## Desktop app and standalone CLI
 
-I built whyfull while working with machine learning, where trying models across
-different apps can quietly leave hundreds of gigabytes in unrelated folders.
-The same problem appears in image, video, audio, and other media work through
-render caches, sample libraries, generated assets, and downloads.
+Find installers, standalone CLI archives, and setup instructions on the
+[download page](https://whyfull.app/download/). Desktop downloads appear after
+their release is published; npm remains available separately.
 
-General disk tools tell you which files are large. whyfull starts with a shared
-map of where popular tools tend to store them, then adds context: what created
-the files, how safe they are to reclaim, and the appropriate cleanup command.
-The report provides cleanup commands for the tools that own the data; the viewer
-also supports explicit macOS Trash moves.
+Whyfull also builds as a **Tauri desktop app**, bundling the same viewer and
+Node engine so users need no Node installation. Use **Whyfull → Install
+command-line tool…** to expose the same `whyfull` report command in your terminal.
+Signed release builds check for updates; the desktop-installed command follows
+app updates. npm installations continue to update through npm.
+
+Build locally with `pnpm desktop:build`, or `pnpm cli:archive` for a portable CLI
+with its runtime. See the [desktop build and release guide](https://github.com/iplanwebsites/whyfull/blob/main/apps/desktop/README.md)
+for prerequisites, signing setup, release artifacts, and update behavior.
 
 ## Demo-first cleanup
 
@@ -99,40 +232,6 @@ core system locations, symlinks, and items changed since preview are rejected.
 Pause or finish scanning before enabling real moves. Restore items in Finder;
 rescan afterward to refresh sizes. The appropriate tool-specific cleanup command
 is still preferable for shared model/package stores.
-
-## Usage
-
-No installation is required:
-
-```bash
-npx whyfull
-```
-
-Or install the command globally:
-
-```bash
-npm install --global whyfull
-whyfull
-```
-
-| Command                           | What it does                                                    |
-| --------------------------------- | --------------------------------------------------------------- |
-| `whyfull`                         | Report known locations, untracked caches, and git worktrees.    |
-| `whyfull --json`                  | Emit one machine-readable report and no presentation text.      |
-| `whyfull --json-file report.json` | Save the JSON report without replacing an existing file.        |
-| `whyfull --top 10`                | Show the ten largest children of each large target.             |
-| `whyfull --no-drill`              | Skip child breakdowns for a quicker scan.                       |
-| `whyfull --exact`                 | Fully count huge package stores instead of using a file budget. |
-| `whyfull --discover`              | Also look for unknown 5 GB+ directories in common user folders. |
-| `whyfull --no-cache-scan`         | Skip the default scan for unknown 250 MB+ user/project caches.  |
-| `whyfull --no-worktrees`          | Skip the default git worktree scan.                             |
-| `whyfull --worktree-age 7`        | Only show worktrees idle for at least seven days.               |
-| `whyfull --all`                   | Include known locations that were not found.                    |
-| `whyfull --help`                  | Show command help.                                              |
-
-The command exits with `0` after a report or help output, and `2` for an invalid
-option or value. Permission-denied locations are marked as undercounts in the
-report rather than treated as a failed run.
 
 ## Safety tiers
 
@@ -297,7 +396,8 @@ pnpm --filter @whyfull/brochure build
 ```
 
 The brochure runs at `http://127.0.0.1:3001` and builds to
-`apps/brochure/dist` for static hosting. See
+`apps/brochure/dist`. Deploy the Worker and generated static assets with
+`pnpm --filter @whyfull/brochure run deploy` through Cloudflare Wrangler. See
 [`apps/brochure/README.md`](https://github.com/iplanwebsites/whyfull/blob/main/apps/brochure/README.md)
 for template provenance and hosting setup.
 
