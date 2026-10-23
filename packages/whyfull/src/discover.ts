@@ -152,7 +152,8 @@ function topChildren(
 function scanRoots(
   opts: DiscoverOptions,
   defaults: Record<string, DiscoverRoot[]>,
-  defaultThreshold: number
+  defaultThreshold: number,
+  measureRoot = false
 ): DiscoverResult {
   const {
     platform = process.platform,
@@ -176,17 +177,20 @@ function scanRoots(
 
     let entries
     try {
-      entries = readdirSync(root.path, { withFileTypes: true })
+      entries = measureRoot
+        ? [{ name: basename(root.path), isSymbolicLink: () => false }]
+        : readdirSync(root.path, { withFileTypes: true })
     } catch {
       continue
     }
 
     for (const entry of entries) {
       if (entry.isSymbolicLink()) continue
-      if (entry.name.startsWith(".") && entry.name !== ".Trash") continue
+      if (!measureRoot && entry.name.startsWith(".") && entry.name !== ".Trash")
+        continue
       if (IGNORE_NAMES.has(entry.name)) continue
 
-      const full = join(root.path, entry.name)
+      const full = measureRoot ? root.path : join(root.path, entry.name)
       const normalized = full.toLowerCase()
       // Skip exact known targets and wrapper directories whose only large
       // child is already known (for example ~/.cache/node/corepack).
@@ -230,9 +234,13 @@ function scanRoots(
   }
 }
 
-/** Find project-local .cache directories without crawling source trees. */
-function projectCacheRoots(roots: DiscoverRoot[]): DiscoverRoot[] {
+/** Find recognized caches only; build outputs and dependencies remain excluded. */
+function projectCacheRoots(roots: DiscoverRoot[]): {
+  children: DiscoverRoot[]
+  whole: DiscoverRoot[]
+} {
   const found = new Map<string, DiscoverRoot>()
+  const whole = new Map<string, DiscoverRoot>()
   const skip = new Set(["node_modules", ".git", "vendor", "dist", "build"])
   let visited = 0
 
@@ -252,9 +260,10 @@ function projectCacheRoots(roots: DiscoverRoot[]): DiscoverRoot[] {
       for (const entry of entries) {
         if (!entry.isDirectory() || entry.isSymbolicLink()) continue
         const full = join(dir, entry.name)
-        if (entry.name === ".cache") {
+        if ([".cache", ".turbo", ".scriptc-cache-v1"].includes(entry.name)) {
           const project = basename(dirname(full))
-          found.set(full, {
+          const destination = entry.name === ".cache" ? found : whole
+          destination.set(full, {
             path: full,
             label: `${root.label} (${project})`,
           })
@@ -268,7 +277,7 @@ function projectCacheRoots(roots: DiscoverRoot[]): DiscoverRoot[] {
     }
   }
 
-  return [...found.values()]
+  return { children: [...found.values()], whole: [...whole.values()] }
 }
 
 /** Scan broad user/data roots when explicitly requested with --discover. */
@@ -282,17 +291,23 @@ export function discoverCaches(opts: DiscoverOptions = {}): DiscoverResult {
   const ordinary = scanRoots(opts, CACHE_ROOTS, 250e6)
   const bases =
     opts.projectRoots ??
-    (opts.roots === undefined ? PROJECT_ROOTS[platform] : [])
+    (opts.roots === undefined
+      ? [
+          ...(PROJECT_ROOTS[platform] ?? []),
+          { path: process.cwd(), label: "Project cache" },
+          { path: join(home, ".codex", "worktrees"), label: "Worktree cache" },
+        ]
+      : [])
   if (!bases || bases.length === 0) return ordinary
 
-  const project = scanRoots(
-    { ...opts, roots: projectCacheRoots(bases) },
-    {},
-    250e6
-  )
+  const caches = projectCacheRoots(bases)
+  const project = scanRoots({ ...opts, roots: caches.children }, {}, 250e6)
+  // Measure the cache itself, not its hash-named entries: Turbo often keeps
+  // everything under .turbo/cache and ScriptC includes a separate Zig cache.
+  const whole = scanRoots({ ...opts, roots: caches.whole }, {}, 250e6, true)
   const maxResults = opts.maxResults ?? 20
   return {
-    dirs: [...ordinary.dirs, ...project.dirs]
+    dirs: [...ordinary.dirs, ...project.dirs, ...whole.dirs]
       .sort((a, b) => b.bytes - a.bytes)
       .slice(0, maxResults),
     threshold: ordinary.threshold,

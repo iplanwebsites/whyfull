@@ -322,6 +322,7 @@ function recommendationFor(e: {
   path: string
   branch: string | null
   dirtyHint?: boolean
+  detached: boolean
 }): WorktreeRecommendation {
   const repo = shellQuote(e.mainRepo)
   switch (e.state) {
@@ -353,6 +354,16 @@ function recommendationFor(e: {
         gitGuarded: true,
       }
     default: {
+      if (e.detached) {
+        return {
+          action: "trash-worktree",
+          summary:
+            "Detached HEAD: inspect uncommitted files and active processes, then preserve any commits not reachable from a branch or tag before moving the checkout to Trash and pruning its registration.",
+          command: null,
+          requiresReview: true,
+          gitGuarded: false,
+        }
+      }
       const trash = trashCommand(e.path)
       return {
         action: "trash-worktree",
@@ -608,6 +619,7 @@ export function findWorktrees(opts: WorktreeOptions = {}): WorktreeResult {
       mainRepo,
       path: wtPath ?? admin,
       branch,
+      detached,
       dirtyHint,
     })
     const entry: WorktreeEntry = {

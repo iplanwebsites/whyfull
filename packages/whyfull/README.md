@@ -269,6 +269,16 @@ metadata, and structured recommendations with review and Git-safety flags.
 On macOS, worktree cleanup recommendations are Trash-first: they use the system
 `/usr/bin/trash`, preserve the branch, and only then prune stale Git metadata.
 
+Project-cache discovery includes `.cache` children plus whole `.turbo` and
+`.scriptc-cache-v1` directories, including ScriptC's nested Zig cache. It checks
+common source roots, the current directory and Codex worktree roots without
+entering dependency or build trees. Sizes identify review candidates; they do
+not establish that a cache is dead. For Maru compile entries, use the owning
+`tooling/scriptc-cache-gc.mjs` collector to retain live source identities. Removing
+an obsolete worktree can make more shared compile entries stale, so inspect
+again afterward. Detached worktrees require commit preservation before pruning;
+Whyfull withholds a combined cleanup command for them.
+
 “Last activity” is the newest Git worktree-admin HEAD or index modification. It
 is a useful Git-activity proxy, not filesystem access time and not proof that an
 agent task is finished. A partial byte count is a lower bound; use `--exact`
