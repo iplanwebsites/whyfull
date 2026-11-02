@@ -107,11 +107,14 @@ await writeFile(
     2
   ) + "\n"
 )
-// A config overlay keeps every channel on the npm engine's version.
+// Desktop releases have their own version; the runtime records the npm engine version.
+const { version: desktopVersion } = JSON.parse(
+  await readFile(join(desktop, "package.json"))
+)
 await writeFile(
   join(desktop, "src-tauri/version.conf.json"),
-  JSON.stringify({ version: pkg.version })
+  JSON.stringify({ version: desktopVersion })
 )
 console.log(
-  `Prepared Whyfull ${pkg.version} with Node ${process.versions.node} (${process.platform}/${process.arch})`
+  `Prepared Whyfull desktop ${desktopVersion} (engine ${pkg.version}) with Node ${process.versions.node} (${process.platform}/${process.arch})`
 )

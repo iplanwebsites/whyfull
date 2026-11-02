@@ -15,7 +15,7 @@ export function releaseInfo({
     (channel === "preview") !== preview
   )
     throw new Error(
-      "Preview releases need a prerelease version, e.g. 0.0.3-preview.1; stable releases need a plain version"
+      "Preview releases need a prerelease version, e.g. 0.0.2-preview.1; stable releases need a plain version"
     )
   if (macosSigning === "auto") macosSigning = preview ? "unsigned" : "notarized"
   if (!["unsigned", "notarized"].includes(macosSigning))
@@ -37,9 +37,7 @@ if (
   import.meta.url === pathToFileURL(process.argv[1]).href
 ) {
   const { version } = JSON.parse(
-    readFileSync(
-      new URL("../../../packages/whyfull/package.json", import.meta.url)
-    )
+    readFileSync(new URL("../package.json", import.meta.url))
   )
   const info = releaseInfo({
     version,
@@ -50,7 +48,7 @@ if (
     process.env.GITHUB_REF_TYPE === "tag" &&
     process.env.GITHUB_REF_NAME !== info.tag
   )
-    throw new Error(`Release tag must match the engine version: ${info.tag}`)
+    throw new Error(`Release tag must match the desktop version: ${info.tag}`)
   for (const [key, value] of Object.entries(info))
     console.log(`${key}=${value}`)
 }

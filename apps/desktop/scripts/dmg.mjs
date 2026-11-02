@@ -19,7 +19,8 @@ try {
     { recursive: true, verbatimSymlinks: true }
   )
   await symlink("/Applications", join(stage, "Applications"))
-  const dmg = join(output, `Whyfull_${version}_${process.arch}.dmg`)
+  const arch = process.arch === "arm64" ? "aarch64" : process.arch
+  const dmg = join(output, `Whyfull_${version}_${arch}.dmg`)
   execFileSync(
     "hdiutil",
     [

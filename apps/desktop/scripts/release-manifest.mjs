@@ -90,9 +90,7 @@ if (
       "Usage: node release-manifest.mjs <downloaded-release-directory>"
     )
   const { version } = JSON.parse(
-    await readFile(
-      new URL("../../../packages/whyfull/package.json", import.meta.url)
-    )
+    await readFile(new URL("../package.json", import.meta.url))
   )
   const manifest = await createManifest({
     directory,

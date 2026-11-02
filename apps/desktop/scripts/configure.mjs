@@ -4,9 +4,7 @@ import { releaseInfo } from "./release-info.mjs"
 
 export function configure({ release = false, preview } = {}) {
   const { version } = JSON.parse(
-    readFileSync(
-      new URL("../../../packages/whyfull/package.json", import.meta.url)
-    )
+    readFileSync(new URL("../package.json", import.meta.url))
   )
   preview ??= version.includes("-")
   if (release) releaseInfo({ version, channel: preview ? "preview" : "stable" })
@@ -39,7 +37,7 @@ export function configure({ release = false, preview } = {}) {
     process.env.GITHUB_REF_TYPE === "tag" &&
     process.env.GITHUB_REF_NAME !== `v${version}`
   ) {
-    throw new Error(`Release tag must match the engine version: v${version}`)
+    throw new Error(`Release tag must match the desktop version: v${version}`)
   }
   writeFileSync(
     new URL("../src-tauri/version.conf.json", import.meta.url),

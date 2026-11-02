@@ -5,9 +5,10 @@ import { fileURLToPath } from "node:url"
 import { join } from "node:path"
 const desktop = fileURLToPath(new URL("../", import.meta.url))
 const runtime = join(desktop, "src-tauri/runtime")
-const { version, platform, arch } = JSON.parse(
+const { platform, arch } = JSON.parse(
   await readFile(join(runtime, "version.json"))
 )
+const { version } = JSON.parse(await readFile(join(desktop, "package.json")))
 const name = `whyfull-${version}-${platform}-${arch}`
 const dist = join(desktop, "dist")
 const stage = join(dist, name)

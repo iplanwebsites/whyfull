@@ -25,7 +25,9 @@ pnpm cli:archive
 not hot-reload the viewer. After engine or UI changes, restart the command.
 `desktop:build` creates local unsigned installers. On macOS it packages the app
 into a standard DMG with an Applications shortcut using `hdiutil`, avoiding
-Finder Automation permissions. Release CI uses Tauri’s standard DMG packaging. It packages the existing UI,
+Finder Automation permissions. Release CI uses the same Finder-free DMG
+packaging after Tauri signs and notarizes the app; it then notarizes and
+staples the DMG. It packages the existing UI,
 not a separate desktop frontend. Build output lives under
 `apps/desktop/src-tauri/target/release/bundle/`. Portable CLI archives are in
 `apps/desktop/dist/`.
@@ -78,8 +80,10 @@ uninstall the command. No PATH mutation or package-manager takeover occurs.
 
 ## Release setup
 
-All channels use `packages/whyfull/package.json` as the version source. A
-build-time config overlay applies it to Tauri. Tag `v<version>` to build a
+Desktop installers and standalone CLI archives use `apps/desktop/package.json`
+as their release version. The bundled engine keeps its independent npm version
+from `packages/whyfull/package.json`. A build-time config overlay applies the
+desktop version to Tauri. Tag `v<desktop-version>` to build a
 **draft** GitHub release with macOS ARM64/Intel DMGs, Linux x64 AppImage/deb,
 Windows x64 NSIS installers, and standalone CLI archives with SHA-256 checksums.
 The workflow uses native runners so the Node sidecar matches each installer.
@@ -91,8 +95,8 @@ metadata; publishing an incomplete draft cannot advertise working downloads.
 
 ### Preview releases
 
-Use a distinct prerelease version such as `0.0.3-preview.1` in the engine's
-package manifest and tag it `v0.0.3-preview.1`. Preview tags automatically create
+Use a distinct prerelease version such as `0.0.2-preview.1` in the desktop
+package manifest and tag it `v0.0.2-preview.1`. Preview tags automatically create
 a GitHub prerelease draft. By default they use macOS ad-hoc signing (no Apple
 Developer ID/notarization), need no Apple or updater secrets, and omit automatic
 updates. The download page labels them **Unsigned preview** and shows the
@@ -126,6 +130,9 @@ Keep the private key backed up outside the repository. Set the public key to
 the **contents** of the generated `.pub` file. The release workflow fails early
 without updater credentials; macOS also requires signing/notarization secrets.
 Local builds omit the updater rather than embedding a dummy trust key.
+For a local signed build, load the owner-only private key file into
+`TAURI_SIGNING_PRIVATE_KEY` for the build process. `WHYFULL_UPDATER_PUBLIC_KEY`
+contains the matching public key. Keep both file paths outside the checkout.
 
 Unsigned preview builds do not require these secrets. For production, keep
 updater and Apple signing credentials separate: updater signatures protect
@@ -156,16 +163,17 @@ release and a newer signed release are published.
 
 ## Release process
 
-The initial public release should be a preview. Move to stable after testing
-downloaded installers on every supported OS and exercising an update from a
-previous signed build. Windows Authenticode setup is still outstanding; the
+For the first signed release, test downloaded installers on every supported OS.
+An update from a previous signed build becomes testable with the second signed
+release. Windows Authenticode setup is still outstanding; the
 metadata and release notes explicitly identify the Windows installer as unsigned.
 Do not claim it is signed until the certificate provider and verification are
 configured, and the metadata generator is updated to record that evidence.
 
-1. Set `packages/whyfull/package.json` to the intended version, update the docs,
-   and commit/merge the changes. All desktop and portable builds derive their
-   version from this package; preview versions contain a prerelease suffix.
+1. Set `apps/desktop/package.json` to the intended desktop version, update the
+   release notes, and commit/merge the changes. Desktop installers and portable
+   archives share that version; the bundled engine keeps its own npm version.
+   Preview desktop versions contain a prerelease suffix.
 2. Push `v<version>` (or manually dispatch the release workflow). It creates a
    draft, runs native runtime/CLI checks, builds all platforms, and attaches
    release metadata only after the complete matrix succeeds. macOS notarized

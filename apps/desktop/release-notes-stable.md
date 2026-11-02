@@ -11,4 +11,6 @@ Stable desktop apps check for signed updates on launch and from Whyfull → Chec
 
 `SHA256SUMS.txt` lists checksums for every user-facing download.
 
-Before publishing this draft, add the changes for this version and test downloaded installers, first launch, CLI reports, and an update from the previous signed release. The release workflow must finish its final metadata validation successfully.
+Whyfull Desktop 0.0.1 is the first signed downloadable release. It packages the local disk explorer and a standalone command-line tool with the same reporting engine. The macOS installers require Developer ID signing and notarization; the Windows installer remains unsigned at the OS level.
+
+Before publishing this draft, test the downloaded installers, first launch, and CLI reports on each supported platform. An update from a previous signed release can be tested starting with the next desktop version. The release workflow must finish its final metadata validation successfully.

@@ -1,6 +1,6 @@
 [package]
 name = "whyfull-desktop"
-version = "0.0.2"
+version = "0.0.1"
 description = "Whyfull disk explorer and command-line reports"
 authors = ["Felix Menard"]
 license = "Apache-2.0"
