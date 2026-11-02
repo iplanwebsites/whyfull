@@ -36,6 +36,17 @@ try {
     ],
     { stdio: "inherit" }
   )
+  const identity = process.env.APPLE_SIGNING_IDENTITY?.trim()
+  if (identity && identity !== "-") {
+    execFileSync(
+      "codesign",
+      ["--force", "--sign", identity, "--timestamp", dmg],
+      {
+        stdio: "inherit",
+      }
+    )
+    execFileSync("codesign", ["--verify", dmg], { stdio: "inherit" })
+  }
   execFileSync("hdiutil", ["verify", dmg], { stdio: "inherit" })
   console.log(dmg)
 } finally {

@@ -168,6 +168,8 @@ jobs:
           xcrun notarytool submit "${dmg[0]}" --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait
           xcrun stapler staple "${dmg[0]}"
           xcrun stapler validate "${dmg[0]}"
+          codesign --verify "${dmg[0]}"
+          spctl --assess --type open --context context:primary-signature --verbose "${dmg[0]}"
           hdiutil verify "${dmg[0]}"
       - name: Attach macOS installer to the draft
         if: runner.os == 'macOS'

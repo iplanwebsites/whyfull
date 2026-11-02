@@ -26,8 +26,8 @@ not hot-reload the viewer. After engine or UI changes, restart the command.
 `desktop:build` creates local unsigned installers. On macOS it packages the app
 into a standard DMG with an Applications shortcut using `hdiutil`, avoiding
 Finder Automation permissions. Release CI uses the same Finder-free DMG
-packaging after Tauri signs and notarizes the app; it then notarizes and
-staples the DMG. It packages the existing UI,
+packaging after Tauri signs and notarizes the app; it signs, notarizes and
+staples the DMG container too. It packages the existing UI,
 not a separate desktop frontend. Build output lives under
 `apps/desktop/src-tauri/target/release/bundle/`. Portable CLI archives are in
 `apps/desktop/dist/`.
