@@ -93,9 +93,15 @@ mod tests {
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
                 .as_nanos();
-            let path = std::env::temp_dir().join(format!("whyfull-launcher-{id}"));
-            fs::create_dir_all(&path).unwrap();
-            Self(path)
+            for suffix in 0..100 {
+                let path = std::env::temp_dir().join(format!("whyfull-launcher-{id}-{suffix}"));
+                match fs::create_dir(&path) {
+                    Ok(()) => return Self(path),
+                    Err(error) if error.kind() == io::ErrorKind::AlreadyExists => continue,
+                    Err(error) => panic!("Could not create launcher fixture: {error}"),
+                }
+            }
+            panic!("Could not find a unique launcher fixture directory")
         }
     }
     impl Drop for Fixture {
