@@ -1,7 +1,16 @@
 import { loadDownloads } from "./downloads.ts"
+import { firstRelease, firstReleaseChecksums, firstReleaseFiles } from "./first-release.ts"
 
 interface Env {
   ASSETS: { fetch(request: Request): Promise<Response> }
+  DOWNLOADS: {
+    head(key: string): Promise<{ size: number } | null>
+    get(key: string): Promise<{
+      body: ReadableStream
+      size: number
+      httpEtag: string
+    } | null>
+  }
 }
 
 export default {
@@ -11,6 +20,28 @@ export default {
     context: { waitUntil(promise: Promise<unknown>): void }
   ): Promise<Response> {
     const url = new URL(request.url)
+    if (url.pathname.startsWith("/downloads/v0.0.1/")) {
+      if (request.method !== "GET" && request.method !== "HEAD")
+        return new Response(null, { status: 405, headers: { Allow: "GET, HEAD" } })
+      const name = url.pathname.slice("/downloads/v0.0.1/".length)
+      const file = [...firstReleaseFiles, firstReleaseChecksums].find(
+        (entry) => entry.name === name
+      )
+      if (!file) return new Response(null, { status: 404 })
+      const key = `v0.0.1/${name}`
+      const object = await env.DOWNLOADS.get(key)
+      if (!object || ("size" in file && object.size !== file.size))
+        return new Response(null, { status: 404 })
+      const headers = new Headers({
+        "Content-Type": file.contentType,
+        "Content-Length": String(object.size),
+        "Content-Disposition": `attachment; filename="${name}"`,
+        "Cache-Control": "public, max-age=31536000, immutable",
+        "X-Content-Type-Options": "nosniff",
+      })
+      headers.set("ETag", object.httpEtag)
+      return new Response(request.method === "HEAD" ? null : object.body, { headers })
+    }
     if (url.pathname === "/api/downloads") {
       if (request.method !== "GET" && request.method !== "HEAD")
         return new Response(null, {
@@ -25,7 +56,25 @@ export default {
       let response = cached
       if (!response) {
         try {
-          response = Response.json(await loadDownloads(), {
+          let release: unknown = null
+          let upstreamError: unknown
+          try {
+            release = (await loadDownloads()).release
+          } catch (error) {
+            upstreamError = error
+          }
+          if (!release) {
+            const stored = await Promise.all(firstReleaseFiles.map((file) =>
+              env.DOWNLOADS.head(`v0.0.1/${file.name}`)
+            ))
+            const checksums = await env.DOWNLOADS.head(`v0.0.1/${firstReleaseChecksums.name}`)
+            if (checksums && stored.every((object, index) =>
+              object?.size === firstReleaseFiles[index].size
+            ))
+              release = firstRelease(url.origin)
+            else if (upstreamError) throw upstreamError
+          }
+          response = Response.json({ release }, {
             headers: {
               "Cache-Control": "public, max-age=300",
               "X-Content-Type-Options": "nosniff",

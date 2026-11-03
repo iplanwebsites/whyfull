@@ -4,6 +4,7 @@
   "main": "worker/index.ts",
   "compatibility_date": "2026-10-19",
   "routes": [{ "pattern": "whyfull.app", "custom_domain": true }],
+  "r2_buckets": [{ "binding": "DOWNLOADS", "bucket_name": "whyfull-downloads" }],
   "assets": {
     // Vite generates the complete brochure here; no SSR is needed.
     "directory": "./dist",

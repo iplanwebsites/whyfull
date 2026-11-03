@@ -35,10 +35,14 @@ try {
       month: "short",
       day: "numeric",
     })
-    releaseStatus.textContent = `Version ${release.version} · ${release.channel === "preview" ? "Preview — early build for testing" : "Stable release"} · ${date}`
+    releaseStatus.textContent = release.limited
+      ? `Version ${release.version} · Signed Mac Apple Silicon download available · Other platforms coming soon`
+      : `Version ${release.version} · ${release.channel === "preview" ? "Preview — early build for testing" : "Stable release"} · ${date}`
     const notes = document.getElementById("wf-release-notes")
-    notes.href = release.notesUrl
-    notes.textContent = "Release notes ↗"
+    if (release.notesUrl) {
+      notes.href = release.notesUrl
+      notes.textContent = "Release notes ↗"
+    }
     const checksums = document.getElementById("wf-checksums")
     checksums.href = release.checksumsUrl
     checksums.hidden = false
@@ -60,11 +64,14 @@ try {
       : "Signed with Apple Developer ID and notarized."
     document.getElementById("wf-macos-warning").hidden = !unsignedMac
     if (unsignedMac) document.getElementById("wf-macos-help").open = true
-    document.getElementById("wf-windows-signing").textContent =
-      release.windowsSigning === "unsigned"
+    document.getElementById("wf-windows-signing").textContent = release.limited
+      ? "Windows installer is coming soon."
+      : release.windowsSigning === "unsigned"
         ? "Installer not code-signed. Windows may show an unknown-publisher warning."
         : "Code-signed installer."
-    document.getElementById("wf-updates-status").textContent = release.updater
+    document.getElementById("wf-updates-status").textContent = release.limited
+      ? "The first Mac download is available now. Check this page for a newer version; the complete desktop release will enable signed app updates."
+      : release.updater
       ? "This desktop release checks for signed updates on launch and from Whyfull → Check for updates…. You choose when to install and restart. Use AppImage for this update path on Linux; DEB installations update by installing a newer package."
       : "This preview does not check for automatic updates. Download a newer preview here and replace your installed copy. Stable releases will offer signed desktop updates."
   }
