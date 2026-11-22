@@ -17,7 +17,6 @@ import { useEffect, useMemo, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   Download,
-  Terminal,
   Ellipsis,
   ListChecks,
   Search,
@@ -39,14 +38,14 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@workspace/ui/components/input-group"
-import { toast } from "@workspace/ui/components/sonner"
+import { toast } from "@/lib/notifications"
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@workspace/ui/components/dropdown-menu"
-import { DiagnosticsDialog } from "./diagnostics-dialog"
+import { tierLabel } from "@/lib/tiers"
 import { CleanupShortlist, TrashShortlistButton } from "./cleanup-shortlist"
 import { RunnerControls } from "./runner-controls"
 import { copyPath } from "@/lib/clipboard"
@@ -79,7 +78,9 @@ export function ReportViewer({
   status,
   onChanged,
   onPendingChange,
+  onReport,
 }: {
+  onReport: () => void
   status: ViewerStatus
   onChanged: (status: ViewerStatus) => Promise<void>
   onPendingChange: (value: boolean) => void
@@ -105,7 +106,7 @@ export function ReportViewer({
         await client.invalidateQueries({ queryKey: ["shortlist"] })
         toast.success(
           action === "trash"
-            ? "Added to Trash shortlist"
+            ? "Marked for Trash"
             : action === "useless"
               ? "Marked as useless"
               : action === "keep"
@@ -120,7 +121,6 @@ export function ReportViewer({
     }
   }
   const [shortlist, setShortlist] = useState(false)
-  const [diagnostics, setDiagnostics] = useState(false)
   const [section, setSection] = useState<ReportSection>("targets"),
     [query, setQuery] = useState(""),
     [page, setPage] = useState(0),
@@ -166,7 +166,7 @@ export function ReportViewer({
       name: item.name,
       path: item.path,
       bytes: item.bytes,
-      hint: "",
+      hint: item.hint ?? "",
       children: item.children,
     }))
   }, [report, section])
@@ -227,35 +227,10 @@ export function ReportViewer({
         >
           {status.source.name ?? "CLI report"}
         </span>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            setDiagnostics(true)
-          }}
-        >
-          <Play />
-          Analysis
+        <Button variant="outline" size="sm" onClick={onReport}>
+          <ListChecks />
+          Suggestions
         </Button>
-        <DiagnosticsDialog
-          open={diagnostics}
-          onOpenChange={setDiagnostics}
-          initialCommand="whyfull"
-          initialOptions={
-            report?.options
-              ? {
-                  top: Number.isInteger(report.options.top)
-                    ? Math.max(0, Math.min(100, report.options.top))
-                    : 5,
-                  exact: report.options.exact === true,
-                  caches: report.options.cacheScan === true,
-                  worktrees: report.options.worktrees === true,
-                  discover: report.options.discover === true,
-                }
-              : undefined
-          }
-          onReport={onChanged}
-        />
         <CleanupShortlist
           open={shortlist}
           onOpenChange={setShortlist}
@@ -282,17 +257,9 @@ export function ReportViewer({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <MinimumFileSize value={status.viewer.minFileBytes} />
-            <DropdownMenuItem
-              onClick={() => {
-                setDiagnostics(true)
-              }}
-            >
-              <Terminal />
-              Analysis
-            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setShortlist(true)}>
-              <ListChecks />
-              Cleanup shortlist
+              <Trash2 />
+              Trash shortlist
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() =>
@@ -304,6 +271,9 @@ export function ReportViewer({
               <Download />
               Export report
             </DropdownMenuItem>
+            <div className="border-t px-2 pt-2 pb-1 text-[11px] text-muted-foreground tabular-nums">
+              whyfull {__WHYFULL_VERSION__}
+            </div>
           </DropdownMenuContent>
         </DropdownMenu>
       </header>
@@ -352,7 +322,7 @@ export function ReportViewer({
                     .map((row) => row.tier)
                     .filter((tier): tier is string => !!tier)
                 ),
-              ].map((value) => ({ value, label: value })),
+              ].map((value) => ({ value, label: tierLabel(value) })),
             ]}
           >
             <SelectTrigger
@@ -371,7 +341,7 @@ export function ReportViewer({
                 ),
               ].map((value) => (
                 <SelectItem key={value} value={value}>
-                  {value}
+                  {tierLabel(value)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -542,7 +512,9 @@ function ReportRows({
             </span>
             {location?.mark && (
               <span className="ml-2 text-xs font-normal text-muted-foreground">
-                {location.mark === "trash" ? "Trash shortlist" : "Useless"}
+                {location.mark === "trash"
+                  ? "Marked for Trash"
+                  : "Marked as useless"}
               </span>
             )}
             {location?.kept && (
@@ -556,7 +528,7 @@ function ReportRows({
             {row.path ?? "Unavailable"}
           </div>
         </td>
-        <td className="p-2 text-xs">{row.tier ?? "—"}</td>
+        <td className="p-2 text-xs">{tierLabel(row.tier) || "—"}</td>
         <td className="whitespace-nowrap p-2 text-right text-xs tabular-nums">
           {row.partial && row.bytes !== null ? "≥ " : ""}
           {row.bytes === null ? "Unknown" : formatSize(row.bytes, upperLimit)}
@@ -583,12 +555,12 @@ function ReportRows({
               .writeText(
                 observationContext([{ ...row, category: "Report location" }])
               )
-              .then(() => toast.success("Context copied · observations only"))
-              .catch(() => toast.error("Could not copy context"))
+              .then(() => toast.success("Copied for agent · observations only"))
+              .catch(() => toast.error("Could not copy"))
           }
         >
           <Copy />
-          Copy context
+          Copy for agent
         </ContextMenuItem>
         {row.path && (
           <ReportMenu path={row.path} state={location} onAction={onAction} />
@@ -624,8 +596,8 @@ function ReportRows({
                 <Button
                   variant="ghost"
                   size="icon-xs"
-                  aria-label={`Copy context for ${row.name}`}
-                  title="Copy context"
+                  aria-label={`Copy ${row.name} for agent`}
+                  title="Copy for agent"
                   onClick={() =>
                     void navigator.clipboard
                       .writeText(
@@ -634,9 +606,9 @@ function ReportRows({
                         ])
                       )
                       .then(() =>
-                        toast.success("Context copied · observations only")
+                        toast.success("Copied for agent · observations only")
                       )
-                      .catch(() => toast.error("Could not copy context"))
+                      .catch(() => toast.error("Could not copy"))
                   }
                 >
                   <Copy />
@@ -803,7 +775,7 @@ function ReportAction({
         }}
         items={[
           { value: "scan", label: "Inspect folder · recommended" },
-          { value: "trash", label: "Shortlist for Trash" },
+          { value: "trash", label: "Mark for Trash" },
           { value: "useless", label: "Mark as useless" },
           {
             value: state?.directKeep ? "unkeep" : "keep",
@@ -821,7 +793,7 @@ function ReportAction({
         <SelectContent>
           <SelectItem value="scan">Inspect folder · recommended</SelectItem>
           <SelectItem value="trash" disabled={state?.kept}>
-            Shortlist for Trash
+            Mark for Trash
           </SelectItem>
           <SelectItem value="useless" disabled={state?.kept}>
             Mark as useless
@@ -849,7 +821,7 @@ function ReportAction({
         {state?.kept
           ? "Kept"
           : state?.mark === "trash"
-            ? "In Trash shortlist"
+            ? "Marked for Trash"
             : state?.mark === "useless"
               ? "Marked as useless"
               : "No files moved"}

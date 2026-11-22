@@ -1,3 +1,5 @@
+import { detectPlatform, loadRelease, primaryDownload } from "./release.js"
+
 // The visible content is also the clipboard source, including without JS.
 for (const button of document.querySelectorAll("[data-copy]")) {
   const originalLabel = button.innerHTML
@@ -25,7 +27,7 @@ for (const button of document.querySelectorAll("[data-copy]")) {
         button.setAttribute("aria-label", "Command copied")
       }
       status.textContent = isPrompt
-        ? "Paste the prompt into your coding agent on the computer you want to inspect."
+        ? "Copied. Paste it into your coding agent on the computer you want to clean up."
         : button.dataset.copy === "wf-skill-command"
           ? "Install command copied. Paste it into your terminal and choose your agent."
           : "Command copied. Paste it into your terminal to run Whyfull."
@@ -55,3 +57,54 @@ for (const button of document.querySelectorAll("[data-copy]")) {
     }
   })
 }
+
+// Drop a screenshot's frame if its image fails to load.
+for (const appShot of document.querySelectorAll("[data-app-shot]")) {
+  const image = appShot.querySelector("img")
+  if (!image) continue
+  const hide = () => (appShot.hidden = true)
+  if (image.complete && !image.naturalWidth) hide()
+  else image.addEventListener("error", hide, { once: true })
+}
+
+// Show the star count only once it says something.
+async function loadStarButton(button) {
+  try {
+    const response = await fetch(
+      "https://api.github.com/repos/iplanwebsites/whyfull",
+      { signal: AbortSignal.timeout(4000) }
+    )
+    const { stargazers_count: stars } = response.ok ? await response.json() : {}
+    if (stars >= 50) button.dataset.showCount = "true"
+  } catch {}
+  const script = document.createElement("script")
+  script.src = "https://buttons.github.io/buttons.js"
+  script.async = true
+  document.head.append(script)
+}
+const starButton = document.querySelector(".github-button")
+if (starButton) loadStarButton(starButton)
+
+// Home hero: link straight to the matching file; otherwise /download/.
+async function loadHeroDownload(button) {
+  const note = document.querySelector("[data-primary-download-note]")
+  try {
+    const [platform, release] = await Promise.all([
+      detectPlatform(),
+      loadRelease(),
+    ])
+    const primary = primaryDownload(release, platform)
+    if (!primary) return
+    button.href = primary.download.url
+    button.textContent = primary.label.replace(/ \(.*\)$/, "")
+    const other = document.createElement("a")
+    other.href = "/download/"
+    other.textContent = "Other downloads"
+    note?.replaceChildren(
+      `${[primary.chip, primary.size].filter(Boolean).join(" · ")} · CLI included. `,
+      other
+    )
+  } catch {}
+}
+const heroDownload = document.querySelector("[data-primary-download]")
+if (heroDownload) loadHeroDownload(heroDownload)

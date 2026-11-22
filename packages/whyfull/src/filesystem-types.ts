@@ -41,6 +41,16 @@ export interface DiskSnapshot {
   status: "scanning" | "complete" | "cancelled" | "failed"
   workers: number
   engine: "sync" | "async"
+  /** Missing on older snapshots, which were scanned with Node. */
+  scanner?: "node" | "rust"
+  storage?: "sqlite"
+  timings?: {
+    crawlMs: number
+    aggregationMs: number
+    indexingMs: number
+    finalizeMs: number
+    totalMs: number
+  }
   files: number
   skippedLinks: number
   issues: number
@@ -52,6 +62,13 @@ export interface DiskScanOptions {
   root: string
   workers?: number
   engine?: "sync" | "async"
+  scanner?: "node" | "rust"
+  /** Server-owned override; never accepted from viewer requests. */
+  rustBinary?: string
+  /** Private working storage for either scanner. */
+  inventoryDirectory?: string
+  /** @deprecated Use inventoryDirectory. */
+  rustDirectory?: string
   policy?: DiskPolicy
   topFiles?: number
   signal?: AbortSignal
@@ -66,7 +83,8 @@ export interface DirectoryTask {
   engine: "sync" | "async"
 }
 
-export interface DirectoryResult {
+/** One bounded worker batch; counters are cumulative for this directory. */
+export interface DirectoryBatch {
   id: number
   directories: Array<{ name: string; mount: boolean }>
   topFiles: DiskFile[]
@@ -76,5 +94,6 @@ export interface DirectoryResult {
   files: number
   skippedLinks: number
   issues: number
+  done: boolean
   error?: string
 }

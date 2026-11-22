@@ -1,4 +1,10 @@
-import { Toaster, toast } from "@workspace/ui/components/sonner"
+import { Toaster } from "@workspace/ui/components/sonner"
+import { toast } from "@/lib/notifications"
+import { ViewerConnectionBanner } from "@/components/viewer-connection-banner"
+import {
+  isViewerOfflineError,
+  QueryErrorTracker,
+} from "@/lib/viewer-connection"
 import {
   HeadContent,
   Scripts,
@@ -52,20 +58,34 @@ export const Route = createRootRoute({
 })
 
 function RootApp() {
-  const [client] = useState(
-    () =>
-      new QueryClient({
-        queryCache: new QueryCache({
-          onError: (error, query) =>
-            toast.error(error.message, { id: query.queryHash }),
-        }),
-        defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
-      })
-  )
+  const [client] = useState(() => {
+    const errors = new QueryErrorTracker()
+    return new QueryClient({
+      queryCache: new QueryCache({
+        onError: (error, query) => {
+          if (isViewerOfflineError(error)) return
+          if (errors.shouldNotify(query.queryHash, error.message))
+            toast.error(error.message)
+        },
+        onSuccess: (_data, query) => errors.recovered(query.queryHash),
+      }),
+      defaultOptions: {
+        queries: {
+          retry: (count, error) => !isViewerOfflineError(error) && count < 1,
+          refetchOnWindowFocus: false,
+        },
+      },
+    })
+  })
   return (
     <QueryClientProvider client={client}>
       <TooltipProvider delay={300}>
-        <Outlet />
+        <div className="flex h-svh min-h-0 flex-col overflow-hidden">
+          <ViewerConnectionBanner />
+          <div className="min-h-0 flex-1 overflow-auto">
+            <Outlet />
+          </div>
+        </div>
         <Toaster position="top-right" richColors closeButton />
       </TooltipProvider>
     </QueryClientProvider>

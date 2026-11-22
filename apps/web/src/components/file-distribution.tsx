@@ -2,16 +2,17 @@ import { useEffect } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { RefreshCw } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
-import { toast } from "@workspace/ui/components/sonner"
+import { toast } from "@/lib/notifications"
 import { api, formatCount, formatSize } from "@/lib/api"
 import type { DirectoryView, FileDistribution as Distribution } from "@/lib/api"
+// Small to large file sizes, in the viewer's earthy chart family.
 const colors = [
-  "#64748b",
-  "#0891b2",
-  "#2563eb",
-  "#7c3aed",
-  "#c2410c",
-  "#be123c",
+  "#a8a28c",
+  "#8fa287",
+  "#6c7a86",
+  "#626d30",
+  "#b4674a",
+  "#8a4a3a",
 ]
 function fraction(value: number, total: number) {
   if (!total || !value) return "0%"
@@ -34,9 +35,6 @@ export function FileDistribution({
     staleTime: Infinity,
   })
   const data = result.data
-  useEffect(() => {
-    if (result.error) toast.error(result.error.message)
-  }, [result.error])
   useEffect(() => {
     if (data?.unreadable)
       toast.error(

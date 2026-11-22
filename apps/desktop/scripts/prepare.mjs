@@ -65,6 +65,39 @@ const sidecar = join(
 )
 await cp(process.execPath, sidecar)
 await chmod(sidecar, 0o755)
+if (["darwin", "linux"].includes(process.platform)) {
+  execFileSync(
+    "cargo",
+    [
+      "build",
+      "--release",
+      "--locked",
+      "--manifest-path",
+      join(root, "experiments/disk-crawler/Cargo.toml"),
+    ],
+    { stdio: "inherit" }
+  )
+  const crawler = join(
+    root,
+    "experiments/disk-crawler/target/release/whyfull-crawler-spike"
+  )
+  const native = join(runtime, "engine/native")
+  await mkdir(native, { recursive: true })
+  await cp(crawler, join(native, "whyfull-crawler"))
+  await chmod(join(native, "whyfull-crawler"), 0o755)
+  await writeFile(
+    join(native, "platform.json"),
+    JSON.stringify({ platform: process.platform, arch: process.arch })
+  )
+  await cp(crawler, join(binaries, `whyfull-crawler-${target}`))
+  await chmod(join(binaries, `whyfull-crawler-${target}`), 0o755)
+}
+// The app executes the signed external helper. Do not embed an unsigned second
+// Mach-O copy under Resources; the portable CLI keeps engine/native instead.
+await cp(join(runtime, "engine"), join(runtime, "app-engine"), {
+  recursive: true,
+  filter: (path) => path !== join(runtime, "engine/native"),
+})
 
 await cp(
   join(desktop, "scripts/desktop-entry.mjs"),

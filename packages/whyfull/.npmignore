@@ -1,5 +1,5 @@
 # Belt-and-suspenders: package.json's "files" allowlist is what actually
-# controls the published tarball (only "dist" and "README.md" ship). This
+# controls the published tarball (dist, publish docs, and license texts). This
 # file exists so the same intent holds if that allowlist is ever removed.
 
 src/
@@ -16,3 +16,19 @@ scriptc_plan.md
 node_modules/
 *.tsbuildinfo
 .DS_Store
+
+# Local signing credentials (prepack also checks allowlisted dist contents).
+.env*
+.credentials/
+.signing/
+*.pem
+*.key
+*.p8
+*.p12
+*.pfx
+*.keystore
+*.jks
+*.keychain
+*.keychain-db
+*.mobileprovision
+*.provisionprofile

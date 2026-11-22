@@ -6,7 +6,13 @@ import { fileURLToPath } from "node:url"
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const write = process.argv.includes("--write")
-const documents = ["README.md", "LICENSE", "NOTICE", "docs/viewer.md"]
+const documents = [
+  "README.md",
+  "LICENSE",
+  "NOTICE",
+  "docs/viewer.md",
+  "docs/personalization.md",
+]
 
 let drifted = false
 

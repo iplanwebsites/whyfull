@@ -1,10 +1,14 @@
 import { readFileSync } from "node:fs"
 import { pathToFileURL } from "node:url"
 
+// buildOnly runs never create or change a GitHub release. They may relax
+// signing so each platform can be exercised on CI before secrets exist.
 export function releaseInfo({
   version,
   channel = "auto",
   macosSigning = "auto",
+  buildOnly = false,
+  updater = "auto",
 }) {
   if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version))
     throw new Error("Release version must be a semantic version")
@@ -20,15 +24,22 @@ export function releaseInfo({
   if (macosSigning === "auto") macosSigning = preview ? "unsigned" : "notarized"
   if (!["unsigned", "notarized"].includes(macosSigning))
     throw new Error("Unknown macOS signing mode")
-  if (!preview && macosSigning !== "notarized")
+  if (!["auto", "off"].includes(updater))
+    throw new Error("Unknown updater mode")
+  // Previews never follow the stable updater feed.
+  const updates = !preview && updater === "auto"
+  if (!buildOnly && !preview && macosSigning !== "notarized")
     throw new Error("Stable macOS releases must be signed and notarized")
+  if (!buildOnly && !preview && !updates)
+    throw new Error("Stable releases must include signed updates")
   return {
     version,
     tag: `v${version}`,
     channel,
     preview,
     macosSigning,
-    updater: !preview,
+    updater: updates,
+    buildOnly,
   }
 }
 
@@ -43,8 +54,11 @@ if (
     version,
     channel: process.env.RELEASE_CHANNEL || "auto",
     macosSigning: process.env.MACOS_SIGNING || "auto",
+    buildOnly: process.env.BUILD_ONLY === "true",
+    updater: process.env.UPDATER || "auto",
   })
   if (
+    !info.buildOnly &&
     process.env.GITHUB_REF_TYPE === "tag" &&
     process.env.GITHUB_REF_NAME !== info.tag
   )

@@ -1,0 +1,158 @@
+// Writes a synthetic, privacy-safe disk snapshot of a typical developer home,
+// used to capture website screenshots without exposing real folders.
+//
+//   node scripts/demo-snapshot.mjs <home-root> <output.json>
+//   HOME=<home-root> pnpm whyfull --ui --snapshot <output.json>
+import { writeFileSync } from "node:fs"
+import { join } from "node:path"
+
+const [root, output] = process.argv.slice(2)
+if (!root || !output)
+  throw new Error("Usage: node scripts/demo-snapshot.mjs <home-root> <output>")
+
+const GB = 1024 ** 3
+const MB = 1024 ** 2
+
+// Leaf sizes in bytes; nested objects are folders.
+const tree = {
+  Library: {
+    Containers: { "com.docker.docker": { Data: { vms: 61.4 * GB } } },
+    Developer: {
+      Xcode: {
+        DerivedData: {
+          "Acme-ios": 9.8 * GB,
+          Widgets: 6.1 * GB,
+          Notes: 3.4 * GB,
+        },
+      },
+      CoreSimulator: {
+        Devices: {
+          "iPhone 17": 8.2 * GB,
+          "iPad Air": 5.9 * GB,
+          "iPhone SE": 3.1 * GB,
+        },
+      },
+    },
+    Caches: {
+      "com.spotify.client": 4.6 * GB,
+      Google: 2.9 * GB,
+      "ms-playwright": 1.8 * GB,
+      Homebrew: 2.2 * GB,
+    },
+    "Application Support": {
+      Code: 3.1 * GB,
+      Slack: 1.4 * GB,
+      "LM Studio": { models: 21.7 * GB },
+    },
+  },
+  ".ollama": { models: { blobs: 38.6 * GB } },
+  ".cache": {
+    huggingface: { hub: 24.3 * GB },
+    uv: 4.1 * GB,
+    pip: 1.6 * GB,
+    torch: 2.7 * GB,
+  },
+  ".npm": { _cacache: 6.2 * GB },
+  ".cargo": { registry: 3.8 * GB },
+  ".claude": { projects: 1.2 * GB },
+  Code: {
+    "acme-web": { node_modules: 2.6 * GB, ".next": 1.1 * GB, src: 140 * MB },
+    "acme-api": { target: 7.4 * GB, src: 90 * MB },
+    "ml-playground": { ".venv": 5.3 * GB, data: 9.2 * GB },
+    "design-system": { node_modules: 1.9 * GB, src: 60 * MB },
+    "acme-web-worktrees": {
+      "fix-login": { node_modules: 2.4 * GB },
+      "agent-refactor": { node_modules: 2.5 * GB },
+    },
+  },
+  Pictures: { "Photos Library.photoslibrary": 48.2 * GB },
+  Movies: { "Screen recordings": 18.4 * GB, Exports: 11.7 * GB },
+  Music: 7.3 * GB,
+  Documents: { Invoices: 0.6 * GB, Design: 6.8 * GB, Notes: 0.3 * GB },
+  Downloads: { installers: 9.4 * GB, datasets: 12.1 * GB, misc: 2.2 * GB },
+  Desktop: 1.7 * GB,
+}
+
+const directories = []
+function add(path, name, parent, value) {
+  const id = directories.length
+  const node = {
+    id,
+    parent,
+    path,
+    name,
+    children: [],
+    topFiles: [],
+    ownBytes: 0,
+    ownApparentBytes: 0,
+    ownFiles: 0,
+    bytes: 0,
+    apparentBytes: 0,
+    files: 0,
+    directories: 0,
+    issues: 0,
+    excluded: 0,
+    state: "scanned",
+  }
+  directories.push(node)
+  if (typeof value === "number") {
+    const bytes = Math.round(value)
+    const files = Math.max(1, Math.round(bytes / (3 * MB)))
+    Object.assign(node, {
+      ownBytes: bytes,
+      ownApparentBytes: bytes,
+      ownFiles: files,
+      topFiles: [
+        {
+          name: `${name}.bin`,
+          bytes: Math.round(bytes / 5),
+          apparentBytes: Math.round(bytes / 5),
+        },
+      ],
+    })
+  } else {
+    for (const [childName, childValue] of Object.entries(value)) {
+      const child = add(join(path, childName), childName, id, childValue)
+      node.children.push(child.id)
+    }
+  }
+  node.bytes = node.ownBytes
+  node.apparentBytes = node.ownApparentBytes
+  node.files = node.ownFiles
+  for (const childId of node.children) {
+    const child = directories[childId]
+    node.bytes += child.bytes
+    node.apparentBytes += child.apparentBytes
+    node.files += child.files
+    node.directories += child.directories + 1
+  }
+  return node
+}
+
+// Children must have higher ids than their parent: depth-first insertion does that.
+add(root, root.split("/").at(-1), null, tree)
+const now = new Date().toISOString()
+const files = directories[0].files
+writeFileSync(
+  output,
+  JSON.stringify({
+    format: "whyfull-disk",
+    schemaVersion: 1,
+    root,
+    startedAt: now,
+    completedAt: now,
+    durationMs: 48_000,
+    status: "complete",
+    workers: 8,
+    engine: "async",
+    scanner: "node",
+    files,
+    skippedLinks: 0,
+    issues: 0,
+    policy: { keep: [], exclude: [] },
+    directories,
+  })
+)
+console.log(
+  `Wrote ${directories.length} folders, ${(directories[0].bytes / GB).toFixed(1)} GiB → ${output}`
+)

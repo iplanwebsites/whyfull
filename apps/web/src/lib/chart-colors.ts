@@ -19,40 +19,79 @@ export interface BranchColor {
   h: number
 }
 type RGB = [number, number, number]
-const anchor: BranchColor = { l: 0.64, c: 0.16, h: 250 }
+/**
+ * Earthy top-level family in OKLCH, echoing whyfull.app (olive, sand,
+ * terracotta, slate, sage, clay, …). Ordered so rank-adjacent siblings,
+ * which tend to be treemap neighbours, alternate light and dark.
+ */
+export const TOP_LEVEL: readonly BranchColor[] = [
+  { l: 0.54, c: 0.095, h: 118 }, // olive
+  { l: 0.82, c: 0.065, h: 82 }, // sand
+  { l: 0.56, c: 0.11, h: 40 }, // terracotta
+  { l: 0.76, c: 0.07, h: 148 }, // sage
+  { l: 0.51, c: 0.045, h: 245 }, // slate
+  { l: 0.73, c: 0.09, h: 62 }, // clay
+  { l: 0.53, c: 0.06, h: 350 }, // dusty plum
+  { l: 0.8, c: 0.1, h: 100 }, // mustard
+  { l: 0.52, c: 0.055, h: 190 }, // deep teal
+  { l: 0.75, c: 0.035, h: 85 }, // stone
+]
+const anchor: BranchColor = TOP_LEVEL[0]!
+const MIN_L = 0.45,
+  MAX_L = 0.84,
+  MIN_C = 0.035,
+  MAX_C = 0.12
 const clamp = (value: number, min: number, max: number) =>
   Math.max(min, Math.min(max, value))
-/** Largest child stays close; other siblings alternate hue-led and tone-led forks. */
+/**
+ * Largest child stays close; other siblings alternate hue-led and tone-led
+ * forks. Top-level siblings come from the curated family above (expressed
+ * relative to the anchor so the same rules hold for any parent).
+ */
 export function childColor(
   parent: BranchColor,
   rank: number,
   depth: number
 ): BranchColor {
+  if (depth === 1) {
+    const base = TOP_LEVEL[rank % TOP_LEVEL.length]!
+    const round = Math.floor(rank / TOP_LEVEL.length)
+    // Later rounds reuse the family, shifted in tone and hue to stay distinct.
+    const tone = round ? (round % 2 ? -0.07 : 0.05) * Math.ceil(round / 2) : 0
+    return {
+      l: clamp(parent.l + base.l - anchor.l + tone, MIN_L, MAX_L),
+      c: clamp(parent.c * (base.c / anchor.c), MIN_C, MAX_C),
+      h: (parent.h + base.h - anchor.h + round * 14 + 720) % 360,
+    }
+  }
   const fade = Math.max(0.55, 1 / (1 + depth * 0.065))
   const direction = rank % 2 ? -1 : 1
   const hueLed = depth % 2 === 1
   const step = Math.ceil(rank / 2)
+  // Narrower hue forks than a rainbow keep sub-branches inside the earthy family.
   const hueStep =
     step <= 3
-      ? step * (hueLed ? 48 : 26)
-      : 24 + ((step * 137.508) % (hueLed ? 132 : 100))
+      ? step * (hueLed ? 36 : 20)
+      : 18 + ((step * 137.508) % (hueLed ? 100 : 80))
   const lightnessStep =
     rank === 0
       ? hueLed
         ? 0.025
         : -0.025
-      : direction * (hueLed ? 0.045 : 0.09 + (step % 3) * 0.012) * fade
+      : direction * (hueLed ? 0.05 : 0.09 + (step % 3) * 0.012) * fade
   const target = parent.l + lightnessStep
   // Bounce at the bounds rather than flattening sibling lightness into one color.
   const lightness =
-    rank && (target < 0.43 || target > 0.83) ? parent.l - lightnessStep : target
+    rank && (target < MIN_L || target > MAX_L)
+      ? parent.l - lightnessStep
+      : target
   return {
-    l: clamp(lightness, 0.43, 0.83),
+    l: clamp(lightness, MIN_L, MAX_L),
     c: clamp(
-      parent.c * (rank === 0 ? 0.98 : hueLed ? 0.96 : 0.88) +
-        (rank ? direction * 0.014 * fade : 0),
-      0.065,
-      0.19
+      parent.c * (rank === 0 ? 0.98 : hueLed ? 0.96 : 0.9) +
+        (rank ? direction * 0.01 * fade : 0),
+      MIN_C,
+      MAX_C
     ),
     h:
       (parent.h +
@@ -127,17 +166,21 @@ function luminance(color: RGB) {
       0
     )
 }
+// Warm ink and paper from the brand, used for tile labels.
+const INK: RGB = [41, 43, 35],
+  PAPER: RGB = [250, 249, 242]
 function paint(color: BranchColor, dark: boolean, grouped: boolean): TilePaint {
   const adjusted = {
     ...color,
-    l: dark ? clamp(color.l - 0.16, 0.3, 0.7) : color.l,
-    c: color.c * (grouped ? 0.65 : 1),
+    // Dark mode: deeper, slightly quieter tiles on the charcoal ground.
+    // Compress into a darker band so paper-coloured labels read everywhere.
+    l: dark ? clamp(0.38 + (color.l - MIN_L) * 0.45, 0.36, 0.555) : color.l,
+    c: color.c * (grouped ? 0.6 : 1) * (dark ? 0.8 : 1),
   }
-  const fill = rgb(adjusted),
-    ink: RGB = [16, 24, 40]
+  const fill = rgb(adjusted)
   const light = luminance(fill),
-    inkContrast = (light + 0.05) / (luminance(ink) + 0.05),
-    whiteContrast = 1.05 / (light + 0.05)
+    inkContrast = (light + 0.05) / (luminance(INK) + 0.05),
+    paperContrast = (luminance(PAPER) + 0.05) / (light + 0.05)
   return {
     fill: hex(fill),
     stroke: hex(
@@ -147,13 +190,40 @@ function paint(color: BranchColor, dark: boolean, grouped: boolean): TilePaint {
       })
     ),
     text:
-      whiteContrast >= inkContrast && whiteContrast >= 4.5
-        ? "#ffffff"
+      paperContrast >= inkContrast && paperContrast >= 4.5
+        ? hex(PAPER)
         : inkContrast >= 4.5
-          ? hex(ink)
-          : "#000000",
+          ? hex(INK)
+          : light > 0.18
+            ? "#000000"
+            : "#ffffff",
   }
 }
+/**
+ * Outline and marker colours for chart states, mirroring the theme tokens in
+ * styles.css (ECharts draws to canvas and cannot read CSS variables).
+ */
+export function stateColors(dark: boolean) {
+  return dark
+    ? {
+        focus: "#ecebe0", // --foreground: hovered / focused tile
+        trash: "#e38b72", // --destructive: marked for Trash
+        useless: "#d9ab4f", // --caution: marked as useless
+        safe: "#e2e99a", // --highlight: safe-tier suggestion
+        safeRing: "#1c1d18",
+      }
+    : {
+        focus: "#292b23",
+        trash: "#a83f2a",
+        useless: "#8a6414",
+        safe: "#e2e99a",
+        safeRing: "#4a5320",
+      }
+}
+/** Suggestion tiers that are safe to remove (see lib/tiers.ts). */
+export const SAFE_TIERS: ReadonlySet<string> = new Set(["AUTO", "REBUILD"])
+export const isSafeTier = (tier: string | null | undefined) =>
+  !!tier && SAFE_TIERS.has(tier)
 function rank(nodes: ColorNode[]) {
   return [...nodes].sort(
     (a, b) =>

@@ -137,19 +137,22 @@ test("private snapshots round-trip and refuse overwrites; malformed settings are
     const result = await scanFilesystem({ root, workers: 1 })
     const snapshot = join(root, "snapshot.json")
     await saveDiskSnapshot(result, snapshot)
-    assert.deepEqual(await loadDiskSnapshot(snapshot), result)
+    assert.deepEqual(
+      await loadDiskSnapshot(snapshot),
+      JSON.parse(JSON.stringify(result))
+    )
     await assert.rejects(saveDiskSnapshot(result, snapshot), /EEXIST/)
     const generic = join(root, "generic.json")
     writeFileSync(generic, JSON.stringify(result))
     assert.deepEqual(
       await loadDiskSnapshot(generic),
-      result,
+      JSON.parse(JSON.stringify(result)),
       "minified JSON also imports"
     )
     writeFileSync(generic, JSON.stringify(result, null, 2))
     assert.deepEqual(
       await loadDiskSnapshot(generic),
-      result,
+      JSON.parse(JSON.stringify(result)),
       "pretty JSON also imports"
     )
     const original = readFileSync(snapshot, "utf8")
@@ -227,6 +230,13 @@ test("loopback viewer authenticates requests, preserves measured data, and suppo
     for (let i = 0; i < 100 && viewer.snapshot.status === "scanning"; i++)
       await new Promise((r) => setTimeout(r, 20))
     assert.equal(viewer.snapshot.status, "complete")
+    const finalStatus = await (
+      await fetch(`${base}/api/status`, { headers })
+    ).json()
+    assert.equal(finalStatus.progress.phase, "complete")
+    assert.equal(finalStatus.progress.percent, 100)
+    assert.equal(finalStatus.progress.pendingDirectories, 0)
+    assert.equal(finalStatus.progress.files, viewer.snapshot.files)
     const response = await fetch(`${base}/api/directory?id=0`, { headers })
     const data = await response.json()
     assert.ok(
@@ -457,11 +467,12 @@ test("directory marks persist independently of preferences; Finder reveals allow
       65536,
       "marks leave inventory files intact"
     )
+    const originalExport = JSON.stringify(snapshot)
     await viewer.close()
     viewer = await startViewer({
       root,
       open: false,
-      snapshot,
+      snapshot: JSON.parse(originalExport),
       policyFile: config,
     })
     const reopened = new URL(viewer.url),

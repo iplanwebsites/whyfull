@@ -23,6 +23,14 @@ dist/
 *.p12
 *.pfx
 *.keystore
+*.p8
+*.jks
+*.keychain
+*.keychain-db
+*.mobileprovision
+*.provisionprofile
+.credentials/
+.signing/
 
 *.tsbuildinfo
 .DS_Store
@@ -36,3 +44,9 @@ apps/desktop/src-tauri/runtime/
 apps/desktop/src-tauri/version.conf.json
 apps/desktop/src-tauri/binaries/
 apps/desktop/src-tauri/gen/
+
+# Local folder scan caches
+.whyfull/
+
+# Rust crawler build output (source is committed)
+experiments/disk-crawler/target/

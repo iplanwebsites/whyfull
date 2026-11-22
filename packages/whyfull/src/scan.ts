@@ -9,6 +9,7 @@ import { join } from "node:path"
 import { measure, volume } from "./size"
 import { sharedStore, storeVersions } from "./pnpm"
 import { forPlatform, TIERS } from "./targets"
+import { loadKnowledge, knowledgeContext } from "./knowledge"
 import type {
   Report,
   ScannedTarget,
@@ -211,7 +212,7 @@ export function scan(opts: ScanOptions = {}): Report {
     exact = false,
   } = opts
 
-  const targets = forPlatform(platform)
+  const targets = forPlatform(platform, opts.policyFile)
   const seen = new Set<string>()
   const results: ScannedTarget[] = []
   let denied = 0
@@ -324,6 +325,7 @@ export function scan(opts: ScanOptions = {}): Report {
 
   return {
     platform,
+    localContext: knowledgeContext(loadKnowledge(opts.policyFile)),
     volume: volume(home),
     targets: results,
     denied,

@@ -15,7 +15,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@workspace/ui/components/dialog"
-import { toast } from "@workspace/ui/components/sonner"
+import { toast } from "@/lib/notifications"
 import { api, formatSize } from "@/lib/api"
 import type { ShortlistEntry } from "@/lib/api"
 
@@ -34,17 +34,19 @@ export function TrashShortlistButton({
   })
   const count =
     result.data?.filter((entry) => entry.mark === "trash").length ?? 0
+  // Nothing marked yet: the shortlist stays reachable from the ⋯ menu.
+  if (!result.data?.length) return null
   return (
     <Button
       variant="ghost"
       size="sm"
       className={count ? "text-destructive" : undefined}
-      aria-label={`Trash shortlist (${count})`}
+      aria-label={`Trash shortlist (${count} marked for Trash)`}
       title="Trash shortlist"
       onClick={onClick}
     >
       <Trash2 />
-      <span className="tabular-nums">{count}</span>
+      {count > 0 && <span className="tabular-nums">{count}</span>}
     </Button>
   )
 }
@@ -94,7 +96,10 @@ export function CleanupShortlist({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] overflow-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Trash shortlist</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Trash2 className="size-4 text-muted-foreground" />
+            Trash shortlist
+          </DialogTitle>
           <DialogDescription>
             Saved marks across scans. Nothing moves until you review a Trash
             action. Sizes can overlap.
@@ -133,7 +138,7 @@ export function CleanupShortlist({
               {entry.mark === "trash" ? (
                 <Trash2 className="size-4 shrink-0 text-destructive" />
               ) : (
-                <Flag className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                <Flag className="size-4 shrink-0 text-caution" />
               )}
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2 text-xs">

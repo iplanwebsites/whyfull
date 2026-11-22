@@ -2,11 +2,28 @@ import { existsSync, readdirSync, realpathSync, statSync } from "node:fs"
 import { homedir } from "node:os"
 import { basename, join, parse } from "node:path"
 import { volume } from "./size"
+import type { DiskSnapshot } from "./filesystem-types"
+export interface CachedScan {
+  documentId: string
+  status: DiskSnapshot["status"]
+  path: string
+  canCancel: boolean
+  lastCompletedAt: string | null
+  lastDurationMs: number | null
+  progress: {
+    percent: number | null
+    estimateBasis?: "history" | "live" | "previous"
+    elapsedMs: number
+    files: number
+  } | null
+}
 export interface ScanDrive {
   id: string
   name: string
   default: boolean
+  kind?: "directory"
   volume: ReturnType<typeof volume>
+  scan?: CachedScan | null
 }
 export const defaultScanRoot = () =>
   process.platform === "darwin" && existsSync("/System/Volumes/Data")

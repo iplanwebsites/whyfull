@@ -6,6 +6,13 @@ Node is bundled; the installed app needs neither Node nor npm. Nothing is
 uploaded while scanning. The signed release app checks GitHub for updates on
 launch and when you choose **Whyfull → Check for updates…**.
 
+The location menu offers **Use Rust scanner · Experimental**, off by default.
+The choice applies to new scans; Node remains available. macOS/Linux preparation
+builds and packages the optional crawler. The desktop launches its signed Tauri
+external binary; the portable CLI carries a platform-matched copy under
+`engine/native`. `app-engine` is the JS-only resource copy used by Tauri, so a
+second unsigned helper is not embedded in the app's Resources directory.
+
 ## Build and run
 
 Prerequisites: Node 22.23.2, pnpm 9.12, Rust stable (at least 1.90), and the
@@ -56,10 +63,11 @@ profile changes are required by the installer. It refuses to replace existing
 commands or symlinks; existing Whyfull-owned launchers can be refreshed.
 
 ```sh
-whyfull                         # original terminal report
-whyfull --json                   # JSON report
+whyfull                         # Interactive picker. Start here.
+whyfull --tui                   # Terminal summary with cleanup guidance.
+whyfull --json                  # Report for your coding agent.
+whyfull --ui                    # Visual explorer in your browser.
 whyfull --scan --root . --json  # filesystem inventory
-whyfull ui                       # existing browser-based viewer
 ```
 
 The launcher invokes the installed application with `--cli`; that branch runs
@@ -84,14 +92,21 @@ Desktop installers and standalone CLI archives use `apps/desktop/package.json`
 as their release version. The bundled engine keeps its independent npm version
 from `packages/whyfull/package.json`. A build-time config overlay applies the
 desktop version to Tauri. Tag `v<desktop-version>` to build a
-**draft** GitHub release with macOS ARM64/Intel DMGs, Linux x64 AppImage/deb,
-Windows x64 NSIS installers, and standalone CLI archives with SHA-256 checksums.
+**draft** GitHub release for the platforms listed in `release-platforms.json`
+(today macOS ARM64/Intel DMGs and their CLI archives; Windows x64 NSIS and Linux
+x64 AppImage/deb join later), with SHA-256 checksums. A stable platform can join
+but never leave; the workflow checks the previous stable `latest.json`.
 The workflow uses native runners so the Node sidecar matches each installer.
-A manual workflow run also creates a draft for the current package version.
-It creates one draft before the build matrix starts, then validates every
-installer, standalone archive, and stable updater platform before uploading
-`downloads.json` and `SHA256SUMS.txt`. The public download page consumes that
-metadata; publishing an incomplete draft cannot advertise working downloads.
+A manual run defaults to `mode: build-only`: every platform builds and its files
+are kept as workflow artifacts, and no GitHub release is created or changed.
+Choose `mode: draft-release` to build a draft for the current package version.
+Each platform job only uploads workflow artifacts. A final job then assembles
+`latest.json`, validates every installer, standalone archive, and stable updater
+platform, and only then creates the draft and attaches the files, `downloads.json`
+and `SHA256SUMS.txt`. A failing platform leaves no draft changes. The public
+download page consumes that metadata; publishing an incomplete draft cannot
+advertise working downloads. See [`docs/desktop-builds.md`](../../docs/desktop-builds.md)
+for the per-platform strategy, dry runs, and the secret setup checklist.
 
 ### Preview releases
 
@@ -102,11 +117,13 @@ Developer ID/notarization), need no Apple or updater secrets, and omit automatic
 updates. The download page labels them **Unsigned preview** and shows the
 first-launch instructions. Do not reuse a preview version/tag for stable.
 
-Manual dispatch accepts `channel` and `macos_signing`. `auto` infers the channel
-from the package version and uses notarized signing for stable, unsigned for
-preview. A preview can opt into notarization once Apple credentials exist;
-it still does not follow the stable update feed. Stable versions cannot opt
-out of notarization. The workflow refuses to mutate a published release.
+Manual dispatch accepts `mode`, `channel`, `macos_signing`, and `updater`.
+`auto` infers the channel from the package version and uses notarized signing
+for stable, unsigned for preview. A preview can opt into notarization once Apple
+credentials exist; it still does not follow the stable update feed. Stable
+draft releases cannot opt out of notarization or signed updates; only a
+`build-only` run may use `macos_signing: unsigned` and `updater: off`, which
+needs no secrets. The workflow refuses to mutate a published release.
 
 Before running `.github/workflows/desktop-release.yml`, configure:
 
@@ -134,6 +151,16 @@ For a local signed build, load the owner-only private key file into
 `TAURI_SIGNING_PRIVATE_KEY` for the build process. `WHYFULL_UPDATER_PUBLIC_KEY`
 contains the matching public key. Keep both file paths outside the checkout.
 
+Never commit signing keys, certificate exports, keychains, provisioning profiles,
+or credential files. Supply private values through GitHub Secrets or the local
+build environment. Run `node scripts/check-signing-material.mjs` from the repo
+root to check staged files before committing; CI runs the same check. It checks
+credential filenames and private-key markers, not every possible secret format.
+The npm prepack check also inspects the actual publish list, including `dist`.
+The updater public key, entitlements, signing scripts, and variable names are
+safe to publish. Distributed app signatures also expose the signing certificate
+and identity; private keys and passwords must remain private.
+
 Unsigned preview builds do not require these secrets. For production, keep
 updater and Apple signing credentials separate: updater signatures protect
 replacement payloads, while Developer ID/notarization establish macOS trust.
@@ -144,16 +171,17 @@ The supplied macOS entitlements allow Node/V8 JIT execution after signing.
 Node's license, engine dependency notices, and viewer dependency notices ship
 with both the desktop and CLI archive.
 
-Windows installers have cryptographically signed updater payloads, but Windows
-Authenticode is a separate setup. Configure Tauri's `bundle.windows` signing
-options or a `signCommand` backed by your certificate provider before public
-Windows distribution. The workflow does not invent a certificate or bypass
-SmartScreen. Linux deb installations should update through their package
-manager; the Tauri updater is intended for the AppImage channel.
+Windows installers have cryptographically signed updater payloads, but they
+stay Authenticode-unsigned for now, so SmartScreen warns on first run. Adding
+Tauri's `bundle.windows` signing options or a `signCommand` is a separate,
+deferred setup; the workflow does not invent a certificate or bypass SmartScreen.
+On Linux the AppImage is the primary download and updates in place; `.deb`
+installs also update in-app through the official updater (`pkexec dpkg -i`,
+with an administrator prompt).
 
 After reviewing all assets and checking a signed install/update on each OS,
-publish the draft. `tauri-action` merges the platform entries into `latest.json`;
-it becomes reachable at
+publish the draft. The final workflow job writes one `latest.json` with every
+platform entry; it becomes reachable at
 `https://github.com/iplanwebsites/whyfull/releases/latest/download/latest.json`
 only when the release is public. Installation prompts before stopping the scan,
 verifies the update signature, replaces the full app including its engine,
@@ -174,9 +202,10 @@ configured, and the metadata generator is updated to record that evidence.
    release notes, and commit/merge the changes. Desktop installers and portable
    archives share that version; the bundled engine keeps its own npm version.
    Preview desktop versions contain a prerelease suffix.
-2. Push `v<version>` (or manually dispatch the release workflow). It creates a
-   draft, runs native runtime/CLI checks, builds all platforms, and attaches
-   release metadata only after the complete matrix succeeds. macOS notarized
+2. Run the workflow with `mode: build-only` first, then push `v<version>` (or
+   dispatch with `mode: draft-release`). It runs native runtime/CLI checks,
+   builds all platforms, and creates the draft with its files and metadata only
+   after the complete matrix succeeds. macOS notarized
    builds additionally run `codesign --verify` and `spctl --assess`.
 3. Download the actual installers and archives from the draft. Verify first
    launch, a report against a small fixture, CLI installation/arguments, and
@@ -184,8 +213,7 @@ configured, and the metadata generator is updated to record that evidence.
    unsigned-preview instructions where applicable. For stable, verify desktop
    updates and the installed CLI after an update. Review `SHA256SUMS.txt` and
    the channel/signing values in `downloads.json`.
-4. Replace the release-note template's final maintainer paragraph with the
-   changes for this version. Publish the draft once the checks pass. The site
+4. Add the changes for this version to the draft's notes. Publish the draft once the checks pass. The site
    reads only public releases with complete validated metadata and refreshes
    within five minutes. Stable downloads take precedence over newer previews.
 5. Publish the matching npm version separately if desired. A preview belongs
@@ -245,4 +273,10 @@ of npm-managed files in this implementation.
 Primary references: [Node sidecars](https://v2.tauri.app/learn/sidecar-nodejs/),
 [Tauri updater](https://v2.tauri.app/plugin/updater/),
 [macOS signing](https://v2.tauri.app/distribute/sign/macos/), and
-[GitHub release action](https://github.com/tauri-apps/tauri-action).
+[Tauri GitHub pipelines](https://v2.tauri.app/distribute/pipelines/github/).
+
+Both scanner choices now use the same SQLite inventory and bounded viewer
+queries. Node workers also persist pending folders and hard-link ownership;
+turning off Rust no longer restores the old in-memory inventory. Both paths
+require the bundled Node 22.18+ runtime. Cached inventories are scanner-specific
+SQLite files; portable JSON export/import remains supported.

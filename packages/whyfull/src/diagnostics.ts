@@ -127,6 +127,27 @@ export class DiagnosticRunner {
       throw new Error("Run and complete a report first")
     return this.generated.report
   }
+  /** Record in-memory inventory analysis without spawning a diagnostic. */
+  acceptReport(report: WhyfullJsonReport) {
+    if (this.stop)
+      throw new Error(
+        "Stop the current diagnostic before generating suggestions"
+      )
+    const startedAt = new Date().toISOString()
+    this.generated = { startedAt, report }
+    this.runs.set("whyfull", {
+      id: "whyfull",
+      status: "complete",
+      startedAt,
+      finishedAt: startedAt,
+      exitCode: 0,
+      truncated: false,
+      reportAvailable: true,
+      command: "Analyze completed disk inventory (memory only)",
+      trace: `Suggestions ready from ${report.inventory?.root ?? "the loaded report"}. No filesystem scan or subprocess was run.\n`,
+    })
+    return this.status()
+  }
   private stop: (() => void) | null = null
   constructor(private commands = diagnosticCommands()) {}
   status() {

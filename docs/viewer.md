@@ -1,32 +1,180 @@
 # Local filesystem viewer
 
-The browser UI and scanner are JavaScript, built from the repository's TypeScript
-library and a React frontend. No Rust toolchain, native addon, hosted
-service, CDN, or Electron installation is needed.
+The browser UI and default Node scanner are JavaScript, built from the repository's TypeScript
+library and a React frontend. The default Node path needs no Rust toolchain,
+native addon, hosted service, CDN, or Electron installation.
+
+## Experimental Rust scanner
+
+The location menu includes **Use Rust scanner · Experimental**. It is off by
+default. The selection is saved and applies to new scans and explicit rescans;
+changing it leaves the current result and running scans alone. The menu and scan
+details show the active scanner separately from the choice for the next scan.
+Switch it off to return to Node. The default worker budget is four for Rust and
+up to eight for Node; `--workers` can override it.
+
+Both crawlers stream into the same SQLite inventory. Node workers send bounded
+batches; their pending folder queue and hard-link ledger also live in SQLite.
+Rust uses its bounded traversal queue and streams records to the same writer.
+Both paths share batched transactions, folder aggregation, indexes, bounded
+viewer queries, marks, suggestions, Finder, cleanup, and streamed JSON export.
+Folder totals are prepared on disk before the map opens, shown as **Preparing
+results**. Suggestions use known locations and a bounded selection of large
+folders; the full inventory remains browsable. Advanced live “All direct files”
+listings and imported JSON reports retain the existing listing/import behavior.
+
+Both scanners require Node 22.18+ for built-in SQLite. Rust additionally requires
+a matching executable on macOS or Linux. Supported desktop builds bundle both
+Node and the helper; builds without the helper keep Node available and disable
+the Rust toggle with an explanation. A failed scan is shown as a failure rather
+than silently switching engines. A failed or cancelled refresh keeps the last
+good result. Cancelled scans must be restarted before browsing or export.
+
+```sh
+npx whyfull --scan --root /path/to/folder --scanner rust --json-file scan.json
+npx whyfull --ui --scanner node
+```
+
+For development, build `experiments/disk-crawler/Cargo.toml` in release mode, then
+rebuild whyfull. `WHYFULL_RUST_CRAWLER` can select a trusted executable explicitly.
+The npm build can include a prebuilt helper for its build platform; other
+platforms keep the Node default unless a matching helper is supplied. Installing
+the normal Node CLI still needs no compiler.
+
+Both engines use the same database format with separate cache slots, so a
+comparison or engine switch preserves the other engine's completed inventory.
+Databases live under a pruned `.whyfull/inventories` directory inside the selected
+cache directory. Private session links keep old results stable while a refresh
+publishes a new cache atomically; session links are released when the viewer
+closes. `--no-cache` skips persistent cache reads/publication while both crawlers
+still use a temporary SQLite working inventory. Older JSON snapshots can still
+be opened explicitly; old in-memory/experimental cache formats are rebuilt by
+the next scan.
+
+Programmatic callers can use `scanFilesystem({ root, scanner: "node" })` or
+`scanner: "rust"`; release either result with `releaseDiskSnapshot(snapshot)`
+when finished. `inventoryDirectory` overrides private working storage. The
+`directories` array is a lazy compatibility facade: targeted lookup is cheap,
+but iterating or spreading it can traverse the entire database. Use
+`saveDiskSnapshot` for streaming JSON export. `loadDiskSnapshot` accepts completed
+SQLite inventories as well as portable JSON. Loaded SQLite results also need
+release; importing a large JSON snapshot uses the in-memory reader.
+
+`DiskSnapshot.timings` separates crawling/ingestion, aggregation, indexing and
+final commit/checkpoint time. The reproducible drive comparison lives in
+`experiments/disk-crawler/shared-benchmark.mjs`; it also includes atomic cache
+publication in its end-to-end measurement and records first-page latency and
+process-tree memory. Raw crawler benchmarks omit viewer preparation and should
+not be used as end-to-end app timings.
+
+The shared-storage Data-drive comparison covered about 28.58 million files and
+3.79 million directories. With four workers per crawler and two sequential runs
+each (R4 N4 N4 R4), Node averaged 7m 43s and 337 MiB peak sampled process-tree RSS;
+Rust averaged 4m 26s and 143 MiB. End-to-end times include aggregation, indexing,
+final checkpoint and cache publication. Both used a 512 MiB main heap setting.
+These are live-volume measurements with existing swap and background activity;
+the report includes per-run ranges, coverage checks and caveats. See the
+repository's `experiments/disk-crawler/results/shared-storage-full-drive.md`.
 
 ## Launch
 
 ```sh
-npx whyfull ui
-npx whyfull app
-npx whyfull ui --root ~/Downloads
-npx whyfull ui --report report.json
-npx whyfull ui report.json
+npx whyfull --ui
+npx whyfull --ui --no-scan
+npx whyfull --directory
+npx whyfull --directory ./project --ui
+npx whyfull --directory --scan --json-file folder.json
+npx whyfull --ui --root ~/Downloads
+npx whyfull --ui --report report.json
+npx whyfull --ui report.json
 ```
 
-`ui` and `app` are aliases for `--view`. Both start the bundled local server,
+`npx whyfull --ui` opens the visual explorer in your browser; `--view`, `ui`, and
+`app` are aliases. It starts the bundled local server,
 open the user's default browser, and scan the home directory unless another root
 or a saved report is selected. Use `--no-open` to print the private viewer URL
-without launching a browser. Keep the terminal running; Ctrl+C stops the viewer.
+without launching a browser. Use `--no-scan` with `--ui` to open the viewer without
+starting a scan or refreshing cached results; choose **Start scan**, a drive, or a
+saved JSON report in the UI. The bare `npx whyfull` opens the interactive picker
+in a terminal. Use ↑/↓ and Enter; the highlighted action shows its equivalent
+command. Enter runs the command with a loading indicator until the UI or results
+are ready. The default action opens the browser automatically and scans Home.
+Choices include `--tui` for the opportunity summary and JSON saves. In
+scripts it prints help; use explicit flags to run without prompts. Keep the terminal running; Ctrl+C stops the viewer.
 All existing viewer options, including `--config` and `--allow-trash`, work with
-either command. Demo mode remains the default.
+every alias. Demo mode remains the default.
+
+## Directory mode
+
+`--directory [path]` (short form `--dir`) scopes the scan to a folder. A bare flag means the current
+working directory. It opens the UI by default, or combines with `--scan`,
+`--tui`, `--json`, and `--json-file` for headless inventories. JSON exports use
+the same `whyfull-disk` format as full disk scans. `--workers`, `--engine`,
+`--exclude`, `--config`, `--no-open`, `--no-scan`, and `--allow-trash` keep their
+usual meanings. `--root` and `--directory` are alternative scope selectors.
+
+The selected folder stays pinned above Home in the location menu. Launching this
+mode scans only that folder. Choosing Home or a disk starts the broader scan;
+returning to the folder restores its separate inventory, even when the broader
+scan also covers it.
+
+Completed directory inventories and their refresh baselines live in
+`<folder>/.whyfull/inventories/`, with a SQLite cache slot for each scanner.
+Subfolder scans write their own `.whyfull/inventories/` without replacing the
+parent’s cached inventory. Home and disks outside the selected folder use the
+regular cache next to the configuration file. Reopening a folder restores its inventory
+and refreshes in the background, unless `--no-scan` is used. Explicit headless
+scans are fresh measurements and also update the local cache. Failed or cancelled
+scans never replace a good cache. All `.whyfull` directory contents are excluded
+from filesystem inventories to prevent cache growth from counting itself.
+Cache files remain private (owner-only permissions). Add `.whyfull/` to the
+project's `.gitignore`.
+
+`--no-cache` bypasses both reading and writing persistent scan caches for folder,
+Home, and disk scans. It leaves existing cache files unchanged. It also works
+with `--no-scan` (open an idle viewer) and `--json-file` (save an explicit export).
+Programmatic viewers can set `cache: false` for the same behavior.
+
+The interactive starter includes opening and exporting the current directory;
+highlighting either action shows its repeatable CLI command.
 
 ## Design
+
+Live scans show a branded loading screen with a hard-drive capacity card using
+system-reported fullness and free space from the first response. A separate scan
+progress bar tracks estimated traversal work. File count and elapsed time stay
+visible; other metrics are collapsed under **Scan details**. Drive-menu entries
+show “Scanning… ~83% complete”. Reruns compare checked folders with the previous
+full inventory (expanding the baseline if more folders are discovered). A first
+scan retains its last available estimate between live estimates; its tooltip
+identifies that case. Completion stays below 100% until the scan finishes.
+The UI waits for a completed scan before requesting directory summaries or
+showing the map, folder byte totals, ranked list, and cleanup actions on the first
+scan. Completed scans are automatically saved and reopened on the next launch or
+first selection of that root. A saved report stays visible while a fresh scan runs
+in the background. **Rescan** uses the same behavior. Once a map is available,
+the toolbar keeps navigation and size information. Scan timing and refresh
+controls move into the drive dropdown. Running rows retain their completion
+percentage and timing details; hovering or keyboard-focusing a row reveals
+**Stop**, and touch devices keep it visible. Stop targets that row's scan even
+when another drive is currently open, without changing the selected folder.
+The full loading page retains detailed progress and its stop control. Each completed snapshot retains its
+full scan duration. Reruns show that baseline alongside elapsed time and an
+approximate remaining duration (for example, “Last scan took 5 min · Running for
+3 min · About 2 min remaining”). If the scan exceeds the previous duration, the
+message changes to “Taking longer than last time”; delayed server updates hide
+the remaining estimate. The baseline is specific to the reopened root and scan
+settings, and incomplete scans never replace it. Only a completed refresh replaces the
+map; stopping or failing a refresh preserves the last complete report. A first
+scan that stops or fails shows an incomplete-results message and a retry action. Incomplete saved snapshots offer a fresh scan of
+their root folder. Complete saved snapshots and CLI reports open directly.
 
 The two views follow familiar disk-navigation conventions:
 [Filelight's](https://apps.kde.org/filelight/) concentric folder rings and
 [GrandPerspective's](https://grandperspectiv.sourceforge.net/) proportional rectangles. Both
 share the same current directory, breadcrumbs, ranked list, and details panel.
+See [comparable products and UX opportunities](comparable-products.md) for a
+working product comparison, including Wombit.
 Sunburst rings show up to three levels; treemaps use horizontal-biased weighted
 partitions showing one directory level at a time, without inset child cards. Clicking
 a directory navigates; the center/up button ascends. The list provides keyboard
@@ -44,8 +192,47 @@ folder summaries. Press Command/Ctrl+K to focus folder search. Last folder, map,
 sort and appearance preferences survive CLI restarts in the config file.
 The compact workspace keeps drive selection and breadcrumbs in the toolbar,
 without a product-name banner. Errors and action feedback use Sonner toasts.
-The drive selector defaults to macOS Data and lists other mounted volumes; choosing
-a drive cancels the previous scan and starts a fresh inventory in demo mode.
+A disconnected backend shows one persistent banner above the workspace while the
+last available view stays visible. Offline polling and failed actions do not
+create error toasts. Polling continues to check the connection; recovery removes
+the banner and refreshes active queries. **Check connection** retries immediately.
+If the backend restarted on a different port, open its newly printed URL.
+Other repeated query errors notify once until that query succeeds again.
+The drive selector includes Home and mounted volumes. A destination is scanned on
+its first selection; returning to it reuses its existing inventory. Running scans
+continue in the background when switching destinations or opening a report. Home
+and other folders already covered by the current disk inventory open directly.
+Completed inactive scans use private temporary files rather than retaining every
+inventory in memory. Complete live scans also persist across viewer restarts in
+`~/.config/whyfull/scans/`, or a `scans/` directory beside an alternate `--config`
+file. Headless full scans use this same cache, and `latest.json` records the last
+completed root and snapshot path so the CLI UI, desktop app, and agents can
+reopen it immediately and refresh sizes in the background. The explorer labels
+saved sizes with the scan time and keeps navigation available during refresh.
+`--no-scan` opens saved results without refreshing. One cache slot per root and scanner is replaced atomically using private directory/file
+permissions. Cache loading checks the root's device and inode, exclusion/keep
+rules, retained-file setting, and format version. Incompatible or corrupt caches
+fall back to a fresh scan. Imported reports and incomplete scans are not cached.
+Use **Rescan** to refresh changed sizes within the current session. Cached reports
+and background refreshes support demo cleanup only until a fresh scan completes.
+A refresh preserves browser history and the selected folder path; a revision
+invalidates folder queries and selections when the new inventory is ready.
+Background refresh keeps the completed database available while a separate
+working database is scanned. Both readers use bounded caches; refreshing no
+longer retains two full JavaScript trees or needs a 12 GiB inventory heap.
+Completed SQLite caches open by reading metadata rather than parsing the whole
+inventory. Browser Back/Forward restores the
+corresponding live inventory and folder without starting a scan. Switching
+inventories always returns cleanup to demo mode.
+Folder views stay cached in browser memory for the session; moving between Home
+and Data reuses the shared disk inventory and previously opened views. All
+destinations show the same two-line summary as the loading screen: name and total
+capacity, then percent full and free space, red at 90% used. The compact menu
+omits paths and progress bars; running destinations show a spinner and estimated
+scan percentage, refreshed every 1.5 seconds. Paths remain available on hover.
+**Scan** starts an unscanned destination; selecting an existing destination returns
+to its inventory. Scans can run concurrently. Home
+shows the usage of its containing disk, rather than a percentage of folder size.
 File-heavy folders keep the selected chart visible. When no individual file uses 1% of the direct-file space, the chart combines the files into one group; significant outliers stay separate. The sidebar summarizes the measured file count, space used, average, and largest size on disk. **File size breakdown…** opens an optional measurement dialog without replacing the chart.
 
 Drag the divider between the chart and file list to resize them, or focus it and use the arrow keys. The default split is 70/30, with minimum widths of 320 px for the chart and 280 px for the list. Narrow screens stack the panes vertically. Layouts are remembered separately for each orientation in this browser.
@@ -62,7 +249,7 @@ they never move files. Native cleanup always moves to Trash and starts in demo m
 Finder accepts only inventory directory IDs, report locations or saved shortlist paths,
 rechecks the live directory, resolves macOS path aliases, and runs `/usr/bin/open -R`
 without a shell. Missing folders, permission failures and launch errors show red toasts.
-Start the Node.js runner with `node packages/whyfull/dist/cli.mjs --view --report file.json`
+Start the Node.js runner with `node packages/whyfull/dist/cli.mjs --ui --report file.json`
 (or `pnpm viewer --report file.json`) and keep its terminal running while using the UI.
 Folder counts,
 scan metadata and explanations live in the details/rules dialogs; selection
@@ -104,8 +291,10 @@ refresh is explicit. Saved reports are never used to estimate missing buckets or
 silently replaced. **Show map** restores the treemap/radial view.
 
 File groups use compact counts such as **14k files**, with allocated size beneath.
-Large treemap blocks scale up the count for readability. Tooltips and accessible
-labels retain exact counts; file-only groups preserve counts across chart limits.
+Large treemap blocks scale up the count for readability. Charts have no native
+hover tooltips; the footer shows the hovered path and size, and right-click →
+**Inspect** or the list's inspect button opens details. Accessible labels retain
+exact counts; file-only groups preserve counts across chart limits.
 
 Sizes use whole MiB and at most one decimal for GiB/TiB. When the current folder
 or report section reaches a TiB, GiB values use whole numbers too. Zooming into a
@@ -113,11 +302,92 @@ smaller folder restores useful precision; charts and the ranked list share a sca
 
 **Analysis** in the toolbar (also in the ellipsis menu) runs individual read-only commands: disk usage,
 macOS volume information, local snapshot listing, system storage information, and
-the whyfull known-cache report. Each command has a play button, live stdout/stderr,
-exit status, stop control, and copyable observation context. Commands run on the local Node.js
-runner by fixed ID without a shell or arbitrary command input. Traces stay in memory
+inventory suggestions. System commands have a play button, live stdout/stderr,
+exit status, stop control, and copyable observation context. They run on the local Node.js
+runner by fixed ID without a shell or arbitrary command input. Inventory suggestions
+reuse the completed disk size tree in memory and never launch a CLI scan. Traces stay in memory
 for the runner session, are bounded, and survive switching commands or closing the
 panel. Failed commands show a red toast; long-running commands have timeouts.
+
+## Storage report and suggested actions
+
+**Suggestions** in the top-right ellipsis menu opens the storage report in a
+modal above the disk explorer in both the desktop app and browser viewer. Close
+it or press Escape to return to the same disk view. Imported CLI reports open
+with this modal above their measured-location table. Suggestions are generated
+automatically after the disk scan completes, using the measured JSON inventory.
+They also work with completed saved inventories. **Refresh suggestions** reuses
+those recorded sizes; use **Rescan** in the disk viewer to measure filesystem changes.
+
+Findings appear in a compact table grouped by cleanup tier, with location,
+size, and suggested action in each row. Click **Size** or choose **Largest first**
+or **Smallest first** to rank all recommendations across tiers. Unknown sizes stay
+last. Choose **Cleanup tier** to return to grouped findings. Expand a location for its path, commands,
+and measured subfolders; the row's ellipsis menu offers folder actions and copying.
+Search by name, path, category, or suggested action. Measurement notes and inventory
+scope are available under **Report details** in the footer. Known-location rules
+match only paths recorded in the inventory, including macOS Data-volume aliases.
+Excluded or unreadable descendants retain partial-size caveats. Unmatched caches,
+large folders, and possible worktree folders receive review advice. Git state,
+activity, pnpm sharing, and simulator metadata require separate validation; they
+are not inferred from directory sizes.
+Each folder and measured subfolder offers **Explore on disk**, **Finder** on
+macOS, and **Path** to copy its location. Exploration reuses a covering disk
+inventory where available, and preserves the report for returning to the findings.
+
+**Copy report**, **Copy filtered**, and **Copy finding** include measured
+facts, suggested actions, command references, and a request to validate the actions
+before cleanup. Inventory-based reports include their source root, completion
+time, and limitations. **Copy command** copies an individual command without running it.
+Imported recommendation text remains reference material. Sizes may overlap and
+are not guaranteed reclaimable space; partial measurements remain lower bounds.
+
+The same postprocessing is available programmatically without rescanning:
+
+```js
+import { loadDiskSnapshot, analyzeSnapshot, forPlatform } from "whyfull"
+
+const inventory = await loadDiskSnapshot("disk.json")
+const report = analyzeSnapshot(inventory, forPlatform())
+```
+
+## Scan progress
+
+The drive-capacity card uses the containing filesystem's system statistics,
+independent of the growing inventory. It shows percent full, used/total capacity,
+and free space immediately, even while discovering folders. Unavailable capacity
+is labeled explicitly. Home and folder scans show their containing disk's usage.
+
+The separate scan bar uses the backend's estimated traversal percentage, with an
+approximation marker. It stays indeterminate until enough stable work samples
+exist. Elapsed time and file count appear in one compact line; a coarse remaining
+time range appears when available. **Scan details** contains space found, the
+known folder queue, scan speed, and current path.
+After at least six seconds of observations, the backend estimates remaining work only when both
+halves of a recent ten-second window show a consistently shrinking folder queue.
+It accounts for new child folders found per completed folder, and turns the recent
+net queue-drain rate into a coarse remaining-time range. A new discovery burst,
+insufficient samples, unstable throughput,
+or a slow directory withdraws the estimate and returns the scan bar to its
+indeterminate state. Drive fullness remains independent of scan progress.
+
+Workers send activity updates while processing large directories, not just after
+returning their final totals. These updates feed loading metrics without being
+added twice to the inventory. After six seconds without new results, the UI shows
+the current path and a filesystem-wait message. A scan can legitimately wait on
+slow storage; the bar does not advance on a timer or promise a deadline.
+The browser also withdraws a cached scan percentage and scan speed after six seconds
+without a fresh server response, replacing them with a waiting-for-updates state.
+Fresh responses automatically restore the current scan state.
+
+Found bytes divided by used disk space do not imply time completion. Folder scans
+do not cover the whole volume, excluded folders and
+shared blocks affect byte totals, and a large archive can take one metadata read
+while a tiny-file cache takes millions.
+
+Comparable implementations separate unknown-total discovery from measurable
+work: [Czkawka marks collecting files/folders as indeterminate](https://github.com/qarmin/czkawka/blob/master/czkawka_core/src/common/progress_data.rs),
+and [WinDirStat's progress control uses a marquee when its total is unknown](https://github.com/windirstat/windirstat/blob/master/windirstat/Dialogs/ProgressDlg.cpp).
 
 ## Scanner
 
@@ -160,8 +430,9 @@ not a complete per-file index: it stores 32 direct files per directory and group
 the rest. Live browsing can explicitly read all direct files on demand, with
 per-name sizes that can include shared hard-link blocks. Chart depth and node
 counts are bounded independently of scan size. The searchable, paged list can
-reach every retained directory. A snapshot stores the entire directory inventory
-and still requires memory proportional to that inventory when loaded.
+reach every retained directory. A JSON snapshot stores the entire directory inventory
+and requires memory proportional to that inventory when imported. Completed
+SQLite inventories load metadata and queried pages without hydrating the tree.
 
 ## Data and API
 
@@ -171,7 +442,7 @@ exports `DiskScanner`, `scanFilesystem`, `startViewer`, asynchronous
 `saveDiskSnapshot`/`loadDiskSnapshot`, and policy helpers.
 
 ```js
-import { scanFilesystem, saveDiskSnapshot } from "whyfull"
+import { scanFilesystem, saveDiskSnapshot, releaseDiskSnapshot } from "whyfull"
 
 const snapshot = await scanFilesystem({
   root: "/path/to/folder",
@@ -180,19 +451,24 @@ const snapshot = await scanFilesystem({
   policy: { keep: [], exclude: [] },
   signal: new AbortController().signal,
 })
-await saveDiskSnapshot(snapshot, "/tmp/new-disk-snapshot.json")
+try {
+  await saveDiskSnapshot(snapshot, "/tmp/new-disk-snapshot.json")
+} finally {
+  releaseDiskSnapshot(snapshot)
+}
 ```
 
 Snapshots are ordinary JSON streamed on write and parsed incrementally on read.
 The canonical output places one directory per line so the reader can use native
 `JSON.parse` per record; minified and pretty JSON use a general streaming parser.
 This avoids V8's individual-string size limit. Existing files are never replaced.
-Incomplete/cancelled scans remain labelled incomplete when opened later. Save
-snapshots after a scan completes or is cancelled; do not serialize a changing
+Older incomplete/cancelled JSON snapshots remain labelled incomplete when opened
+later. New SQLite-backed scans must complete before JSON export; failed or
+cancelled work never replaces the completed cache. Do not serialize a changing
 inventory. Snapshot imports never continue scanning or read live file lists.
 
-`whyfull --view --report file.json` and `pnpm viewer --report file.json` accept both
-report formats; a single positional file after `--view` works too. The UI drive
+`whyfull --ui --report file.json` and `pnpm viewer --report file.json` accept both
+report formats; a single positional file after `--ui` works too. The UI drive
 menu includes **Open report…**. Imports stream to owner-only temporary files
 (up to 8 GiB), validate before replacing the current document, and clean up those
 files afterward. CLI target/cache reports are bounded to 64 MiB, show sections,
@@ -314,9 +590,9 @@ an already open viewer. An asset manifest allows hashed JS/CSS,
 local fonts and SPA navigation fallbacks. Inline shell scripts receive CSP hashes.
 The chart rings load lazily; the horizontal SVG treemap has no chart dependency.
 Bundled dependency license texts are included in `dist/viewer/THIRD_PARTY.txt`.
-Use Node 22.18+ and pnpm 9 for development; packaged CLI code targets Node 18.15+.
+Use Node 22.18+ and pnpm 9 for development. The packaged CLI also requires Node 22.18+; desktop and portable builds bundle Node.
 
-For UI development, start a live backend with `--view --no-open`, then run
+For UI development, start a live backend with `--ui --no-open`, then run
 `WHYFULL_DEV_API=http://127.0.0.1:<backend-port> pnpm --filter @whyfull/viewer dev`.
 Open `http://127.0.0.1:3000/#<token-from-backend-url>`. The Vite proxy targets the
 explicit loopback backend. For packaged verification, run `pnpm build` and use

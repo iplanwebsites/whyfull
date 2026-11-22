@@ -1,7 +1,12 @@
 // Private parent/child protocol. Never emit the bearer URL to application logs.
 import { homedir } from "node:os"
-import { startViewer } from "./engine/index.mjs"
-const viewer = await startViewer({ root: homedir(), open: false })
+import { ScanCache, startViewer } from "./engine/index.mjs"
+const latestRoot = await ScanCache.forConfig().latestRoot()
+const viewer = await startViewer({
+  root: latestRoot ?? homedir(),
+  scanOnStart: true,
+  open: false,
+})
 process.stdout.write(JSON.stringify({ url: viewer.url }) + "\n")
 let closing = false
 async function close() {

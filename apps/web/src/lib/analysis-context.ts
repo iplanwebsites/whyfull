@@ -133,3 +133,45 @@ export function reportObservations(report: WhyfullJsonReport): Observation[] {
     ),
   ]
 }
+
+/**
+ * Finding counts per section. Inventory-derived reports record untracked
+ * caches, large folders and worktrees as targets (id "inventory:…"), not in
+ * the CLI's cacheHogs/discovered/worktrees sections, so count both.
+ */
+export function coverageSummary(report: WhyfullJsonReport) {
+  const inventory = report.targets.filter((item) =>
+    item.id.startsWith("inventory:")
+  )
+  const inGroup = (group: string) =>
+    inventory.filter((item) => item.group === group).length
+  const section = (count: number, included: boolean | undefined) =>
+    count || included ? `${count} found` : "Not included"
+  return [
+    ["Known locations", `${report.targets.length - inventory.length} checked`],
+    [
+      "Untracked caches",
+      section(
+        (report.cacheHogs?.dirs.length ?? 0) + inGroup("Untracked caches"),
+        report.options?.cacheScan
+      ),
+    ],
+    [
+      "Large folders",
+      section(
+        (report.discovered?.dirs.length ?? 0) + inGroup("Large folders"),
+        report.options?.discover
+      ),
+    ],
+    [
+      "Git worktrees",
+      section(
+        (report.worktrees?.clusters.reduce(
+          (sum, item) => sum + item.worktrees.length,
+          0
+        ) ?? 0) + inGroup("Worktrees"),
+        report.options?.worktrees
+      ),
+    ],
+  ] as const
+}

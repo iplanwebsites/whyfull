@@ -8,7 +8,7 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
 } from "@workspace/ui/components/dropdown-menu"
-import { toast } from "@workspace/ui/components/sonner"
+import { toast } from "@/lib/notifications"
 import { api, formatSize } from "@/lib/api"
 
 export function MinimumFileSize({ value }: { value: number }) {

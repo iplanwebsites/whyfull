@@ -67,7 +67,10 @@ test("viewer file loader accepts both generated report formats and rejects inval
     const snapshot = await scanFilesystem({ root, workers: 1 }),
       disk = join(root, "disk.json")
     await saveDiskSnapshot(snapshot, disk)
-    assert.deepEqual((await loadViewerFile(disk)).snapshot, snapshot)
+    assert.deepEqual(
+      (await loadViewerFile(disk)).snapshot,
+      JSON.parse(JSON.stringify(snapshot))
+    )
     const report = reportFor(root),
       file = join(root, "report.json")
     writeFileSync(file, JSON.stringify(report))
@@ -247,6 +250,49 @@ test("runner imports reports atomically, exports original data, and scans select
     assert.equal(inspection.cleanup.mode, "demo")
     assert.equal(inspection.source.kind, "live")
 
+    for (let i = 0; i < 200 && viewer.snapshot.status === "scanning"; i++)
+      await new Promise((resolve) => setTimeout(resolve, 10))
+    const inventoryReport = (await get("analysis")).report
+    assert.equal(inventoryReport.inventory.root, childPath)
+    assert.equal(
+      inventoryReport.targets.find((item) => item.path === childPath).bytes,
+      viewer.snapshot.directories[0].bytes
+    )
+
+    const reportLocation = {
+      generatedAt: inventoryReport.generatedAt,
+      path: childPath,
+    }
+    assert.equal(
+      (
+        await post("analysis/location", {
+          ...reportLocation,
+          action: "finder",
+        })
+      ).status,
+      200
+    )
+    assert.deepEqual(opened, [root, childPath])
+    for (const input of [
+      { ...reportLocation, path: other, action: "scan" },
+      { ...reportLocation, generatedAt: "stale-report", action: "finder" },
+      { ...reportLocation, action: "shell", command: "echo unsafe" },
+    ])
+      assert.equal((await post("analysis/location", input)).status, 400)
+    const explored = await post("analysis/location", {
+      ...reportLocation,
+      action: "scan",
+    })
+    assert.equal(explored.status, 200)
+    const exploredStatus = await explored.json()
+    assert.equal(exploredStatus.navigation.path, childPath)
+    assert.equal(
+      exploredStatus.documentId,
+      inspection.documentId,
+      "exploration reuses the existing disk inventory"
+    )
+    assert.deepEqual((await get("analysis")).report, inventoryReport)
+
     const switched = await post("scan-root", { root: other })
     assert.equal(switched.status, 200)
     assert.equal((await switched.json()).snapshotMode, false)
@@ -339,7 +385,7 @@ test("large file directories report the true count and can start a scoped live l
 })
 
 test(
-  "ui and app launch the bundled viewer, open the default browser, and preserve report/no-open options",
+  "--ui, --view, ui, and app launch the bundled viewer, open the default browser, and preserve report/no-open options",
   { skip: process.platform === "win32" },
   async () => {
     const { spawn } = await import("node:child_process")
@@ -354,13 +400,20 @@ test(
     // Observe the OS opener contract without launching real browsers in tests.
     writeFileSync(
       join(root, process.platform === "darwin" ? "open" : "xdg-open"),
-      `#!${process.execPath}\nrequire('node:fs').writeFileSync(${JSON.stringify(launchLog)}, JSON.stringify(process.argv.slice(2)))\n`,
+      `#!${process.execPath}\nconst fs = require('node:fs'); const file = ${JSON.stringify(launchLog)}; fs.writeFileSync(file + '.tmp', JSON.stringify(process.argv.slice(2))); fs.renameSync(file + '.tmp', file)\n`,
       { mode: 0o700 }
     )
     try {
       for (const entry of [
+        { args: ["--ui", "--root", root], opens: true, kind: "live" },
+        { args: ["--view", "--root", root], opens: true, kind: "live" },
         { args: ["ui", "--root", root], opens: true, kind: "live" },
         { args: ["app", "--root", root], opens: true, kind: "live" },
+        {
+          args: ["--view", "--no-open", "--root", root],
+          opens: false,
+          kind: "live",
+        },
         {
           args: ["ui", "--no-open", "--root", root],
           opens: false,
@@ -480,7 +533,10 @@ test("viewer hides negligible files by default, preserves chart totals and IDs, 
       (await fetch(`${url.origin}/api/${path}`, { headers })).json()
     const normal = await get("directory?id=0")
     assert.deepEqual(
-      normal.entries.map((entry) => entry.name).sort(),
+      normal.entries
+        .map((entry) => entry.name)
+        .filter((name) => name !== ".whyfull")
+        .sort(),
       ["boundary.bin", "movie.bin", "small-project"].sort()
     )
     assert.equal(normal.ownFiles, 9, "filtered files remain measured")
@@ -505,7 +561,10 @@ test("viewer hides negligible files by default, preserves chart totals and IDs, 
     assert.equal(search.entries.length, 1)
     assert.equal(search.entries[0].name, ".DS_Store")
     const all = await get("directory?id=0&files=all")
-    assert.equal(all.entries.length, 10)
+    assert.equal(
+      all.entries.filter((entry) => entry.name !== ".whyfull").length,
+      10
+    )
     assert.ok(all.entries.some((entry) => entry.name === "tiny.txt"))
     const project = normal.entries.find(
       (entry) => entry.name === "small-project"
@@ -552,7 +611,9 @@ test("viewer hides negligible files by default, preserves chart totals and IDs, 
     assert.equal((await get("status")).viewer.minFileBytes, 1024 ** 2)
     assert.equal((await prefs(0)).status, 200)
     assert.equal(
-      (await get("directory?id=0")).entries.length,
+      (await get("directory?id=0")).entries.filter(
+        (entry) => entry.name !== ".whyfull"
+      ).length,
       10,
       "show everything reveals all retained files"
     )
@@ -578,7 +639,7 @@ test("viewer hides negligible files by default, preserves chart totals and IDs, 
         .minFileBytes,
       10 * 1024 ** 2
     )
-    const snapshot = viewer.snapshot
+    const snapshot = JSON.parse(JSON.stringify(viewer.snapshot))
     await viewer.close()
     viewer = await startViewer({
       root,

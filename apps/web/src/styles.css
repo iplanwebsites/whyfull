@@ -1,10 +1,100 @@
 @import "@workspace/ui/globals.css";
 @source './**/*.{ts,tsx}';
+@theme inline {
+  --color-highlight: var(--highlight);
+  --color-caution: var(--caution);
+}
 :root {
   color-scheme: light;
 }
 :root.dark {
   color-scheme: dark;
+}
+
+/*
+ * Viewer theme: warm paper and ink with an olive accent, matching
+ * whyfull.app (apps/brochure/src/style.css). Overrides the stock shadcn
+ * tokens from @workspace/ui for this app only. Text pairs are WCAG AA:
+ * muted text is >= 4.7:1 on background, muted and card surfaces.
+ */
+:root {
+  --radius: 0.5rem;
+  --background: #faf9f2;
+  --foreground: #292b23;
+  --card: #fffefa;
+  --card-foreground: #292b23;
+  --popover: #fffefa;
+  --popover-foreground: #292b23;
+  --primary: #626d30;
+  --primary-foreground: #faf9f2;
+  --secondary: #f1f0e6;
+  --secondary-foreground: #292b23;
+  --muted: #f1f0e6;
+  --muted-foreground: #67695b;
+  --accent: #ecedd6;
+  --accent-foreground: #292b23;
+  --destructive: #a83f2a;
+  --border: #dedfd1;
+  --input: #d3d4c4;
+  --ring: #626d30;
+  --chart-1: #626d30;
+  --chart-2: #c9b27c;
+  --chart-3: #b4674a;
+  --chart-4: #6c7a86;
+  --chart-5: #8fa287;
+  --sidebar: #f5f4ea;
+  --sidebar-foreground: #292b23;
+  --sidebar-primary: #626d30;
+  --sidebar-primary-foreground: #faf9f2;
+  --sidebar-accent: #ecedd6;
+  --sidebar-accent-foreground: #292b23;
+  --sidebar-border: #dedfd1;
+  --sidebar-ring: #626d30;
+  /* Brand highlight (the site's marker colour) and the chart gutter. */
+  --highlight: #e2e99a;
+  /* "Marked as useless" and other soft warnings (ochre, 4.6:1 on paper). */
+  --caution: #8a6414;
+  --chart-gutter: #eceade;
+}
+.dark {
+  --background: #1c1d18;
+  --foreground: #ecebe0;
+  --card: #24251f;
+  --card-foreground: #ecebe0;
+  --popover: #24251f;
+  --popover-foreground: #ecebe0;
+  --primary: #b7c26b;
+  --primary-foreground: #1c1d18;
+  --secondary: #2c2d25;
+  --secondary-foreground: #ecebe0;
+  --muted: #2c2d25;
+  --muted-foreground: #a9aa98;
+  --accent: #33352a;
+  --accent-foreground: #ecebe0;
+  --destructive: #e38b72;
+  --border: #37382e;
+  --input: #42443a;
+  --ring: #b7c26b;
+  --chart-1: #b7c26b;
+  --chart-2: #c9b27c;
+  --chart-3: #c98468;
+  --chart-4: #8796a3;
+  --chart-5: #9fb196;
+  --sidebar: #21221c;
+  --sidebar-foreground: #ecebe0;
+  --sidebar-primary: #b7c26b;
+  --sidebar-primary-foreground: #1c1d18;
+  --sidebar-accent: #33352a;
+  --sidebar-accent-foreground: #ecebe0;
+  --sidebar-border: #37382e;
+  --sidebar-ring: #b7c26b;
+  --highlight: #e2e99a;
+  --caution: #d9ab4f;
+  --chart-gutter: #171813;
+}
+::selection {
+  background: var(--highlight);
+  color: #292b23;
 }
 body {
   margin: 0;
@@ -16,7 +106,7 @@ button {
 .disk-workspace {
   display: flex;
   flex-direction: column;
-  height: 100svh;
+  height: 100%;
   overflow: hidden;
 }
 .explorer-grid {
@@ -25,10 +115,31 @@ button {
 .ranked-list {
   overscroll-behavior: contain;
 }
+.scan-progress [data-slot="progress-track"] {
+  height: 0.5rem;
+}
+.scan-progress[data-indeterminate="true"] [data-slot="progress-indicator"] {
+  width: 32%;
+  animation: scan-discovery 1.8s ease-in-out infinite;
+}
+@keyframes scan-discovery {
+  from {
+    transform: translateX(-110%);
+  }
+  to {
+    transform: translateX(320%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scan-progress[data-indeterminate="true"] [data-slot="progress-indicator"] {
+    animation: none;
+    transform: translateX(100%);
+  }
+}
 @media (max-width: 767px) {
   .disk-workspace {
     height: auto;
-    min-height: 100svh;
+    min-height: 100%;
     overflow: visible;
   }
   .explorer-grid {
@@ -38,12 +149,9 @@ button {
   }
 }
 
-/* Quiet neutral gutters; tile edges come from each branch's own hue. */
+/* Quiet warm gutters; tile edges come from each branch's own hue. */
 .explorer-chart {
-  background: #e4e8ef;
-}
-.dark .explorer-chart {
-  background: #202630;
+  background: var(--chart-gutter);
 }
 
 /* Keep failures visibly red in either theme, including native Finder errors. */

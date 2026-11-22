@@ -1,7 +1,7 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
 import { fileURLToPath } from "node:url"
-import { loadDiskSnapshot } from "../../../packages/whyfull/src/disk-snapshot.ts"
+import { loadDiskSnapshot } from "../../../packages/whyfull/dist/index.mjs"
 
 test("fictional demo imports into the real viewer with consistent inventory totals", async () => {
   const data = await loadDiskSnapshot(

@@ -1,3 +1,4 @@
+import { fetchViewer as viewerFetch } from "./viewer-connection"
 import type {
   ViewerStatus,
   DirectoryView,
@@ -42,23 +43,6 @@ export class ApiError extends Error {
     readonly status: number
   ) {
     super(message)
-  }
-}
-
-async function viewerFetch(path: string, init?: RequestInit) {
-  try {
-    return await fetch(path, {
-      ...init,
-      mode: "same-origin",
-      credentials: "omit",
-      redirect: "error",
-      cache: "no-store",
-    })
-  } catch (error) {
-    if (error instanceof Error && error.name === "AbortError") throw error
-    throw new Error(
-      "The viewer is offline. Run whyfull --view with Node.js and open the URL printed in your terminal."
-    )
   }
 }
 

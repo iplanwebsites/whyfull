@@ -15,15 +15,19 @@ import {
 } from "@workspace/ui/components/resizable"
 import { useIsMobile } from "@workspace/ui/hooks/use-mobile"
 import { MinimumFileSize } from "./minimum-file-size"
-import { toast } from "@workspace/ui/components/sonner"
+import { toast } from "@/lib/notifications"
 import { RunnerControls, useDrives } from "./runner-controls"
-import { DiagnosticsDialog } from "./diagnostics-dialog"
 import { CleanupShortlist, TrashShortlistButton } from "./cleanup-shortlist"
 import { FileDistribution } from "./file-distribution"
+import { ReportDialog, useSuggestions } from "./report-page"
+import { reportFindings } from "@/lib/report-actions"
 import { ReportViewer } from "./report-viewer"
+import { ScanState } from "./scan-state"
+import { ScanTiming } from "./scan-timing"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import {
+  FileText,
   HardDrive,
   Folder,
   File,
@@ -32,9 +36,9 @@ import {
   Search,
   ArrowUp,
   Download,
-  Terminal,
   LayoutGrid,
   ChartPie,
+  ChartColumn,
   Sun,
   Moon,
   RefreshCw,
@@ -54,6 +58,11 @@ import {
   InputGroupInput,
 } from "@workspace/ui/components/input-group"
 import { Badge } from "@workspace/ui/components/badge"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@workspace/ui/components/tooltip"
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -112,8 +121,10 @@ import type {
   TrashPlan,
 } from "@/lib/api"
 import { copyPath } from "@/lib/clipboard"
-import { chartColors, colorFor } from "@/lib/chart-colors"
+import { chartColors, colorFor, isSafeTier } from "@/lib/chart-colors"
+import { tierLabel } from "@/lib/tiers"
 import { Treemap } from "./treemap"
+import { directoryLocation } from "@/lib/destinations"
 const loadSunburst = () => import("./sunburst")
 type SunburstComponent = (typeof import("./sunburst"))["default"]
 
@@ -129,7 +140,6 @@ export function Explorer() {
     client = useQueryClient()
   const [page, setPage] = useState(0),
     [shortlist, setShortlist] = useState(false),
-    [diagnostics, setDiagnostics] = useState(false),
     [selected, setSelected] = useState<ViewEntry | null>(null),
     [hover, setHover] = useState<ViewEntry | null>(null),
     [changing, setChanging] = useState(false),
@@ -147,12 +157,21 @@ export function Explorer() {
     queryKey: ["status"],
     queryFn: ({ signal }) => api<ViewerStatus>("status", undefined, signal),
     refetchInterval: (query) =>
-      query.state.data?.status === "scanning" ? 1500 : 5000,
+      query.state.data?.status === "scanning" ||
+      query.state.data?.cache?.refreshing
+        ? 1500
+        : 5000,
     enabled: hasToken(),
   })
   const drives = useDrives()
-  const s = status.data,
-    view = search.view ?? s?.viewer.view ?? "treemap",
+  const s = status.data
+  const analysis = useSuggestions(s)
+  const suggestionCount = useMemo(
+    () =>
+      analysis.data?.report ? reportFindings(analysis.data.report).length : 0,
+    [analysis.data]
+  )
+  const view = search.view ?? s?.viewer.view ?? "treemap",
     sort = search.sort ?? s?.viewer.sort ?? "size"
   useEffect(() => {
     if (view !== "sunburst" || Sunburst) return
@@ -172,12 +191,13 @@ export function Explorer() {
     queryKey: [
       "directory",
       s?.documentId,
-      search.id,
-      search.path,
-      search.q,
-      search.files,
+      s?.revision,
+      directoryLocation(search.path, search.id),
+      search.q ?? "",
+      search.files ?? false,
       sort,
       page,
+      s?.viewer.minFileBytes,
     ],
     queryFn: ({ signal }) =>
       api<DirectoryView>(
@@ -189,8 +209,18 @@ export function Explorer() {
     // IDs belong to a document, so never reuse a previous drive/report's result.
     placeholderData: (previous, query) =>
       query?.queryKey[1] === s?.documentId ? previous : undefined,
-    enabled: !!s && s.source.kind !== "report" && !changing,
-    refetchInterval: s?.status === "scanning" ? 2500 : false,
+    // Completed scan views stay valid until an explicit action invalidates them.
+    // Keep the small folder summaries in memory for this browser session.
+    staleTime: Infinity,
+    gcTime: Infinity,
+    // Partial totals cannot be compared meaningfully. Fetch the inventory once
+    // the scan has finished instead of repeatedly redrawing growing folders.
+    enabled:
+      !!s &&
+      s.source.kind !== "report" &&
+      s.status === "complete" &&
+      !changing &&
+      (!search.document || search.document === s.documentId),
   })
   const d = directory.data
   const manyFiles = !!d && d.ownFiles > d.retainedFiles
@@ -300,6 +330,7 @@ export function Explorer() {
     )
   }
   async function documentChanged(next: ViewerStatus) {
+    await client.cancelQueries({ queryKey: ["status"] })
     restored.current = true
     setSelected(null)
     setHover(null)
@@ -310,20 +341,44 @@ export function Explorer() {
       search: (prev) => ({
         ...prev,
         id: 0,
-        path: next.source.kind === "report" ? undefined : next.root,
+        path:
+          next.source.kind === "report"
+            ? undefined
+            : (next.navigation?.path ?? next.root),
+        document: next.source.kind !== "report" ? next.documentId : undefined,
         q: undefined,
         files: undefined,
         panel: undefined,
+        page: undefined,
       }),
     })
     client.setQueryData(["status"], next)
-    client.removeQueries({ queryKey: ["directory"] })
   }
   function url(patch: Partial<typeof search>, replace = false) {
-    void navigate({ search: (prev) => ({ ...prev, ...patch }), replace })
+    void navigate({
+      search: (prev) => ({
+        ...prev,
+        document: s && s.source.kind !== "report" ? s.documentId : undefined,
+        ...patch,
+      }),
+      replace,
+    })
     setPage(0)
     setSelected(null)
     setHover(null)
+  }
+  function showSuggestions(open = true) {
+    void navigate({
+      search: (previous) => ({
+        ...previous,
+        page: open ? "report" : undefined,
+      }),
+    })
+  }
+  function openDestination(path: string) {
+    url({ id: 0, path, q: undefined, files: undefined, panel: undefined })
+    setContext(null)
+    setPlan(null)
   }
   async function run(action: () => Promise<unknown>) {
     setBusy(true)
@@ -336,6 +391,23 @@ export function Explorer() {
       setBusy(false)
     }
   }
+  async function restartScan() {
+    if (!s) return
+    setChanging(true)
+    try {
+      await run(async () => {
+        const next = await api<ViewerStatus>(
+          s.snapshotMode ? "scan-folder" : "rescan",
+          s.snapshotMode ? { id: "d0" } : {}
+        )
+        if (next.documentId === s.documentId)
+          client.setQueryData(["status"], next)
+        else await documentChanged(next)
+      })
+    } finally {
+      setChanging(false)
+    }
+  }
   async function prefs(patch: Partial<ViewerPreferences>) {
     await api("preferences", patch)
     void client.invalidateQueries({ queryKey: ["status"] })
@@ -343,7 +415,10 @@ export function Explorer() {
   function open(node: ViewEntry) {
     if (node.kind !== "directory") return setSelected(node)
     url({ id: Number(node.id.slice(1)), path: node.path, q: undefined })
-    if (node.path) void run(() => prefs({ lastPath: node.path }))
+    if (node.path)
+      void prefs({ lastPath: node.path }).catch((error) =>
+        toast.error(String(error))
+      )
   }
   function up() {
     const p = d?.crumbs.at(-2)
@@ -368,22 +443,91 @@ export function Explorer() {
   useEffect(() => {
     if (!s || restored.current) return
     restored.current = true
-    if (
+    const restorePath =
       s.source.kind !== "report" &&
       s.root !== s.homeDirectory &&
       search.id === undefined &&
       !search.path &&
-      s.viewer.lastPath
-    )
-      url({ path: s.viewer.lastPath })
+      s.viewer.lastPath &&
+      (s.viewer.lastPath === s.root ||
+        s.viewer.lastPath.startsWith(
+          s.root.endsWith("/") ? s.root : `${s.root}/`
+        ))
+        ? s.viewer.lastPath
+        : undefined
+    if (s.source.kind !== "report" && !search.document)
+      url(
+        { document: s.documentId, path: restorePath ?? search.path ?? s.root },
+        true
+      )
+    else if (restorePath) url({ path: restorePath }, true)
   }, [s])
   useEffect(() => {
-    if (s?.source.kind === "live" && s.status !== "scanning")
+    if (!s || !search.document || search.document === s.documentId || changing)
+      return
+    setChanging(true)
+    void client
+      .cancelQueries({ queryKey: ["status"] })
+      .then(() =>
+        api<ViewerStatus>("open-scan", { documentId: search.document })
+      )
+      .then(async (next) => {
+        await client.cancelQueries({ queryKey: ["status"] })
+        client.setQueryData(["status"], next)
+        setSelected(null)
+        setHover(null)
+        setPage(0)
+      })
+      .catch((error) => {
+        toast.error(error instanceof Error ? error.message : String(error))
+        url({ document: s.documentId, id: 0, path: s.root }, true)
+      })
+      .finally(() => setChanging(false))
+  }, [search.document, s?.documentId, changing])
+  useEffect(() => {
+    setSelected(null)
+    setHover(null)
+    setContext(null)
+    setPlan(null)
+    setPage(0)
+    void client.invalidateQueries({ queryKey: ["shortlist"] })
+    void client.invalidateQueries({ queryKey: ["file-distribution"] })
+  }, [s?.revision, client])
+  const scanStates = useRef(new Map<string, ViewerStatus["status"]>())
+  useEffect(() => {
+    if (!s) return
+    const previous = scanStates.current.get(s.documentId)
+    scanStates.current.set(s.documentId, s.status)
+    if (previous === "scanning" && s.status === "complete")
       void client.invalidateQueries({ queryKey: ["directory", s.documentId] })
+    void client.invalidateQueries({ queryKey: ["drives"] })
   }, [s?.status, s?.documentId, s?.source.kind, client])
+  // Announce suggestions once per scan instead of opening a dialog over the map.
+  const scanned = useRef(new Set<string>())
+  useEffect(() => {
+    if (!s || s.source.kind === "report") return
+    if (s.status === "scanning" || s.cache?.refreshing) {
+      scanned.current.add(s.documentId)
+      return
+    }
+    if (
+      s.status !== "complete" ||
+      !suggestionCount ||
+      !scanned.current.has(s.documentId)
+    )
+      return
+    scanned.current.delete(s.documentId)
+    toast(
+      `${suggestionCount} ${suggestionCount === 1 ? "suggestion" : "suggestions"} ready`,
+      {
+        id: `suggestions-${s.documentId}`,
+        action: { label: "View", onClick: () => showSuggestions() },
+      }
+    )
+  }, [s?.status, s?.documentId, s?.cache?.refreshing, suggestionCount])
   useEffect(() => {
     if (s?.status === "failed")
-      toast.error(s.saveError ?? "The scan could not finish", {
+      toast.error(s.saveError ?? "The scan couldn’t finish", {
         id: "scan-failed",
       })
   }, [s?.status, s?.saveError])
@@ -426,15 +570,62 @@ export function Explorer() {
         </p>
       </main>
     )
-  if (!s) return <main className="disk-workspace" aria-busy="true" />
+  if (!s)
+    return (
+      <ScanState
+        error={status.error?.message}
+        onRestart={() => void status.refetch()}
+      />
+    )
+  const suggestions = (
+    <ReportDialog
+      open={search.page === "report"}
+      onOpenChange={showSuggestions}
+      status={s}
+      onChanged={documentChanged}
+    />
+  )
   if (s.source.kind === "report")
     return (
-      <ReportViewer
-        key={s.documentId}
-        status={s}
-        onChanged={documentChanged}
-        onPendingChange={setChanging}
-      />
+      <>
+        {suggestions}
+        <ReportViewer
+          key={s.documentId}
+          status={s}
+          onChanged={documentChanged}
+          onPendingChange={setChanging}
+          onReport={() => showSuggestions()}
+        />
+      </>
+    )
+  if (changing || s.status !== "complete" || (!d && !directory.error))
+    return (
+      <>
+        {suggestions}
+        <ScanState
+          status={s}
+          lastUpdatedAt={status.dataUpdatedAt}
+          changing={changing}
+          busy={busy}
+          controls={
+            <RunnerControls
+              path={search.path}
+              status={s}
+              disabled={busy}
+              onChanged={documentChanged}
+              onNavigate={openDestination}
+              onPendingChange={setChanging}
+            />
+          }
+          onStop={() =>
+            void run(async () => {
+              const next = await api<ViewerStatus>("cancel", {})
+              client.setQueryData(["status"], next)
+            })
+          }
+          onRestart={() => void restartScan()}
+        />
+      </>
     )
   const focus = selected ?? d?.node,
     canAct =
@@ -446,6 +637,7 @@ export function Explorer() {
     demo = s.cleanup.mode === "demo"
   return (
     <ContextMenu>
+      {suggestions}
       <ContextMenuTrigger
         render={<div className="disk-workspace" />}
         onContextMenuCapture={contextTarget}
@@ -459,9 +651,11 @@ export function Explorer() {
       >
         <header className="flex shrink-0 flex-wrap items-center gap-2 border-b px-3 py-2">
           <RunnerControls
+            path={search.path}
             status={s}
             disabled={busy}
             onChanged={documentChanged}
+            onNavigate={openDestination}
             onPendingChange={setChanging}
           />
           <Button
@@ -478,9 +672,12 @@ export function Explorer() {
             <BreadcrumbList className="flex-nowrap gap-1">
               {d?.crumbs
                 .filter(
-                  (crumb, index) =>
+                  // The location menu already names the scan root, so only
+                  // show it here as a way back from a subfolder.
+                  (crumb, index, crumbs) =>
                     index !== 0 ||
-                    !drives.data?.some((drive) => drive.id === crumb.path)
+                    (crumbs.length > 1 &&
+                      !drives.data?.some((drive) => drive.id === crumb.path))
                 )
                 .map((crumb, i) => (
                   <BreadcrumbItem key={crumb.id}>
@@ -521,7 +718,7 @@ export function Explorer() {
               {d.node.mark === "trash" ? (
                 <Trash2 className="size-3 text-destructive" />
               ) : (
-                <Flag className="size-3 text-amber-600" />
+                <Flag className="size-3 text-caution" />
               )}
             </span>
           )}
@@ -531,25 +728,37 @@ export function Explorer() {
           >
             {formatSize(d?.node.value ?? s.bytes)}
           </span>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setDiagnostics(true)}
-          >
-            <Terminal />
-            Analysis
+          <Button variant="outline" size="sm" onClick={() => showSuggestions()}>
+            <FileText />
+            Suggestions
+            {suggestionCount > 0 && (
+              <span className="tabular-nums text-muted-foreground">
+                {suggestionCount}
+              </span>
+            )}
           </Button>
           <TrashShortlistButton
             documentId={s.documentId}
             onClick={() => setShortlist(true)}
           />
-          <Badge
-            variant="outline"
-            className={demo ? "text-emerald-700" : "text-destructive"}
-          >
-            <Eye size={12} />
-            {demo ? "Demo" : "Real Trash"}
-          </Badge>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <span
+                  tabIndex={0}
+                  className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring ${demo ? "text-muted-foreground" : "font-medium text-destructive"}`}
+                />
+              }
+            >
+              <Eye className="size-3" />
+              {demo ? "Demo" : "Real Trash"}
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-64">
+              {demo
+                ? "Demo mode: cleanup actions are simulated. No files are moved. Turn it off in the ⋯ menu."
+                : "Cleanup actions move items to the macOS Trash. You can restore them in Finder."}
+            </TooltipContent>
+          </Tooltip>
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
@@ -652,23 +861,15 @@ export function Explorer() {
                 Demo mode
               </DropdownMenuCheckboxItem>
               <DropdownMenuItem
-                disabled={busy || s.snapshotMode}
-                onClick={() =>
-                  void run(() =>
-                    api(s.status === "scanning" ? "cancel" : "rescan", {})
-                  )
-                }
+                disabled={busy || s.snapshotMode || s.cache?.refreshing}
+                onClick={() => void restartScan()}
               >
                 <RefreshCw />
-                {s.status === "scanning" ? "Pause scan" : "Rescan"}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setDiagnostics(true)}>
-                <Terminal />
-                Analysis
+                Rescan
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setShortlist(true)}>
                 <Trash2 />
-                Cleanup shortlist
+                Trash shortlist
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => url({ panel: "rules" })}>
                 <ShieldCheck />
@@ -685,10 +886,34 @@ export function Explorer() {
                 <Download />
                 Export snapshot
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <div className="px-2 py-1 text-[11px] text-muted-foreground tabular-nums">
+                whyfull {__WHYFULL_VERSION__}
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
         </header>
         <main className="flex min-h-0 flex-1 flex-col gap-2 p-2">
+          {(s.cache?.restored || s.cache?.refreshing) && (
+            <div
+              role="status"
+              className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border bg-muted/40 px-3 py-2 text-xs text-muted-foreground"
+            >
+              <span>
+                {s.cache.refreshing
+                  ? "Updating sizes in the background. Browse the saved map while we scan."
+                  : "Showing saved sizes. They may have changed since the last scan."}
+              </span>
+              <span>
+                <ScanTiming status={s} lastUpdatedAt={status.dataUpdatedAt} />
+              </span>
+              {s.cache.completedAt && (
+                <time dateTime={s.cache.completedAt}>
+                  Saved {new Date(s.cache.completedAt).toLocaleString()}
+                </time>
+              )}
+            </div>
+          )}
           <ResizablePanelGroup
             key={isMobile ? "vertical" : "horizontal"}
             orientation={isMobile ? "vertical" : "horizontal"}
@@ -706,7 +931,7 @@ export function Explorer() {
             >
               <section className="flex min-h-0 min-w-0 flex-1 flex-col">
                 <div className="relative min-h-0 flex-1">
-                  {directory.error ? (
+                  {directory.error && !d ? (
                     <div className="p-3">
                       <Button
                         variant="ghost"
@@ -747,11 +972,21 @@ export function Explorer() {
                 </div>
                 <div className="flex h-6 shrink-0 items-center justify-between gap-3 border-t px-2 text-[11px] text-muted-foreground">
                   <span className="truncate">
-                    {hover?.path ?? hover?.name ?? ""}
+                    {hover ? (hover.path ?? hover.name) : ""}
                   </span>
-                  <span className="shrink-0">
-                    {hover ? formatSize(hover.value, d?.node.value) : ""}
-                  </span>
+                  {hover ? (
+                    <span className="shrink-0 tabular-nums">
+                      {formatSize(hover.value, d?.node.value)}
+                    </span>
+                  ) : displayChart?.children?.some(
+                      (entry) =>
+                        isSafeTier(entry.tier) && !entry.kept && !entry.trashed
+                    ) ? (
+                    <span className="flex shrink-0 items-center gap-1.5">
+                      <span className="size-2 rounded-full bg-highlight ring-1 ring-primary" />
+                      Safe to remove
+                    </span>
+                  ) : null}
                 </div>
               </section>
             </ResizablePanel>
@@ -977,6 +1212,17 @@ export function Explorer() {
                             aria-label="Marked for Trash"
                           />
                         )}
+                        {!entry.mark &&
+                          !entry.kept &&
+                          !entry.trashed &&
+                          isSafeTier(entry.tier) && (
+                            <span
+                              role="img"
+                              className="size-2 shrink-0 rounded-full bg-highlight ring-1 ring-primary"
+                              aria-label={`Safe to remove: ${tierLabel(entry.tier)}`}
+                              title={`Safe to remove: ${tierLabel(entry.tier)}`}
+                            />
+                          )}
                         {entry.kept && (
                           <ShieldCheck className="size-3 shrink-0" />
                         )}
@@ -1123,17 +1369,15 @@ export function Explorer() {
         <Dialog open={fileDetails} onOpenChange={setFileDetails}>
           <DialogContent className="max-h-[85vh] overflow-auto sm:max-w-2xl">
             <DialogHeader>
-              <DialogTitle>File size breakdown</DialogTitle>
+              <DialogTitle className="flex items-center gap-2">
+                <ChartColumn className="size-4 text-muted-foreground" />
+                File size breakdown
+              </DialogTitle>
               <DialogDescription>{d?.node.name}</DialogDescription>
             </DialogHeader>
             {d && <FileDistribution directory={d} documentId={s.documentId} />}
           </DialogContent>
         </Dialog>
-        <DiagnosticsDialog
-          open={diagnostics}
-          onOpenChange={setDiagnostics}
-          onReport={documentChanged}
-        />
         <CleanupShortlist
           open={shortlist}
           onOpenChange={setShortlist}
@@ -1157,7 +1401,12 @@ export function Explorer() {
         >
           <DialogContent className="max-h-[80vh] overflow-auto sm:max-w-xl">
             <DialogHeader>
-              <DialogTitle>
+              <DialogTitle className="flex items-center gap-2">
+                {search.panel === "rules" ? (
+                  <ShieldCheck className="size-4 text-muted-foreground" />
+                ) : (
+                  <Info className="size-4 text-muted-foreground" />
+                )}
                 {search.panel === "rules"
                   ? "Keep & exclude rules"
                   : "Scan details"}
@@ -1289,7 +1538,7 @@ export function Explorer() {
                 Keep demo mode
               </Button>
               <Button
-                disabled={!s.cleanup.enabled || s.status === "scanning" || busy}
+                disabled={!s.cleanup.enabled || busy}
                 onClick={() =>
                   void run(async () => {
                     await api("cleanup-mode", { mode: "trash" })

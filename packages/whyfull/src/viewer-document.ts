@@ -64,6 +64,26 @@ export function validateViewerReport(value: unknown): WhyfullJsonReport {
     report.summary.totalsMayOverlap !== true
   )
     throw new Error("Not a supported whyfull JSON report")
+  if (
+    report.inventory &&
+    (typeof report.inventory.root !== "string" ||
+      typeof report.inventory.startedAt !== "string" ||
+      typeof report.inventory.completedAt !== "string" ||
+      report.inventory.basis !== "allocated-bytes" ||
+      !Array.isArray(report.inventory.limitations) ||
+      report.inventory.limitations.some((note) => typeof note !== "string"))
+  )
+    throw new Error("Invalid inventory provenance")
+  if (
+    report.localContext !== undefined &&
+    (!report.localContext ||
+      typeof report.localContext !== "object" ||
+      typeof report.localContext.userInstructions !== "string" ||
+      typeof report.localContext.computerInstructions !== "string" ||
+      report.localContext.userInstructions.length > 24000 ||
+      report.localContext.computerInstructions.length > 24000)
+  )
+    throw new Error("Invalid personal guidance in report")
   for (const target of report.targets) {
     if (
       !target ||

@@ -73,6 +73,8 @@ export interface VolumeInfo {
 
 /** The full scan report. */
 export interface Report {
+  /** Private user/computer guidance; descriptive text, never executable policy. */
+  localContext?: import("./knowledge-types").LocalContext
   platform: NodeJS.Platform
   volume: VolumeInfo | null
   targets: ScannedTarget[]
@@ -108,6 +110,7 @@ export interface MeasureOptions {
 
 /** Options for scan(). */
 export interface ScanOptions {
+  policyFile?: string
   platform?: NodeJS.Platform
   top?: number
   onProgress?: ((label: string) => void) | null
@@ -138,6 +141,7 @@ export interface DiscoveredDir {
   bytes: number
   root: string
   children: DiscoveredChild[]
+  hint?: string
 }
 
 /** Discovery scan result. */
@@ -154,6 +158,7 @@ export interface DiscoverRoot {
 
 /** Options for discover(). */
 export interface DiscoverOptions {
+  policyFile?: string
   platform?: NodeJS.Platform
   /** Override the platform defaults with explicit shallow roots. */
   roots?: DiscoverRoot[]
@@ -339,6 +344,13 @@ export interface JsonReportSummary {
 
 /** Versioned, renderer-independent report used by --json and --json-file. */
 export interface WhyfullJsonReport extends Report {
+  inventory?: {
+    root: string
+    startedAt: string
+    completedAt: string
+    basis: "allocated-bytes"
+    limitations: string[]
+  }
   format: "whyfull-report"
   schemaVersion: 1
   completedAt: string

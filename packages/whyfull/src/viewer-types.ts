@@ -2,6 +2,9 @@ export type { ScanDrive } from "./drives"
 export type { WhyfullJsonReport } from "./types"
 import type { DiskSnapshot, DiskPolicy } from "./filesystem-types"
 import type { ViewerPreferences } from "./disk-policy"
+import type { ScanProgress } from "./scan-progress"
+import type { ScanDrive } from "./drives"
+export type { ScanProgress } from "./scan-progress"
 export type { ViewerPreferences } from "./disk-policy"
 export type { TrashPlan } from "./trash"
 
@@ -46,9 +49,12 @@ export interface ViewerStatus extends Omit<
   DiskSnapshot,
   "directories" | "policy"
 > {
+  /** No scan has started yet (--ui --no-scan). */
+  awaitingScan?: boolean
   directories: number
   bytes: number
   pending: number
+  progress: ScanProgress | null
   excluded: number
   volume: { total: number; free: number; used: number } | null
   policy: DiskPolicy
@@ -57,6 +63,13 @@ export interface ViewerStatus extends Omit<
   savedPath: string | null
   snapshotMode: boolean
   documentId: string
+  revision: number
+  cache: {
+    restored: boolean
+    completedAt: string | null
+    refreshing: boolean
+  } | null
+  navigation?: { path: string }
   source: { kind: "live" | "snapshot" | "report"; name: string | null }
   viewer: ViewerPreferences
   cleanup: {
@@ -66,8 +79,15 @@ export interface ViewerStatus extends Omit<
     reason: string | null
   }
   homeDirectory: string
+  homeDestination: ScanDrive
+  directoryDestination?: ScanDrive | null
   finderAvailable: boolean
   needsRescan: boolean
+  scanners: {
+    selected: "node" | "rust"
+    active: "node" | "rust"
+    rust: { available: boolean; reason: string | null }
+  }
 }
 
 export interface ShortlistEntry {

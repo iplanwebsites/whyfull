@@ -7,7 +7,7 @@
     "dev": "node scripts/prepare-demo.mjs && vite --host 127.0.0.1 --port 3001",
     "build": "node scripts/prepare-demo.mjs && vite build",
     "preview": "pnpm build && wrangler dev --ip 127.0.0.1 --port 3001",
-    "typecheck": "node --check src/main.js && node --check src/download.js && tsc --noEmit && tsc --project tsconfig.client.json --noEmit",
+    "typecheck": "node --check src/main.js && node --check src/download.js && node --check src/release.js && tsc --noEmit && tsc --project tsconfig.client.json --noEmit",
     "deploy": "pnpm build && wrangler deploy",
     "deploy:dry-run": "pnpm build && wrangler deploy --dry-run",
     "test": "node --experimental-strip-types --test test/*.test.mjs"

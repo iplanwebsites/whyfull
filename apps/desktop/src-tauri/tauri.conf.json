@@ -17,7 +17,7 @@
     "active": true,
     "targets": "all",
     "resources": {
-      "runtime/engine/": "runtime/engine/",
+      "runtime/app-engine/": "runtime/engine/",
       "runtime/desktop.mjs": "runtime/desktop.mjs",
       "runtime/LICENSE": "runtime/LICENSE",
       "runtime/NOTICE": "runtime/NOTICE",

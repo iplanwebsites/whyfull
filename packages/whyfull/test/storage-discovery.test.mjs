@@ -1,7 +1,12 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { mkdtempSync, mkdirSync, writeFileSync, symlinkSync } from "node:fs"
-import { execFileSync } from "node:child_process"
+import {
+  mkdtempSync,
+  mkdirSync,
+  writeFileSync,
+  symlinkSync,
+  rmSync,
+} from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { discoverCaches, findWorktrees } from "../dist/index.mjs"
@@ -9,7 +14,7 @@ import { discoverCaches, findWorktrees } from "../dist/index.mjs"
 function fixture(t) {
   const root = mkdtempSync(join(tmpdir(), "whyfull-storage-"))
   t.after(() => {
-    if (process.platform === "darwin") execFileSync("/usr/bin/trash", [root])
+    rmSync(root, { recursive: true, force: true })
   })
   return root
 }
@@ -46,6 +51,10 @@ test("project scan finds Turbo and ScriptC including nested Zig, without splitti
   assert.ok(
     result.dirs.find((entry) => entry.name === ".scriptc-cache-v1").bytes >=
       131072
+  )
+  assert.match(
+    result.dirs.find((entry) => entry.name === ".turbo").hint,
+    /Turbo build cache/
   )
 })
 

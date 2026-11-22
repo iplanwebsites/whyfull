@@ -100,3 +100,24 @@ test("report observations preserve worktree uncertainty without cleanup recommen
   assert.equal(worktree.branch, "feature/in-progress")
   assert.equal(worktree.mainRepo, "/repo")
 })
+
+test("coverage counts include inventory-derived caches, large folders and worktrees", async () => {
+  const { coverageSummary } = await import("../src/lib/analysis-context.ts")
+  const target = (id, group) => ({ id, group, present: true })
+  const summary = Object.fromEntries(
+    coverageSummary({
+      targets: [
+        target("npm", "Package managers"),
+        target("inventory:d1", "Untracked caches"),
+        target("inventory:d2", "Untracked caches"),
+        target("inventory:d3", "Worktrees"),
+      ],
+      cacheHogs: { dirs: [] },
+      options: { cacheScan: true, discover: true, worktrees: false },
+    })
+  )
+  assert.equal(summary["Known locations"], "1 checked")
+  assert.equal(summary["Untracked caches"], "2 found")
+  assert.equal(summary["Large folders"], "0 found")
+  assert.equal(summary["Git worktrees"], "1 found")
+})

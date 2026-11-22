@@ -4,6 +4,8 @@ on:
     paths:
       - "apps/brochure/**"
       - "apps/desktop/scripts/release-*.mjs"
+      - "apps/desktop/release-platforms.json"
+      - "apps/desktop/release-notes-*.md"
       - "apps/desktop/test/release.test.mjs"
       - "packages/**"
       - "pnpm-lock.yaml"

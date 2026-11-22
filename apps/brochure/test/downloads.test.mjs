@@ -2,10 +2,18 @@ import { test } from "node:test"
 import assert from "node:assert/strict"
 import { loadDownloads } from "../worker/downloads.ts"
 import { artifactSpecs } from "../../desktop/scripts/release-manifest.mjs"
+import { downloadsFor } from "../../desktop/scripts/release-platforms.mjs"
+import { primaryDownload } from "../src/release.js"
+import worker from "../worker/index.ts"
+import { firstReleaseFiles } from "../worker/first-release.ts"
 
 const repository = "https://github.com/iplanwebsites/whyfull"
-function fixture({ version = "1.2.3", preview = false } = {}) {
-  const downloads = artifactSpecs.map(([id, name]) => ({
+function fixture({
+  version = "1.2.3",
+  preview = false,
+  specs = artifactSpecs,
+} = {}) {
+  const downloads = specs.map(([id, name]) => ({
     id,
     name: name(version),
     size: 1024,
@@ -92,7 +100,7 @@ test("only a published preview is explicitly offered before the first stable rel
   assert.deepEqual(await loadDownloads(upstream([preview])), { release: null })
 })
 
-test("refuses mismatched metadata, incomplete releases, and download URLs outside the repository", async () => {
+test("refuses mismatched metadata, missing assets, and download URLs outside the repository", async () => {
   for (const mutate of [
     ({ manifest }) => {
       manifest.version = "9.9.9"
@@ -101,7 +109,14 @@ test("refuses mismatched metadata, incomplete releases, and download URLs outsid
       manifest.macosSigning = "unsigned"
     },
     ({ manifest }) => {
-      manifest.downloads.pop()
+      manifest.downloads = []
+    },
+    ({ release }) => {
+      // Listed in downloads.json but not attached to the release.
+      release.assets.shift()
+    },
+    ({ manifest }) => {
+      manifest.downloads[0].id = "desktop-linux-arm64"
     },
     ({ manifest }) => {
       manifest.downloads[0].sha256 = "invalid"
@@ -141,4 +156,70 @@ test("GitHub latest keeps stable available even after a long sequence of preview
     () => loadDownloads(upstream(previews)),
     /recent release history/
   )
+})
+
+const macs = ["macos-arm64", "macos-x64"]
+
+test("a Mac-first stable release lists only its own platforms", async () => {
+  const data = await loadDownloads(
+    upstream([fixture({ specs: downloadsFor(macs) })])
+  )
+  assert.equal(data.release.channel, "stable")
+  assert.deepEqual(data.release.downloads.map(({ id }) => id).sort(), [
+    "cli-macos-arm64",
+    "cli-macos-x64",
+    "desktop-macos-arm64",
+    "desktop-macos-x64",
+  ])
+  // The page's primary button only offers files the release has.
+  assert.equal(
+    primaryDownload(data.release, { os: "macos", arch: "x64" }).label,
+    "Download for Mac (Intel)"
+  )
+  assert.equal(primaryDownload(data.release, { os: "windows" }), null)
+  assert.equal(primaryDownload(data.release, { os: "linux" }), null)
+})
+
+async function apiDownloads(fixtures) {
+  const realFetch = globalThis.fetch
+  const realCaches = globalThis.caches
+  globalThis.fetch = upstream(fixtures)
+  globalThis.caches = {
+    open: async () => ({ match: async () => undefined, put: async () => {} }),
+  }
+  try {
+    const sizes = new Map(
+      firstReleaseFiles.map(({ name, size }) => [`v0.0.1/${name}`, size])
+    )
+    const response = await worker.fetch(
+      new Request("https://whyfull.app/api/downloads"),
+      {
+        ASSETS: { fetch: async () => new Response(null, { status: 404 }) },
+        DOWNLOADS: {
+          head: async (key) =>
+            key.endsWith("SHA256SUMS.txt")
+              ? { size: 100 }
+              : sizes.has(key)
+                ? { size: sizes.get(key) }
+                : null,
+          get: async () => null,
+        },
+      },
+      { waitUntil() {} }
+    )
+    return (await response.json()).release
+  } finally {
+    globalThis.fetch = realFetch
+    globalThis.caches = realCaches
+  }
+}
+
+test("the R2 0.0.1 listing is used only until a GitHub release exists", async () => {
+  const fallback = await apiDownloads([])
+  assert.equal(fallback.version, "0.0.1")
+  assert.equal(fallback.limited, true)
+  const release = await apiDownloads([fixture({ specs: downloadsFor(macs) })])
+  assert.equal(release.version, "1.2.3")
+  assert.equal(release.limited, undefined)
+  assert.ok(release.downloads.every(({ url }) => url.startsWith(repository)))
 })

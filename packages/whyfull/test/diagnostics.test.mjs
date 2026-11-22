@@ -146,7 +146,14 @@ test("CLI opens home by default and exposes only fixed diagnostic commands over 
     const catalogue = await (
       await fetch(`${url.origin}/api/analysis`, { headers })
     ).json()
-    assert.equal(catalogue.report, null)
+    // Suggestions become available automatically when the initial scan completes.
+    for (let i = 0; i < 200; i++) {
+      const state = await (
+        await fetch(`${url.origin}/api/status`, { headers })
+      ).json()
+      if (state.status === "complete") break
+      await new Promise((resolve) => setTimeout(resolve, 10))
+    }
     assert.ok(catalogue.definitions.length > 0)
     assert.ok(
       catalogue.definitions.every(
@@ -178,10 +185,13 @@ test("CLI opens home by default and exposes only fixed diagnostic commands over 
     }
     assert.equal(generated.status, "complete", generated.trace)
     assert.equal(generated.reportAvailable, true)
+    assert.match(generated.command, /memory only/)
+    assert.match(generated.trace, /No filesystem scan or subprocess/)
+
     const findings = await (
       await fetch(`${url.origin}/api/analysis`, { headers })
     ).json()
-    assert.equal(findings.source, "Analysis run")
+    assert.equal(findings.source, "Completed disk inventory")
     assert.equal(findings.report.options.top, 3)
     assert.equal(
       (await (await fetch(`${url.origin}/api/status`, { headers })).json())
@@ -200,7 +210,7 @@ test("CLI opens home by default and exposes only fixed diagnostic commands over 
       await fetch(`${url.origin}/api/report`, { headers })
     ).json()
     assert.equal(report.options.top, 3)
-    assert.equal(report.options.cacheScan, false)
+    assert.equal(report.options.cacheScan, true)
     assert.equal(report.options.worktrees, false)
 
     const invalid = await fetch(`${url.origin}/api/diagnostics`, {

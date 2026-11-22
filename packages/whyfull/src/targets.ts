@@ -6,7 +6,11 @@
 
 import { homedir } from "node:os"
 import { existsSync, readFileSync } from "node:fs"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
+import { defaultPolicyPath } from "./disk-policy"
+import { normalizePolicyPath, policyPath } from "./disk-policy"
+import { knowledgeTargets, loadKnowledge } from "./knowledge"
+import community from "./community-locations.json"
 import { TARGETS_RAW, TIERS } from "./targets-data"
 import type { Target, ResolvedTarget, Tier } from "./types"
 
@@ -90,11 +94,14 @@ function resolveTarget(raw: (typeof TARGETS_RAW)[number]): Target {
 }
 
 /** Built-in targets with paths resolved. */
-export const TARGETS: Target[] = TARGETS_RAW.map(resolveTarget)
+export const TARGETS: Target[] = [
+  ...TARGETS_RAW,
+  ...community.targets.filter(isUserTarget),
+].map(resolveTarget)
 
 /** Load user-defined targets from ~/.config/whyfull/targets.json. */
-function loadUserTargets(): Target[] {
-  const configPath = join(home, ".config", "whyfull", "targets.json")
+function loadUserTargets(policyFile = defaultPolicyPath()): Target[] {
+  const configPath = join(dirname(policyFile), "targets.json")
   if (!existsSync(configPath)) return []
 
   try {
@@ -125,17 +132,37 @@ function loadUserTargets(): Target[] {
 
 /** Targets applicable to this platform, with their first existing path. */
 export function forPlatform(
-  platform: NodeJS.Platform = process.platform
+  platform: NodeJS.Platform = process.platform,
+  policyFile?: string
 ): ResolvedTarget[] {
   const builtInIds = new Set(TARGETS.map((target) => target.id))
-  const userTargets = loadUserTargets().filter(
+  const userTargets = loadUserTargets(policyFile).filter(
     (target) => !builtInIds.has(target.id)
   )
-  const allTargets = [...TARGETS, ...userTargets]
+  const personal = knowledgeTargets(loadKnowledge(policyFile))
+  const key = (path: string) => {
+    const value = policyPath(normalizePolicyPath(path))
+    return platform === "win32" ? value.toLowerCase() : value
+  }
+  const personalPaths = new Set(
+    personal
+      .flatMap(
+        (target) => target.paths[platform as keyof typeof target.paths] ?? []
+      )
+      .filter((path): path is string => !!path)
+      .map(key)
+  )
+  const allTargets = [...TARGETS, ...userTargets, ...personal]
   return allTargets
     .map((t) => ({
       ...t,
-      candidates: t.paths[platform as keyof typeof t.paths] ?? [],
+      candidates: (t.paths[platform as keyof typeof t.paths] ?? []).filter(
+        (path) =>
+          personalPaths.size === 0 ||
+          t.id.startsWith("local:") ||
+          !path ||
+          !personalPaths.has(key(path))
+      ),
     }))
     .filter((t) => t.candidates.filter(Boolean).length > 0)
 }

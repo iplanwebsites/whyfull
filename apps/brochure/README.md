@@ -105,6 +105,7 @@ See [Cloudflare's secret configuration guidance](https://developers.cloudflare.c
 
 Content and the agent prompt live in `index.html`; styles are in `src/style.css`.
 The prompt textarea is the single source for the displayed and copied prompt.
+It links to the published Whyfull skill for setup and cleanup instructions.
 The page remains readable without JavaScript; failed clipboard access selects
 the content for manual copying.
 
@@ -112,8 +113,11 @@ the content for manual copying.
 
 The landing page explains the real CLI and agent workflow. It does not embed a
 simulated disk explorer or publish a fictional snapshot. The generated donut
-image is the hero visual; JavaScript only supports copying commands and prompts.
-The actual disk viewer remains in `apps/web` and is opened with `whyfull --view`.
+image is the hero visual. JavaScript supports copying commands and prompts,
+points the hero download button at the visitor's platform from `/api/downloads`
+(shared logic in `src/release.js`), and hides the app screenshot frame until
+`public/images/app-screenshot.png` (2880×1800) exists. The actual disk viewer
+remains in `apps/web` and is opened with `npx whyfull --ui`.
 
 ## Template source
 

@@ -5,10 +5,16 @@ import { open } from "node:fs/promises"
 import { createInterface } from "node:readline"
 import { JSONParser } from "@streamparser/json"
 import type { DiskSnapshot } from "./filesystem-types"
+import { sqliteInventory, loadSqliteSnapshot } from "./sqlite-inventory"
 
 /** Avoid V8's single-string limit and a second full inventory in RAM. The output
  * remains ordinary JSON, compatible with existing JSON readers. */
 export function* diskSnapshotChunks(snapshot: DiskSnapshot): Generator<string> {
+  const inventory = sqliteInventory(snapshot)
+  if (inventory) {
+    yield* inventory.chunks(snapshot.policy)
+    return
+  }
   const { directories, ...meta } = snapshot
   yield JSON.stringify(meta).slice(0, -1) + ',"directories":[\n'
   let batch = ""
@@ -29,6 +35,8 @@ export async function saveDiskSnapshot(
 ): Promise<void> {
   if (snapshot.status === "scanning")
     throw new Error("Complete or cancel the scan before saving a snapshot")
+  if (sqliteInventory(snapshot) && !sqliteInventory(snapshot)!.complete)
+    throw new Error("Complete the scan before exporting its inventory")
   await pipeline(
     Readable.from(diskSnapshotChunks(snapshot)),
     createWriteStream(path, { flags: "wx", mode: 0o600 })
@@ -103,6 +111,9 @@ async function readGenericSnapshot(path: string): Promise<DiskSnapshot> {
     "status",
     "workers",
     "engine",
+    "scanner",
+    "storage",
+    "timings",
     "files",
     "skippedLinks",
     "issues",
@@ -123,6 +134,15 @@ async function readGenericSnapshot(path: string): Promise<DiskSnapshot> {
 }
 
 export async function loadDiskSnapshot(path: string): Promise<DiskSnapshot> {
+  const handle = await open(path, "r")
+  const signature = Buffer.alloc(16)
+  try {
+    await handle.read(signature, 0, 16, 0)
+  } finally {
+    await handle.close()
+  }
+  if (signature.toString("utf8") === "SQLite format 3\0")
+    return loadSqliteSnapshot(path)
   const snapshot =
     (await readDirectoryLines(path)) ?? (await readGenericSnapshot(path))
   const { directories } = snapshot

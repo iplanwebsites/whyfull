@@ -27,6 +27,9 @@
     "whyfull#build": {
       "dependsOn": ["@whyfull/viewer#build"],
       "outputs": ["dist/**"]
+    },
+    "@whyfull/brochure#test": {
+      "dependsOn": ["build", "whyfull#build"]
     }
   }
 }

@@ -13,3 +13,6 @@ apps/desktop/src-tauri/target
 apps/desktop/src-tauri/runtime
 apps/desktop/src-tauri/version.conf.json
 apps/desktop/src-tauri/gen
+
+experiments/disk-crawler/target
+experiments/disk-crawler/results

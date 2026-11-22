@@ -22,17 +22,39 @@ Free and open source. Scans run locally. No automatic deletion.
 
 ## Find out where it went
 
-Run a report in your terminal:
+Choose how to explore your disk:
 
 ```bash
 npx whyfull
 ```
 
-You’ll get sizes, safety tiers, and tool-specific cleanup guidance for known
+Four commands cover most uses:
+
+| Command              | What it does                            |
+| -------------------- | --------------------------------------- |
+| `npx whyfull`        | Interactive picker. Start here.         |
+| `npx whyfull --tui`  | Terminal summary with cleanup guidance. |
+| `npx whyfull --json` | Report for your coding agent.           |
+| `npx whyfull --ui`   | Visual explorer in your browser.        |
+
+With the desktop app's CLI, a standalone archive, or a global npm install,
+`whyfull` is already on your PATH, so drop the `npx`.
+
+In a terminal, the bare command opens an interactive picker: launch the web UI with an
+automatic Home scan, open the UI without scanning, print an opportunity summary,
+save a JSON opportunity report or full filesystem inventory, or read help.
+Use ↑/↓ to highlight an action and Enter to run it. The command appears beside
+the highlighted action and remains visible after selection, so you can repeat it
+in a script. Selecting an action runs it immediately; a loading indicator stays
+active while the command prepares the UI or report. Esc or Ctrl+C cancels. Without a terminal, the bare command prints
+help and exits without scanning or prompting.
+
+For the opportunity summary directly, run `npx whyfull --tui`. You’ll get sizes,
+safety tiers, and tool-specific cleanup guidance for known
 locations, discovered caches, and Git worktrees. Start with the biggest useful
 opportunities instead of guessing which mysterious folder can go.
 
-Requires [Node.js](https://nodejs.org/) 18.15 or newer. No global install needed.
+Requires [Node.js](https://nodejs.org/) 22.18 or newer. No global install needed.
 
 **Prefer to click around? [Download the desktop app](https://whyfull.app/download/).**
 Explore your disk visually without installing Node.js. The download page lists
@@ -72,7 +94,7 @@ need. The report adds context so you can tell the difference.
 Open the local disk viewer from your terminal:
 
 ```bash
-npx whyfull ui
+npx whyfull --ui
 ```
 
 Explore folders as nested rings in the **sunburst**, or compare their sizes at a
@@ -80,12 +102,85 @@ glance in the **treemap**. Click into the biggest pieces, search the file list,
 and mark folders to keep or exclude. The desktop app includes the same viewer.
 
 The report starts with known tool locations; the viewer lets you explore a whole
-drive or a folder of your choice. `npx whyfull --view` and `npx whyfull app` also
-open the viewer.
+drive or a folder of your choice. `--ui` opens the latest completed full scan
+and refreshes sizes in the background; without one, it starts scanning Home.
+Use `npx whyfull --ui --no-scan` to open the UI and choose a scan or saved report
+there. `--view`, `ui`, and `app` are aliases for `--ui`.
+
+## Keep an eye on one project
+
+Use directory mode for a project or another folder you revisit:
+
+```bash
+npx whyfull --directory                       # Open the UI here and scan this folder
+npx whyfull --directory ./project --ui         # Choose another folder
+npx whyfull --directory --scan --json-file ./folder.json
+npx whyfull --directory ./project --json       # Machine-readable folder inventory
+npx whyfull --directory --tui                  # Terminal filesystem summary
+npx whyfull --directory --ui --no-scan         # Open cached results without refreshing
+npx whyfull --directory --no-cache             # Scan fresh; do not read or write a cache
+```
+
+`--dir` is a shortcut for `--directory`. Both take an optional path; omitting it uses the current working
+directory. It opens the browser UI by default. Add `--scan`, `--json`,
+`--json-file`, or `--tui` for a headless folder scan. The JSON is a `whyfull-disk`
+inventory; without `--directory`, `--json` still produces the known-tool
+opportunity report. Workers, engine, exclusions, custom config, JSON exports,
+and the viewer's existing options also work in directory mode. Use either
+`--directory` or `--root` to choose the root.
+
+Completed folder inventories are cached privately in `<folder>/.whyfull/inventories/`.
+The UI opens with that file’s saved (possibly stale) inventory and refreshes it
+in the background; `--no-scan` waits for an explicit scan. Headless directory scans always measure
+the folder again and replace its cache. `.whyfull` contents are excluded from
+filesystem scans so reports never count their own cache. Add `.whyfull/` to a
+project's `.gitignore`.
+
+`--no-cache` disables persistent cache reads and writes for the whole session,
+including Home and disk scans opened from the UI. Existing cache files stay
+untouched, and `--json-file` still writes an explicitly requested export.
+
+The folder is the initial view and stays available in the location menu. Home
+and disks are scanned only when you select them; you can return to the folder's
+own inventory afterward. Home and disk caches continue to use the normal
+configuration directory, including when launched from a folder session.
+The starter also offers **Open current directory** and **Save current directory
+scan as JSON**, with command previews and loading indicators.
 
 ## Bring your coding agent
 
-Give your agent a measured report to investigate:
+### Make Whyfull yours
+
+Open **Places** in the app to save frequent folders and write instructions for
+your user profile or this computer. Saved places appear in the scan menu and
+opportunity reports. Project locations also help discover caches and worktrees.
+Use **Scan a folder…** for a one-time scan.
+
+```bash
+whyfull scan ~/Projects                 # Folder inventory; no path means cwd
+whyfull locations add ~/Projects --id projects --kind project --source agent
+whyfull instructions set --scope computer --text 'Keep models needed offline.'
+whyfull locations list --json
+```
+
+Instructions are private guidance, and Keep / exclude rules still control file
+protection. Agents can update locations by stable ID, with revision checks for
+concurrent edits. **Contribute** prepares a public JSON draft using explicit
+portable paths and public guidance, without copying your private notes.
+[Personalization, agent workflow, and PR guide](docs/personalization.md).
+
+### Share a report with your agent
+
+Give your agent a measured opportunity report to investigate. Explicit commands
+never open the picker. `--help` lists commands and output formats for runners:
+
+```bash
+npx whyfull --help
+npx whyfull --tui --json-file ./opportunities.json
+npx whyfull --scan --root /path/to/disk --json-file ./disk.json
+```
+
+For machine-readable opportunity output on stdout:
 
 ```bash
 npx whyfull --json
@@ -130,20 +225,27 @@ npm install --global whyfull
 whyfull
 ```
 
-| Command                           | What it does                                                    |
-| --------------------------------- | --------------------------------------------------------------- |
-| `whyfull`                         | Report known locations, untracked caches, and git worktrees.    |
-| `whyfull --json`                  | Emit one machine-readable report and no presentation text.      |
-| `whyfull --json-file report.json` | Save the JSON report without replacing an existing file.        |
-| `whyfull --top 10`                | Show the ten largest children of each large target.             |
-| `whyfull --no-drill`              | Skip child breakdowns for a quicker scan.                       |
-| `whyfull --exact`                 | Fully count huge package stores instead of using a file budget. |
-| `whyfull --discover`              | Also look for unknown 5 GB+ directories in common user folders. |
-| `whyfull --no-cache-scan`         | Skip the default scan for unknown 250 MB+ user/project caches.  |
-| `whyfull --no-worktrees`          | Skip the default git worktree scan.                             |
-| `whyfull --worktree-age 7`        | Only show worktrees idle for at least seven days.               |
-| `whyfull --all`                   | Include known locations that were not found.                    |
-| `whyfull --help`                  | Show command help.                                              |
+| Command                                              | What it does                                                    |
+| ---------------------------------------------------- | --------------------------------------------------------------- |
+| `whyfull`                                            | Interactive picker. Start here. (Help when not in a terminal.)  |
+| `whyfull --tui`                                      | Terminal summary with cleanup guidance.                         |
+| `whyfull --ui`                                       | Visual explorer in your browser; reopens the latest scan.       |
+| `whyfull --directory`                                | Open the UI scoped to cwd; cache in `.whyfull/inventories/`.    |
+| `whyfull --directory ./project --json`               | Emit a filesystem inventory of one folder.                      |
+| `whyfull --directory --scan --json-file folder.json` | Scan cwd and save its inventory.                                |
+| `whyfull --ui --no-scan`                             | Open the web UI without starting a scan.                        |
+| `whyfull --help`                                     | Commands and options for people, scripts, and agents.           |
+| `whyfull --json`                                     | Report for your coding agent: JSON only, no presentation text.  |
+| `whyfull --json-file report.json`                    | Save the JSON report without replacing an existing file.        |
+| `whyfull --top 10`                                   | Show the ten largest children of each large target.             |
+| `whyfull --no-drill`                                 | Skip child breakdowns for a quicker scan.                       |
+| `whyfull --exact`                                    | Fully count huge package stores instead of using a file budget. |
+| `whyfull --discover`                                 | Also look for unknown 5 GB+ directories in common user folders. |
+| `whyfull --no-cache`                                 | Skip loading and saving persistent scan caches.                 |
+| `whyfull --no-cache-scan`                            | Skip the default scan for unknown 250 MB+ user/project caches.  |
+| `whyfull --no-worktrees`                             | Skip the default git worktree scan.                             |
+| `whyfull --worktree-age 7`                           | Only show worktrees idle for at least seven days.               |
+| `whyfull --all`                                      | Include known locations that were not found.                    |
 
 The command exits with `0` after a report or help output, and `2` for an invalid
 option or value. Permission-denied locations are marked as undercounts in the
@@ -152,16 +254,34 @@ report rather than treated as a failed run.
 ## Viewer and scanner details
 
 Switch between a **sunburst** (concentric folder rings) and **treemap**, with
-breadcrumbs and a searchable list of the largest pieces on the right. Click
-folders to explore while the scan runs. All viewer assets are bundled and work
+breadcrumbs and a searchable list of the largest pieces on the right. While a
+scan runs, a branded loading screen shows system-reported drive fullness and
+free capacity immediately, separately from the scan progress bar. Elapsed time
+and file count stay visible, with a coarse time estimate when available.
+**Scan details** reveals space found, speed, remaining folders, and the current
+path. The drive menu shows capacity and live progress for background scans;
+choose **Scan** on another drive to start its scan and keep both inventories.
+Completed full scans from the CLI, web UI, and desktop app share
+`~/.config/whyfull/scans/` (next to an alternate `--config` file when supplied).
+Agents can read the latest root and inventory path from `scans/latest.json`.
+Opening the latest root from the app or plain `--ui` displays its saved report
+while refreshing in the background. A notice labels the saved sizes with their
+scan time; folders remain browsable throughout the refresh. Use `--no-scan`
+to browse saved results without refreshing. Explicitly reopening another cached root refreshes in the
+background; the map swaps to the new report only after completion. **Rescan**
+also keeps the last complete map visible. Stopping
+a refresh retains the previous report. The map,
+folder sizes, and cleanup actions appear after the scan finishes, so partial
+totals never change the chart while you explore. Stopped or failed scans offer
+a retry instead of incomplete results. All viewer assets are bundled and work
 offline; the authenticated server binds only to `127.0.0.1` on a random port.
 
 ```bash
-whyfull --view --root ~/Library --workers 4
-whyfull --view --exclude ~/Pictures --exclude ~/Music
+whyfull --ui --root ~/Library --workers 4
+whyfull --ui --exclude ~/Pictures --exclude ~/Music
 whyfull --scan --root ~/Downloads --json-file disk.json
-whyfull --view --snapshot disk.json
-whyfull --view --report caches.json
+whyfull --ui --snapshot disk.json
+whyfull --ui --report caches.json
 # From the workspace runner:
 pnpm viewer --report caches.json
 ```
@@ -174,7 +294,7 @@ the viewer and its workers. Nothing leaves your computer. Cleanup starts in demo
 
 In folder details, **Keep** leaves sizes visible and suppresses cleanup advice.
 **Exclude** skips the folder and its descendants on future scans; its size is
-unknown. Manage saved rules in **Keep & exclude rules**. Pause and rescan to apply
+unknown. Manage saved rules in **Keep & exclude rules**. Rescan to apply
 changed exclusions. Preferences are stored privately in
 `~/.config/whyfull/config.json`, with `keep` and `exclude` arrays of absolute or
 `~/` paths. Use `--config <file>` for another settings file. CLI exclusions are
@@ -223,13 +343,13 @@ for prerequisites, signing setup, release artifacts, and update behavior.
 
 The report and scanner read metadata. Viewer cleanup starts in **demo mode** every
 session: previews and “Run demo” never change scanned files. To enable real moves,
-start a live viewer with `whyfull --view --allow-trash`, then enable Trash in the
+start a live viewer with `whyfull --ui --allow-trash`, then enable Trash in the
 UI and confirm an individual preview. Saved snapshots support demo cleanup only.
 
 Real cleanup uses the native macOS 14+ Trash command, with no permanent-delete
 fallback. Keep rules protect folders and their containing folders. Scan roots,
 core system locations, symlinks, and items changed since preview are rejected.
-Pause or finish scanning before enabling real moves. Restore items in Finder;
+Finish scanning before enabling real moves. Restore items in Finder;
 rescan afterward to refresh sizes. The appropriate tool-specific cleanup command
 is still preferable for shared model/package stores.
 
@@ -273,7 +393,9 @@ Project-cache discovery includes `.cache` children plus whole `.turbo` and
 `.scriptc-cache-v1` directories, including ScriptC's nested Zig cache. It checks
 common source roots, the current directory and Codex worktree roots without
 entering dependency or build trees. Sizes identify review candidates; they do
-not establish that a cache is dead. For Maru compile entries, use the owning
+not establish that a cache is dead. Large `.turbo/cache` folders also appear as
+rebuildable build caches in full disk inventory suggestions; inspect recent use
+before moving the cache folder to Trash. For Maru compile entries, use the owning
 `tooling/scriptc-cache-gc.mjs` collector to retain live source identities. Removing
 an obsolete worktree can make more shared compile entries stale, so inspect
 again afterward. Detached worktrees require commit preservation before pruning;
@@ -393,7 +515,20 @@ The monorepo uses pnpm and Turborepo. The npm package is in
 The root workspace links that package locally, so `npx --no-install whyfull`
 also runs this checkout's built CLI and cannot fall back to the hosted package.
 Development currently requires Node 22.18 or newer; the published CLI supports
-Node 18.15 or newer.
+Node 22.18 or newer.
+
+### npm releases
+
+After updating `packages/whyfull/package.json`, run `pnpm check` and
+`pnpm npm:check`. The latter builds and packs the CLI and UI, installs the tarball
+outside the workspace, and runs `npx whyfull --view` against a small
+fixture. It verifies the local API, every bundled UI asset, and the filesystem
+worker. On macOS and Linux it also verifies the browser-opener call using a test
+stub; on other platforms it passes `--no-open`.
+
+Publish the verified tarball with
+`npm publish .artifacts/npm/whyfull-<version>.tgz --access public`. The package's
+prepack hook checks the publish docs and builds the viewer before packing.
 
 ### Brochure website
 

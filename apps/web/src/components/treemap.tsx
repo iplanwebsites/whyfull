@@ -1,11 +1,12 @@
 import "./disk-charts.css"
 import { isHoveredEntry } from "@/lib/chart-hover"
-import { colorFor } from "@/lib/chart-colors"
+import { colorFor, isSafeTier, stateColors } from "@/lib/chart-colors"
 import type { ChartColors } from "@/lib/chart-colors"
 import { useLayoutEffect, useRef, useState } from "react"
 import { horizontalTreemap } from "@/lib/treemap-layout"
 import type { Rect } from "@/lib/treemap-layout"
 import { formatSize, formatCount } from "@/lib/api"
+import { tierLabel } from "@/lib/tiers"
 import type { ViewEntry } from "@/lib/api"
 
 export function Treemap({
@@ -29,22 +30,32 @@ export function Treemap({
 }) {
   const container = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ width: 0, height: 0 })
+  const measure = () => {
+    const element = container.current
+    if (!element) return
+    const width = element.clientWidth,
+      height = element.clientHeight
+    setSize((previous) =>
+      previous.width === width && previous.height === height
+        ? previous
+        : { width, height }
+    )
+  }
+  // The first measurement can happen before the split layout settles, and
+  // ResizeObserver callbacks are skipped while the page isn't rendering
+  // (hidden windows, headless captures). Re-measure after every render too;
+  // setSize keeps the previous object when nothing changed, so this is cheap.
+  useLayoutEffect(measure)
   useLayoutEffect(() => {
-    const element = container.current!
-    const measure = () => {
-      const width = element.clientWidth,
-        height = element.clientHeight
-      setSize((previous) =>
-        previous.width === width && previous.height === height
-          ? previous
-          : { width, height }
-      )
-    }
-    measure()
     const observer = new ResizeObserver(measure)
-    observer.observe(element)
-    return () => observer.disconnect()
+    observer.observe(container.current!)
+    window.addEventListener("resize", measure)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener("resize", measure)
+    }
   }, [])
+  const state = stateColors(dark)
   function tiles(entries: ViewEntry[], bounds: Rect): React.ReactNode {
     return horizontalTreemap(entries, bounds)
       .filter(({ rect }) => rect.width > 2 && rect.height > 2)
@@ -63,6 +74,8 @@ export function Treemap({
         const largeLabel = w > 240 && h > 140
         const largeCount = fileGroup && largeLabel
         const countSize = Math.min(64, Math.max(28, Math.min(w / 7, h / 4)))
+        const safe = isSafeTier(entry.tier) && !entry.kept && !entry.trashed
+        const hoveredTile = isHoveredEntry(entry, hovered)
         const open = () =>
           entry.kind === "directory" ? onOpen(entry) : onSelect(entry)
         return (
@@ -74,26 +87,25 @@ export function Treemap({
               y={y}
               width={w}
               height={h}
-              rx={5}
+              rx={4}
               fill={paint.fill}
               fillOpacity={entry.trashed ? 0.35 : 1}
-              data-hovered={isHoveredEntry(entry, hovered) || undefined}
+              data-hovered={hoveredTile || undefined}
+              data-safe={safe || undefined}
               stroke={
-                isHoveredEntry(entry, hovered)
-                  ? dark
-                    ? "#f8fafc"
-                    : "#0f172a"
+                hoveredTile
+                  ? state.focus
                   : entry.mark === "trash"
-                    ? "#ef4444"
+                    ? state.trash
                     : entry.mark === "useless"
-                      ? "#d69e2e"
+                      ? state.useless
                       : paint.stroke
               }
               strokeDasharray={entry.mark ? "4 2" : undefined}
-              strokeWidth={isHoveredEntry(entry, hovered) ? 3 : 1}
+              strokeWidth={hoveredTile ? 3 : entry.mark ? 1.5 : 1}
               role="button"
               tabIndex={0}
-              aria-label={`${entry.name}, ${formatSize(entry.value, root.value)}${entry.kind === "directory" ? ", open folder" : ""}`}
+              aria-label={`${entry.name}, ${formatSize(entry.value, root.value)}${safe ? ", safe to remove" : ""}${entry.kind === "directory" ? ", open folder" : ""}`}
               className="map-tile"
               onClick={open}
               onKeyDown={(event) => {
@@ -106,22 +118,25 @@ export function Treemap({
               onBlur={() => onHover(null)}
               onMouseEnter={() => onHover(entry)}
               onMouseLeave={() => onHover(null)}
-            >
-              <title>
-                {entry.name}
-                {entry.path ? `\n${entry.path}` : ""}
-                {"\n"}
-                {formatSize(entry.value, root.value)} allocated
-                {entry.mark
-                  ? ` · ${entry.mark === "trash" ? "Marked for Trash" : "Marked as useless"}`
-                  : ""}
-              </title>
-            </rect>
+            />
+            {safe && w > 14 && h > 14 && (
+              <circle
+                cx={x + w - 9}
+                cy={y + 9}
+                r={4}
+                fill={state.safe}
+                stroke={state.safeRing}
+                strokeWidth={1.25}
+                pointerEvents="none"
+              >
+                <title>{`Safe to remove: ${tierLabel(entry.tier)}`}</title>
+              </circle>
+            )}
             {w > 55 && h > 23 && (
               <foreignObject
                 x={x + 10}
                 y={y + 7}
-                width={Math.max(0, w - 20)}
+                width={Math.max(0, w - (safe ? 28 : 20))}
                 height={
                   largeCount
                     ? Math.min(h - 12, countSize * 2 + 20)
@@ -179,10 +194,10 @@ export function Treemap({
           role="group"
         >
           {tiles(root.children ?? [], {
-            x: 6,
-            y: 6,
-            width: size.width - 12,
-            height: size.height - 12,
+            x: 2,
+            y: 2,
+            width: size.width - 4,
+            height: size.height - 4,
           })}
         </svg>
       )}

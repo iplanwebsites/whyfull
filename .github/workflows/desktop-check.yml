@@ -5,6 +5,7 @@ on:
       - "apps/desktop/**"
       - "apps/web/**"
       - "packages/**"
+      - "experiments/disk-crawler/**"
       - "pnpm-lock.yaml"
       - ".github/workflows/desktop-*.yml"
   workflow_dispatch:
@@ -15,7 +16,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-15, ubuntu-22.04, windows-latest]
+        # macos-15-intel is the only native x86_64 Mac runner; the Intel
+        # installer must be built there so Node and the crawler are x86_64.
+        os: [macos-15, macos-15-intel, ubuntu-22.04, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -40,6 +43,8 @@ jobs:
       - run: pnpm --filter @whyfull/desktop test:runtime
       - run: cargo fmt --manifest-path apps/desktop/src-tauri/Cargo.toml --check
       - run: cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --locked
+      # Same sidecar list as releases (adds the crawler on macOS/Linux), no updater.
+      - run: node apps/desktop/scripts/configure.mjs
       - run: pnpm --filter @whyfull/desktop tauri build --no-bundle --config src-tauri/version.conf.json
       - name: Verify native command-line entry without a display
         run: node apps/desktop/scripts/check-native.mjs

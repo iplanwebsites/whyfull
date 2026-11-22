@@ -3,32 +3,44 @@ import { createHash } from "node:crypto"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 import { releaseInfo } from "./release-info.mjs"
+import {
+  allPlatforms,
+  downloadsFor,
+  parsePlatforms,
+  platforms as platformTable,
+  updaterTargetsFor,
+} from "./release-platforms.mjs"
 
-// These are the artifacts built by the native release matrix. Updater archives
-// are deliberately excluded from user-facing downloads.
-export const artifactSpecs = [
-  ["desktop-macos-arm64", (v) => `Whyfull_${v}_aarch64.dmg`],
-  ["desktop-macos-x64", (v) => `Whyfull_${v}_x64.dmg`],
-  ["desktop-windows-x64", (v) => `Whyfull_${v}_x64-setup.exe`],
-  ["desktop-linux-x64-appimage", (v) => `Whyfull_${v}_amd64.AppImage`],
-  ["desktop-linux-x64-deb", (v) => `Whyfull_${v}_amd64.deb`],
-  ["cli-macos-arm64", (v) => `whyfull-${v}-darwin-arm64.tar.gz`],
-  ["cli-macos-x64", (v) => `whyfull-${v}-darwin-x64.tar.gz`],
-  ["cli-windows-x64", (v) => `whyfull-${v}-win32-x64.zip`],
-  ["cli-linux-x64", (v) => `whyfull-${v}-linux-x64.tar.gz`],
-]
+// Every user-facing download and updater key across all platforms, in the
+// order the matrix builds them. Updater archives are not user-facing downloads.
+export const artifactSpecs = allPlatforms.flatMap(
+  (name) => platformTable[name].downloads
+)
+export const updaterTargets = allPlatforms.flatMap(
+  (name) => platformTable[name].updaterTargets
+)
 
 export async function createManifest({
   directory,
   version,
   channel,
   macosSigning,
+  buildOnly = false,
+  updater = "auto",
+  platforms = allPlatforms,
   now = new Date(),
 }) {
-  const info = releaseInfo({ version, channel, macosSigning })
+  platforms = parsePlatforms(platforms)
+  const info = releaseInfo({
+    version,
+    channel,
+    macosSigning,
+    buildOnly,
+    updater,
+  })
   const names = await readdir(directory)
   const downloads = []
-  for (const [id, filename] of artifactSpecs) {
+  for (const [id, filename] of downloadsFor(platforms)) {
     const name = filename(version)
     if (!names.includes(name))
       throw new Error(`Missing release artifact: ${name}`)
@@ -47,23 +59,23 @@ export async function createManifest({
     )
     if (update.version !== version)
       throw new Error("Updater manifest version mismatch")
-    for (const target of [
-      "darwin-aarch64",
-      "darwin-x86_64",
-      "windows-x86_64",
-      "linux-x86_64",
-    ]) {
+    const targets = updaterTargetsFor(platforms)
+    const extra = Object.keys(update.platforms ?? {}).filter(
+      (target) => !targets.some(([expected]) => expected === target)
+    )
+    if (extra.length)
+      throw new Error(
+        `Updater platform outside this release: ${extra.join(", ")}`
+      )
+    for (const [target, filename] of targets) {
       const platform = update.platforms?.[target]
+      const name = filename(version)
       if (
         !platform?.signature ||
-        !platform.url?.startsWith(
-          `https://github.com/iplanwebsites/whyfull/releases/download/${info.tag}/`
-        )
+        platform.url !==
+          `https://github.com/iplanwebsites/whyfull/releases/download/${info.tag}/${encodeURIComponent(name)}`
       )
         throw new Error(`Missing signed updater platform: ${target}`)
-      const name = decodeURIComponent(
-        new URL(platform.url).pathname.split("/").at(-1)
-      )
       if (!names.includes(name))
         throw new Error(`Missing updater artifact: ${name}`)
     }
@@ -76,6 +88,7 @@ export async function createManifest({
     macosSigning: info.macosSigning,
     windowsSigning: "unsigned",
     updater: info.updater,
+    platforms,
     downloads,
   }
 }
@@ -97,6 +110,9 @@ if (
     version,
     channel: process.env.RELEASE_CHANNEL || "auto",
     macosSigning: process.env.MACOS_SIGNING || "auto",
+    buildOnly: process.env.BUILD_ONLY === "true",
+    updater: process.env.UPDATER || "auto",
+    platforms: process.env.RELEASE_PLATFORMS || allPlatforms,
   })
   await writeFile(
     join(directory, "downloads.json"),

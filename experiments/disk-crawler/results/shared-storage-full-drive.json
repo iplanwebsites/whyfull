@@ -1,0 +1,399 @@
+{
+  "format": "whyfull-shared-sqlite-benchmark",
+  "root": "/System/Volumes/Data",
+  "status": "complete",
+  "startedAt": "2026-11-22T00:37:42.296Z",
+  "node": "v22.23.2",
+  "cpu": "Apple M4 Pro",
+  "ramGiB": 48,
+  "configuration": {
+    "topFiles": 32,
+    "excludes": [],
+    "engine": "sync",
+    "heapMiB": 512,
+    "sqliteCacheMiB": 8,
+    "synchronous": "NORMAL",
+    "journalMode": "WAL"
+  },
+  "methodology": "R4 N4 N4 R4. Fresh sequential processes; live drive; no purge or warmup. Same application SQLite writer, rollup, indexes and atomic cache publication. endToEndMs includes crawler startup, ingestion, aggregation, indexing and cache publication. Independent integrity checks/page probe reported separately. Whole process tree RSS sampled every second; Node OS high-water RSS also recorded. OS filesystem cache is outside process RSS. Node persists its pending frontier in SQLite; Rust uses its bounded traversal queue/local DFS.",
+  "sourceHashes": {
+    "cli.mjs": "f5d9c81ccc947a5f3d65700949fb265c245792edc272e7a63fcd0c63bdf9eaed",
+    "fs-worker.mjs": "3f1c9f0a404ae9155678e0e250a765520d09de9d48cf08efab48b14dcc80b090",
+    "index.mjs": "4c6ba8d5af929dfad2eeb3900b438c742d1b9f87a7d62225b9f8b2372f5106a1",
+    "rust-scanner-BGyvazkr.mjs": "92fee9d1225995c3f1a39850bd557d3de19c60cba95e1c8056be4bbac7cb2f01",
+    "rust-scanner-Doxfsh4r.mjs": "b80134dc4b95402e072efc3d39c0b8616ddd63dfa671672c198696625aa0d5ca",
+    "viewer-server-XZ4vcIL2.mjs": "02e0201fb392222b5c7f7658b58cc8f6c0cfe024692e3b9a7cb55a1e09443b01",
+    "rustBinary": "06a4e9efc2556c64a10218c007b6fb904806a949ad03ee98e6ed2e6f3735326f",
+    "runner": "944c053fc118c716e100eedefe7ebc7560335bca3fe90ba25019f35a6740e995"
+  },
+  "before": {
+    "at": "2026-11-22T00:37:42.299Z",
+    "availableGiB": 23.311161041259766,
+    "swap": "vm.swapusage: total = 18432.00M  used = 17011.94M  free = 1420.06M  (encrypted)",
+    "load": "vm.loadavg: { 3.74 7.94 9.02 }"
+  },
+  "sequence": [
+    {
+      "scanner": "rust",
+      "workers": 4
+    },
+    {
+      "scanner": "node",
+      "workers": 4
+    },
+    {
+      "scanner": "node",
+      "workers": 4
+    },
+    {
+      "scanner": "rust",
+      "workers": 4
+    }
+  ],
+  "results": [
+    {
+      "status": "complete",
+      "scanner": "rust",
+      "workers": 4,
+      "files": 28578407,
+      "directories": 3792960,
+      "bytes": 3990858420224,
+      "apparentBytes": 7873824795256,
+      "issues": 449,
+      "skippedLinks": 486243,
+      "excluded": 7,
+      "timings": {
+        "crawlMs": 236757,
+        "aggregationMs": 25503.67879199999,
+        "indexingMs": 2797.603375000006,
+        "finalizeMs": 2416,
+        "totalMs": 267474,
+        "scanApiMs": 267475.881417,
+        "cacheMs": 2.4113750000251457,
+        "endToEndMs": 267479.219209,
+        "validationMs": 1856.161334000004,
+        "firstPageMs": 0.03158299997448921
+      },
+      "firstPageEntries": 23,
+      "nodePeakRssKiB": 145376,
+      "nodeUserCpuMs": 69684.274,
+      "nodeSystemCpuMs": 34031.807,
+      "inventoryBytes": 1774804992,
+      "indexes": [
+        "directory_parent",
+        "hardlink_directory",
+        "directory_size",
+        "directory_children_size"
+      ],
+      "integrity": "ok",
+      "run": 1,
+      "exit": {
+        "code": 0,
+        "signal": null
+      },
+      "processWallMs": 269399.670084,
+      "sampledPeakTreeRssMiB": 142.96875,
+      "memorySamples": 270,
+      "cpu": {
+        "realSeconds": 269.39,
+        "userSeconds": 96.59,
+        "sysSeconds": 453.53
+      },
+      "before": {
+        "at": "2026-11-22T00:37:42.305Z",
+        "availableGiB": 23.3111572265625,
+        "swap": "vm.swapusage: total = 18432.00M  used = 17011.94M  free = 1420.06M  (encrypted)",
+        "load": "vm.loadavg: { 3.74 7.94 9.02 }"
+      },
+      "after": {
+        "at": "2026-11-22T00:42:11.710Z",
+        "availableGiB": 21.63190460205078,
+        "swap": "vm.swapusage: total = 18432.00M  used = 16851.88M  free = 1580.12M  (encrypted)",
+        "load": "vm.loadavg: { 5.71 6.58 8.07 }"
+      }
+    },
+    {
+      "status": "complete",
+      "scanner": "node",
+      "workers": 4,
+      "files": 28578560,
+      "directories": 3792981,
+      "bytes": 3990878142464,
+      "apparentBytes": 7873842358206,
+      "issues": 449,
+      "skippedLinks": 486243,
+      "excluded": 7,
+      "timings": {
+        "crawlMs": 426628,
+        "aggregationMs": 26655.219374999986,
+        "indexingMs": 2711.5031659999513,
+        "finalizeMs": 2383,
+        "totalMs": 458378,
+        "scanApiMs": 458379.59795900004,
+        "cacheMs": 2.2695829999865964,
+        "endToEndMs": 458382.633959,
+        "validationMs": 1787.488874999981,
+        "firstPageMs": 0.03704199998173863
+      },
+      "firstPageEntries": 23,
+      "nodePeakRssKiB": 344832,
+      "nodeUserCpuMs": 246285.919,
+      "nodeSystemCpuMs": 507558.284,
+      "inventoryBytes": 1733111808,
+      "indexes": [
+        "directory_parent",
+        "hardlink_directory",
+        "directory_size",
+        "directory_children_size"
+      ],
+      "integrity": "ok",
+      "run": 2,
+      "exit": {
+        "code": 0,
+        "signal": null
+      },
+      "processWallMs": 460245.04804200004,
+      "sampledPeakTreeRssMiB": 337.6875,
+      "memorySamples": 460,
+      "cpu": {
+        "realSeconds": 460.24,
+        "userSeconds": 246.28,
+        "sysSeconds": 507.55
+      },
+      "before": {
+        "at": "2026-11-22T00:42:11.714Z",
+        "availableGiB": 21.63190460205078,
+        "swap": "vm.swapusage: total = 18432.00M  used = 16851.88M  free = 1580.12M  (encrypted)",
+        "load": "vm.loadavg: { 5.71 6.58 8.07 }"
+      },
+      "after": {
+        "at": "2026-11-22T00:49:51.963Z",
+        "availableGiB": 21.022686004638672,
+        "swap": "vm.swapusage: total = 17408.00M  used = 16194.50M  free = 1213.50M  (encrypted)",
+        "load": "vm.loadavg: { 3.37 4.49 6.35 }"
+      },
+      "differenceFromFirst": {
+        "files": 153,
+        "directories": 21,
+        "bytes": 19722240,
+        "apparentBytes": 17562950,
+        "issues": 0,
+        "skippedLinks": 0,
+        "excluded": 0
+      }
+    },
+    {
+      "status": "complete",
+      "scanner": "node",
+      "workers": 4,
+      "files": 28578599,
+      "directories": 3792983,
+      "bytes": 3990879395840,
+      "apparentBytes": 7873844980669,
+      "issues": 453,
+      "skippedLinks": 486243,
+      "excluded": 7,
+      "timings": {
+        "crawlMs": 432628,
+        "aggregationMs": 28637.19754199998,
+        "indexingMs": 2786.271291000012,
+        "finalizeMs": 3512,
+        "totalMs": 467563,
+        "scanApiMs": 467567.134208,
+        "cacheMs": 2.291832999966573,
+        "endToEndMs": 467570.139708,
+        "validationMs": 1800.5945829999982,
+        "firstPageMs": 0.032540999993216246
+      },
+      "firstPageEntries": 23,
+      "nodePeakRssKiB": 342448,
+      "nodeUserCpuMs": 243330.445,
+      "nodeSystemCpuMs": 504131.627,
+      "inventoryBytes": 1733140480,
+      "indexes": [
+        "directory_parent",
+        "hardlink_directory",
+        "directory_size",
+        "directory_children_size"
+      ],
+      "integrity": "ok",
+      "run": 3,
+      "exit": {
+        "code": 0,
+        "signal": null
+      },
+      "processWallMs": 469455.07816599996,
+      "sampledPeakTreeRssMiB": 335.359375,
+      "memorySamples": 470,
+      "cpu": {
+        "realSeconds": 469.43,
+        "userSeconds": 243.33,
+        "sysSeconds": 504.13
+      },
+      "before": {
+        "at": "2026-11-22T00:49:51.968Z",
+        "availableGiB": 21.022682189941406,
+        "swap": "vm.swapusage: total = 17408.00M  used = 16194.50M  free = 1213.50M  (encrypted)",
+        "load": "vm.loadavg: { 3.37 4.49 6.35 }"
+      },
+      "after": {
+        "at": "2026-11-22T00:57:41.422Z",
+        "availableGiB": 19.00698471069336,
+        "swap": "vm.swapusage: total = 17408.00M  used = 16082.44M  free = 1325.56M  (encrypted)",
+        "load": "vm.loadavg: { 4.65 4.63 5.64 }"
+      },
+      "differenceFromFirst": {
+        "files": 192,
+        "directories": 23,
+        "bytes": 20975616,
+        "apparentBytes": 20185413,
+        "issues": 4,
+        "skippedLinks": 0,
+        "excluded": 0
+      }
+    },
+    {
+      "status": "complete",
+      "scanner": "rust",
+      "workers": 4,
+      "files": 28578837,
+      "directories": 3792990,
+      "bytes": 3990982410240,
+      "apparentBytes": 7873948465731,
+      "issues": 449,
+      "skippedLinks": 486243,
+      "excluded": 7,
+      "timings": {
+        "crawlMs": 224477,
+        "aggregationMs": 30482.110625,
+        "indexingMs": 4958.936500000011,
+        "finalizeMs": 4052,
+        "totalMs": 263971,
+        "scanApiMs": 263972.115125,
+        "cacheMs": 2.467499999969732,
+        "endToEndMs": 263975.876333,
+        "validationMs": 1902.3157909999718,
+        "firstPageMs": 0.03516600001603365
+      },
+      "firstPageEntries": 23,
+      "nodePeakRssKiB": 146096,
+      "nodeUserCpuMs": 66450.711,
+      "nodeSystemCpuMs": 33840.321,
+      "inventoryBytes": 1774473216,
+      "indexes": [
+        "directory_parent",
+        "hardlink_directory",
+        "directory_size",
+        "directory_children_size"
+      ],
+      "integrity": "ok",
+      "run": 4,
+      "exit": {
+        "code": 0,
+        "signal": null
+      },
+      "processWallMs": 265953.6869999999,
+      "sampledPeakTreeRssMiB": 143.65625,
+      "memorySamples": 266,
+      "cpu": {
+        "realSeconds": 265.95,
+        "userSeconds": 92.07,
+        "sysSeconds": 425.94
+      },
+      "before": {
+        "at": "2026-11-22T00:57:41.427Z",
+        "availableGiB": 19.00698471069336,
+        "swap": "vm.swapusage: total = 17408.00M  used = 16082.44M  free = 1325.56M  (encrypted)",
+        "load": "vm.loadavg: { 4.65 4.63 5.64 }"
+      },
+      "after": {
+        "at": "2026-11-22T01:02:07.383Z",
+        "availableGiB": 17.441120147705078,
+        "swap": "vm.swapusage: total = 17408.00M  used = 15874.44M  free = 1533.56M  (encrypted)",
+        "load": "vm.loadavg: { 6.21 5.21 5.58 }"
+      },
+      "differenceFromFirst": {
+        "files": 430,
+        "directories": 30,
+        "bytes": 123990016,
+        "apparentBytes": 123670475,
+        "issues": 0,
+        "skippedLinks": 0,
+        "excluded": 0
+      }
+    }
+  ],
+  "completedAt": "2026-11-22T01:02:07.388Z",
+  "after": {
+    "at": "2026-11-22T01:02:07.388Z",
+    "availableGiB": 17.441116333007812,
+    "swap": "vm.swapusage: total = 17408.00M  used = 15874.44M  free = 1533.56M  (encrypted)",
+    "load": "vm.loadavg: { 6.21 5.21 5.58 }"
+  },
+  "summary": {
+    "averages": {
+      "node": {
+        "runs": 2,
+        "endToEndSeconds": 462.9763868335,
+        "crawlSeconds": 429.628,
+        "aggregationSeconds": 27.646208458499984,
+        "indexingSeconds": 2.7488872284999815,
+        "finalizeSeconds": 2.9475,
+        "peakSampledTreeRssMiB": 336.5234375,
+        "cpuSeconds": 750.645
+      },
+      "rust": {
+        "runs": 2,
+        "endToEndSeconds": 265.727547771,
+        "crawlSeconds": 230.617,
+        "aggregationSeconds": 27.992894708499996,
+        "indexingSeconds": 3.8782699375000083,
+        "finalizeSeconds": 3.234,
+        "peakSampledTreeRssMiB": 143.3125,
+        "cpuSeconds": 534.065
+      }
+    },
+    "rustElapsedReduction": 0.4260451389574573,
+    "rustPeakRssReduction": 0.5741381311665699,
+    "rustCpuReduction": 0.2885252016599057
+  },
+  "coverage": {
+    "nodeFiles": 28578599,
+    "rustFiles": 28578837,
+    "fileDifference": 238,
+    "nodeIssues": 453,
+    "rustIssues": 449,
+    "nodeErrorDirectories": 426,
+    "rustErrorDirectories": 422,
+    "matchedRustErrorDirectories": 422,
+    "unreadableInBoth": 395,
+    "unmatchedRustErrorDirectories": 0,
+    "rustOnlyUnreadableFilesSeenByNode": 0,
+    "nodeOnlyUnreadableFilesSeenByRust": 1,
+    "differenceCount": 4
+  },
+  "coverageFirstPair": {
+    "nodeFiles": 28578560,
+    "rustFiles": 28578407,
+    "fileDifference": -153,
+    "nodeIssues": 449,
+    "rustIssues": 449,
+    "nodeErrorDirectories": 422,
+    "rustErrorDirectories": 422,
+    "matchedRustErrorDirectories": 422,
+    "unreadableInBoth": 395,
+    "unmatchedRustErrorDirectories": 0,
+    "rustOnlyUnreadableFilesSeenByNode": 0,
+    "nodeOnlyUnreadableFilesSeenByRust": 0,
+    "differenceCount": 0
+  },
+  "caveats": [
+    "Two repetitions per scanner, live APFS drive, no cache purge or warmup. Other activity, changing file counts and existing swap pressure limit timing precision; this is not a universal speedup or cold-cache claim.",
+    "A short 32 MiB fixture/lifecycle regression check overlapped the beginning of run 1. Full-drive scans did not overlap; broad tests and desktop builds were deferred until the timed sequence finished.",
+    "The final Node pass recorded four extra error directories, all ENOENT (paths disappeared between enumeration and opening). Rust later found one file in one of them. Both adjacent pairs matched all 422 Rust directories with errors; no files were hidden behind a Rust-only unreadable directory.",
+    "Both configurations use four workers, a 512 MiB main old-space setting, topFiles=32 and identical policies. Node workers also inherit the heap setting; Rust has no V8 heap.",
+    "End-to-end timing includes the scan API through the same SQLite rollup, indexing, final checkpoint and atomic cache publication; it excludes JSON export and independent integrity checks. Process wall time includes process startup and those checks.",
+    "RSS is sampled once a second across the scanner process tree, including the Rust helper or Node worker threads, and the small time wrapper. Short-lived peaks may be missed; Node OS high-water RSS is also retained. OS file cache and the browser/desktop process are outside this measurement.",
+    "Both scanners share the SQLite schema and lifecycle; Node additionally writes its pending frontier to that database, while Rust uses its bounded queue/local DFS. This compares the implemented pipelines, not isolated language runtimes."
+  ]
+}

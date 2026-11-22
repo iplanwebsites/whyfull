@@ -12,6 +12,12 @@ export { storeVersions, sharedStore, readModulesStoreDir } from "./pnpm"
 export { TrashController, moveToNativeTrash } from "./trash"
 export { DiskScanner, scanFilesystem, defaultScanWorkers } from "./filesystem"
 export {
+  rustScannerAvailability,
+  releaseDiskSnapshot,
+} from "./sqlite-inventory"
+export { ScanProgressTracker, ScanCompletionEstimate } from "./scan-progress"
+export type { ScanProgress, ScanProgressSample } from "./scan-progress"
+export {
   startViewer,
   loadDiskSnapshot,
   saveDiskSnapshot,
@@ -76,3 +82,20 @@ export {
   createFileDistribution,
   addFileSize,
 } from "./file-distribution"
+
+export { analyzeSnapshot } from "./snapshot-analysis"
+export { ScanCache } from "./scan-cache"
+export {
+  loadKnowledge,
+  updateKnowledge,
+  knowledgePath,
+  knowledgeContext,
+  knowledgeTargets,
+  locationProposal,
+} from "./knowledge"
+export type {
+  KnowledgeScope,
+  KnowledgeView,
+  SavedLocation,
+  LocalContext,
+} from "./knowledge-types"

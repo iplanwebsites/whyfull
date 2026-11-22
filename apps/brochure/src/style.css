@@ -1062,3 +1062,65 @@ body {
     gap: 16px;
   }
 }
+
+/* Hero: two equal ways in — the app, or your coding agent. */
+.wf-home-paths {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  max-width: 560px;
+  margin-top: 32px;
+}
+.wf-home-path {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 18px 18px 16px;
+  border: 1px solid var(--wf-home-line);
+  border-radius: 6px;
+  min-width: 0;
+}
+.wf-home-path .wf-home-button {
+  justify-content: center;
+  width: 100%;
+}
+.wf-home-path-label {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--wf-home-muted);
+}
+.wf-home-path-note {
+  color: var(--wf-home-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.wf-home-path .wf-home-copy-feedback {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--wf-home-accent);
+}
+.wf-home-hero .wf-home-copy-status {
+  margin-top: 18px;
+}
+.wf-home-node-note {
+  margin-top: 16px !important;
+}
+.wf-home-app-shot {
+  margin: 32px 0 0;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #efefe4;
+  border: 1px solid var(--wf-home-line);
+}
+.wf-home-app-shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+@media (max-width: 680px) {
+  .wf-home-paths {
+    grid-template-columns: 1fr;
+  }
+}

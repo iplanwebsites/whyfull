@@ -5,6 +5,8 @@ import {
   colorFor,
   branchColor,
   childColor,
+  TOP_LEVEL,
+  isSafeTier,
 } from "../src/lib/chart-colors.ts"
 const node = (id, value, children = []) => ({
   id,
@@ -136,4 +138,17 @@ test("sibling separation survives lightness/chroma bounds at deep levels", () =>
             )
           }
       }
+})
+
+test("top-level branches use the earthy brand family with restrained chroma", () => {
+  assert.ok(TOP_LEVEL.length >= 8)
+  for (let rank = 0; rank < 40; rank++) {
+    const color = childColor(branchColor([]), rank, 1)
+    assert.ok(color.c <= 0.12, `rank ${rank} chroma ${color.c}`)
+  }
+  assert.deepEqual(childColor(branchColor([]), 0, 1), TOP_LEVEL[0])
+  assert.ok(isSafeTier("AUTO") && isSafeTier("REBUILD"))
+  assert.ok(
+    !isSafeTier("JUDGEMENT") && !isSafeTier("DATA") && !isSafeTier(null)
+  )
 })

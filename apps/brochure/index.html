@@ -107,13 +107,13 @@
         <nav aria-label="Main navigation">
           <a href="https://github.com/iplanwebsites/whyfull">Source</a>
           <a href="https://github.com/iplanwebsites/whyfull#readme">Docs</a>
-          <a href="/download/">Downloads ↗</a>
+          <a href="/download/">Download</a>
           <span class="wf-home-github-star"
             ><a
               class="github-button"
               href="https://github.com/iplanwebsites/whyfull"
               data-icon="octicon-star"
-              data-show-count="true"
+              data-show-count="false"
               aria-label="Star whyfull on GitHub"
               >Star</a
             ></span
@@ -129,31 +129,41 @@
               Models, caches, and forgotten worktrees. One report with sizes and
               cleanup guidance, ready for you or your coding agent.
             </p>
-            <div class="wf-home-actions wf-home-primary-actions">
-              <button
-                class="wf-home-button"
-                type="button"
-                data-copy="wf-start-prompt"
-                data-copy-status="wf-hero-copy-status"
-              >
-                Copy agent prompt
-              </button>
-              <div class="wf-home-secondary-actions">
-                <a class="wf-home-text-link" href="/download/"
-                  >Download the app <span aria-hidden="true">↓</span></a
+            <div class="wf-home-paths">
+              <div class="wf-home-path">
+                <span class="wf-home-path-label">Explore it yourself</span>
+                <a
+                  class="wf-home-button"
+                  href="/download/"
+                  data-primary-download
+                  >Download the app</a
                 >
-                <a class="wf-home-text-link" href="#start"
-                  >Install the skill <span aria-hidden="true">↓</span></a
-                >
+                <p class="wf-home-path-note" data-primary-download-note>
+                  Desktop app with the CLI built in.
+                  <a href="/download/">All downloads</a>
+                </p>
               </div>
-              <p
-                id="wf-hero-copy-status"
-                class="wf-home-copy-feedback"
-                role="status"
-                aria-live="polite"
-              >
-                Paste into your local coding agent.
-              </p>
+              <div class="wf-home-path">
+                <span class="wf-home-path-label">Hand it to your agent</span>
+                <button
+                  class="wf-home-button"
+                  type="button"
+                  data-copy="wf-start-prompt"
+                  data-copy-status="wf-hero-copy-status"
+                >
+                  Copy agent prompt
+                </button>
+                <p class="wf-home-path-note">
+                  Paste it into Claude Code, Codex, or Cursor, or
+                  <a href="#start">install the skill&nbsp;↓</a>
+                </p>
+                <p
+                  id="wf-hero-copy-status"
+                  class="wf-home-copy-feedback"
+                  role="status"
+                  aria-live="polite"
+                ></p>
+              </div>
             </div>
             <p class="wf-home-copy-status">
               Free &amp; open source. Runs locally. No automatic deletion.
@@ -270,9 +280,85 @@
               </p>
             </li>
           </ol>
+          <figure class="wf-home-app-shot" data-app-shot>
+            <img
+              src="/images/app-suggestions.png"
+              width="2880"
+              height="1800"
+              loading="lazy"
+              decoding="async"
+              alt="Whyfull Suggestions after a scan: npm, uv, Cargo, Homebrew, Xcode and simulator caches grouped by how safely they can be removed, each with its size, the cleanup command, and a Copy for agent button."
+            />
+          </figure>
           <div class="wf-home-quick-commands">
             <div>
-              <span class="wf-home-command-label">For your agent</span>
+              <span class="wf-home-command-label"
+                >Interactive picker. Start here.</span
+              >
+              <div class="wf-home-command-row">
+                <pre
+                  class="wf-home-command"
+                ><code id="wf-text-command">npx whyfull</code></pre>
+                <button
+                  class="wf-home-copy-command"
+                  type="button"
+                  data-copy="wf-text-command"
+                  aria-label="Copy npx whyfull"
+                  title="Copy command"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="16"
+                    height="16"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    aria-hidden="true"
+                  >
+                    <rect x="8" y="8" width="12" height="12" rx="2" />
+                    <path
+                      d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div>
+              <span class="wf-home-command-label"
+                >Terminal summary with cleanup guidance.</span
+              >
+              <div class="wf-home-command-row">
+                <pre
+                  class="wf-home-command"
+                ><code id="wf-tui-command">npx whyfull --tui</code></pre>
+                <button
+                  class="wf-home-copy-command"
+                  type="button"
+                  data-copy="wf-tui-command"
+                  aria-label="Copy npx whyfull --tui"
+                  title="Copy command"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="16"
+                    height="16"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    aria-hidden="true"
+                  >
+                    <rect x="8" y="8" width="12" height="12" rx="2" />
+                    <path
+                      d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div>
+              <span class="wf-home-command-label"
+                >Report for your coding agent.</span
+              >
               <div class="wf-home-command-row">
                 <pre
                   class="wf-home-command"
@@ -302,16 +388,18 @@
               </div>
             </div>
             <div>
-              <span class="wf-home-command-label">For you</span>
+              <span class="wf-home-command-label"
+                >Visual explorer in your browser.</span
+              >
               <div class="wf-home-command-row">
                 <pre
                   class="wf-home-command"
-                ><code id="wf-text-command">npx whyfull</code></pre>
+                ><code id="wf-ui-command">npx whyfull --ui</code></pre>
                 <button
                   class="wf-home-copy-command"
                   type="button"
-                  data-copy="wf-text-command"
-                  aria-label="Copy npx whyfull"
+                  data-copy="wf-ui-command"
+                  aria-label="Copy npx whyfull --ui"
                   title="Copy command"
                 >
                   <svg
@@ -332,6 +420,11 @@
               </div>
             </div>
           </div>
+          <p class="wf-home-small wf-home-node-note">
+            Needs Node.js 22.18 or later. The
+            <a href="/download/">desktop app</a> includes the same command
+            without Node.js.
+          </p>
         </section>
         <section
           id="start"
@@ -373,7 +466,7 @@
             </div>
             <div class="wf-home-install-links">
               <a href="/skills/whyfull/SKILL.md" download="SKILL.md"
-                >Download SKILL.md ↗</a
+                >Download SKILL.md ↓</a
               >
               <button type="button" data-copy="wf-start-prompt">
                 Copy a one-off prompt
@@ -382,16 +475,10 @@
             <details class="wf-home-prompt" id="agent-prompt">
               <summary>View agent prompt</summary>
               <label for="wf-start-prompt">Agent prompt</label
-              ><textarea id="wf-start-prompt" readonly rows="12">
-Help me reclaim disk space on this computer using Whyfull (https://whyfull.app).
+              ><textarea id="wf-start-prompt" readonly rows="5">
+Help me reclaim disk space on this computer using Whyfull. Follow the instructions at https://whyfull.app/skills/whyfull/SKILL.md (if you can’t open them, run npx --yes whyfull --json and work from the report).
 
-Use an installed whyfull command to run whyfull --json. This can be the CLI installed from the desktop app or a standalone installation. Otherwise, run npx --yes whyfull@latest --json. If neither command or filesystem access is available, explain what is needed. The report covers known tool locations, discovered caches, and Git worktrees; it is not a full-drive inventory.
-
-Prioritize the largest useful cleanup opportunities. Explain what created the data, the safety tier, and the recommended tool-specific cleanup method. Account for overlapping measurements and incomplete scans; measured usage is not guaranteed reclaimable space.
-
-Investigate the findings and propose a concrete plan. Use the owning tool’s cleanup commands where appropriate. Carry out cleanup within permissions I have already given you. Ask before deleting personal data, removing worktrees with uncommitted work, or making choices about models, environments, or projects I may still need. If cleanup is not already authorized, ask me to approve the plan first.
-
-Keep paths and report contents private. If visual inspection would help, suggest the desktop app or whyfull --view (npx --yes whyfull@latest --view if using npm). After approved cleanup, run the report again and summarize what changed.</textarea>
+Find the biggest useful cleanup opportunities, explain what I’d be removing, and propose a plan before cleanup. Keep paths and report contents private.</textarea>
             </details>
             <p
               id="wf-copy-status"
@@ -444,6 +531,16 @@ Keep paths and report contents private. If visual inspection would help, suggest
               folders, compare their sizes, and find what’s worth clearing out.
             </p>
           </div>
+          <figure class="wf-home-app-shot" data-app-shot>
+            <img
+              src="/images/app-screenshot.png"
+              width="2880"
+              height="1800"
+              loading="lazy"
+              decoding="async"
+              alt="The Whyfull disk explorer: a treemap of a developer's home folder (Library, Pictures, Ollama models, caches, Code) beside a list of folders by size, with small markers on folders that are safe to remove."
+            />
+          </figure>
           <div class="wf-home-chart-previews">
             <figure>
               <img
@@ -473,16 +570,16 @@ Keep paths and report contents private. If visual inspection would help, suggest
             </figure>
           </div>
           <div class="wf-home-explore-actions">
-            <p>Or open the viewer from your terminal:</p>
+            <p>Or open the visual explorer from your terminal:</p>
             <div class="wf-home-command-row">
               <pre
                 class="wf-home-command"
-              ><code id="wf-view-command">npx whyfull --view</code></pre>
+              ><code id="wf-view-command">npx whyfull --ui</code></pre>
               <button
                 class="wf-home-copy-command"
                 type="button"
                 data-copy="wf-view-command"
-                aria-label="Copy npx whyfull --view"
+                aria-label="Copy npx whyfull --ui"
                 title="Copy command"
               >
                 <svg
@@ -525,7 +622,7 @@ Keep paths and report contents private. If visual inspection would help, suggest
               </button>
               <div class="wf-home-secondary-actions">
                 <a class="wf-home-text-link" href="/download/"
-                  >Download the app <span aria-hidden="true">↓</span></a
+                  >Download the app <span aria-hidden="true">→</span></a
                 >
                 <a class="wf-home-text-link" href="#start"
                   >Install the skill <span aria-hidden="true">↑</span></a
@@ -536,9 +633,7 @@ Keep paths and report contents private. If visual inspection would help, suggest
                 class="wf-home-copy-feedback"
                 role="status"
                 aria-live="polite"
-              >
-                Paste into your local coding agent.
-              </p>
+              ></p>
             </div>
           </div>
         </section>
@@ -547,13 +642,12 @@ Keep paths and report contents private. If visual inspection would help, suggest
         <a class="wf-home-wordmark" href="/">whyfull.</a>
         <p>Open source · Apache 2.0 · Make room for what’s next.</p>
         <nav aria-label="Footer navigation">
-          <a href="/download/">Downloads ↗</a
+          <a href="/download/">Download</a
           ><a href="https://github.com/iplanwebsites/whyfull">GitHub ↗</a
           ><a href="https://www.npmjs.com/package/whyfull">npm ↗</a>
         </nav>
       </footer>
     </div>
     <script type="module" src="/src/main.js"></script>
-    <script async defer src="https://buttons.github.io/buttons.js"></script>
   </body>
 </html>

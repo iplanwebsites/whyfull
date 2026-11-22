@@ -14,7 +14,10 @@ const dist = join(desktop, "dist")
 const stage = join(dist, name)
 await rm(stage, { force: true, recursive: true })
 await mkdir(stage, { recursive: true })
-await cp(runtime, join(stage, "runtime"), { recursive: true })
+await cp(runtime, join(stage, "runtime"), {
+  recursive: true,
+  filter: (path) => path !== join(runtime, "app-engine"),
+})
 await writeFile(
   join(stage, "whyfull"),
   '#!/bin/sh\nbase=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)\nexec "$base/runtime/node" "$base/runtime/engine/cli.mjs" "$@"\n'

@@ -76,7 +76,7 @@ export class TrashController {
         : !supported
           ? "Native Trash is supported on macOS 14 or newer. Demo mode is available here."
           : !this.options.allowTrash
-            ? "Start whyfull --view --allow-trash to enable real Trash moves. Every session still starts in demo mode."
+            ? "Start whyfull --ui --allow-trash to enable real Trash moves. Every session still starts in demo mode."
             : null,
     }
   }

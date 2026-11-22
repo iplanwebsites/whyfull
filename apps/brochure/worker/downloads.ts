@@ -111,8 +111,11 @@ export async function loadDownloads(fetcher: typeof fetch = fetch) {
     (channel === "stable" &&
       (manifest.macosSigning !== "notarized" || !manifest.updater)) ||
     (channel === "preview" && manifest.updater) ||
+    // A release may ship a subset of platforms (Mac-first stable); the page
+    // hides files it does not list. Each listed id must still be known and unique.
     !Array.isArray(manifest.downloads) ||
-    manifest.downloads.length !== ids.size
+    manifest.downloads.length < 1 ||
+    manifest.downloads.length > ids.size
   )
     throw new Error("Inconsistent release metadata")
   const seen = new Set<string>()

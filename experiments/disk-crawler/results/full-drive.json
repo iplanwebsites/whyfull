@@ -1,0 +1,370 @@
+{
+  "format": "whyfull-drive-benchmark",
+  "root": "/System/Volumes/Data",
+  "startedAt": "2026-11-21T16:53:31.720Z",
+  "status": "complete",
+  "node": "v22.23.2",
+  "cpu": "Apple M4 Pro",
+  "ramGiB": 48,
+  "configuration": {
+    "topFiles": 32,
+    "excludes": [],
+    "metadataEngine": "sync",
+    "heapMiB": 12288,
+    "queueLimit": 256
+  },
+  "methodology": "R4 N8 N8 R4, fresh processes, no simultaneous scans, no cache purge or artificial warmup. Live drive; counts may change. Node timing includes streamed JSON export; Rust includes SQLite checkpoint. RSS sampled every second for the complete scanner process tree, plus per-process OS high-water marks. OS file cache is separate from process RSS.",
+  "sourceHashes": {
+    "rustBinary": "06a4e9efc2556c64a10218c007b6fb904806a949ad03ee98e6ed2e6f3735326f",
+    "nodeIndex": "661fb190771dd95369bd99ae46cce392388f97594c6c1057f5853b50ef161d5e",
+    "nodeWorker": "02b55e3e79ba18f30c7a9c72bad2cef32311f92e8fc1762cf6ca122dcf7e896d"
+  },
+  "sequence": [
+    {
+      "engine": "rust",
+      "workers": 4
+    },
+    {
+      "engine": "node-inventory",
+      "workers": 8
+    },
+    {
+      "engine": "node-inventory",
+      "workers": 8
+    },
+    {
+      "engine": "rust",
+      "workers": 4
+    }
+  ],
+  "before": {
+    "at": "2026-11-21T16:53:31.722Z",
+    "availableGiB": 5.599174499511719,
+    "swap": "vm.swapusage: total = 12288.00M  used = 10741.12M  free = 1546.88M  (encrypted)",
+    "vm": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                               56844.\nPages active:                           1167894.\nPages inactive:                         1163379.\nPages speculative:                         2995.\nPages throttled:                              0.\nPages wired down:                        345514.\nPages purgeable:                          30774.\n\"Translation faults\":                 638592686.\nPages copy-on-write:                   33362104.\nPages zero filled:                    382175887.\nPages reactivated:                     56115564.\nPages purged:                           5465475.\nFile-backed pages:                       466373.\nAnonymous pages:                        1867895.\nPages stored in compressor:             1675670.\nPages occupied by compressor:            334680.\nDecompressions:                        44820216.\nCompressions:                          57239299.\nPageins:                               39772119.\nPageouts:                                 78517.\nSwapins:                                 191216.\nSwapouts:                                876012.",
+    "load": "vm.loadavg: { 8.30 7.39 7.59 }"
+  },
+  "results": [
+    {
+      "engine": "rust",
+      "workers": 4,
+      "format": "whyfull-crawler-spike",
+      "protocol": 1,
+      "root": "/System/Volumes/Data",
+      "topFiles": 32,
+      "queueLimit": 256,
+      "excludes": [],
+      "status": "complete",
+      "startedAt": "2026-11-21T16:53:31.766Z",
+      "files": 27974630,
+      "directories": 3691884,
+      "bytes": 4001867542528,
+      "apparentBytes": 7877476870661,
+      "skippedLinks": 474763,
+      "issues": 442,
+      "excluded": 4,
+      "durationMs": 256947,
+      "completedAt": "2026-11-21T16:57:48.626Z",
+      "nodePeakRssKiB": 114832,
+      "crawlerPeakRssKiB": 4608,
+      "interruptedRetries": 0,
+      "peakRssUpperBoundKiB": 119440,
+      "nodeCpuMs": 78577.04,
+      "crawlerCpuMs": 454835.491,
+      "scanMs": 256887,
+      "metadataEngine": "sync",
+      "cpuMs": 533423.862,
+      "run": 1,
+      "exit": {
+        "code": 0,
+        "signal": null
+      },
+      "endToEndMs": 256979,
+      "sampledPeakTreeRssKiB": 119280,
+      "memorySamples": 257,
+      "before": {
+        "at": "2026-11-21T16:53:31.730Z",
+        "availableGiB": 5.599170684814453,
+        "swap": "vm.swapusage: total = 12288.00M  used = 10741.12M  free = 1546.88M  (encrypted)",
+        "vm": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                               56077.\nPages active:                           1168096.\nPages inactive:                         1163397.\nPages speculative:                         2996.\nPages throttled:                              0.\nPages wired down:                        345573.\nPages purgeable:                          30774.\n\"Translation faults\":                 638593382.\nPages copy-on-write:                   33362167.\nPages zero filled:                    382176278.\nPages reactivated:                     56115564.\nPages purged:                           5465475.\nFile-backed pages:                       466374.\nAnonymous pages:                        1868115.\nPages stored in compressor:             1675670.\nPages occupied by compressor:            334680.\nDecompressions:                        44820216.\nCompressions:                          57239299.\nPageins:                               39772122.\nPageouts:                                 78517.\nSwapins:                                 191216.\nSwapouts:                                876012.",
+        "load": "vm.loadavg: { 8.30 7.39 7.59 }"
+      },
+      "after": {
+        "at": "2026-11-21T16:57:48.683Z",
+        "availableGiB": 8.577438354492188,
+        "swap": "vm.swapusage: total = 9216.00M  used = 7748.75M  free = 1467.25M  (encrypted)",
+        "vm": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                              177794.\nPages active:                           1141674.\nPages inactive:                         1090737.\nPages speculative:                        87250.\nPages throttled:                              0.\nPages wired down:                        243214.\nPages purgeable:                          43656.\n\"Translation faults\":                 646373347.\nPages copy-on-write:                   33531724.\nPages zero filled:                    387820553.\nPages reactivated:                     56117801.\nPages purged:                           5527594.\nFile-backed pages:                       407809.\nAnonymous pages:                        1911852.\nPages stored in compressor:             1409700.\nPages occupied by compressor:            330268.\nDecompressions:                        44837426.\nCompressions:                          57239299.\nPageins:                               40861864.\nPageouts:                                 78533.\nSwapins:                                 234131.\nSwapouts:                                912064.",
+        "load": "vm.loadavg: { 5.06 6.38 7.11 }"
+      },
+      "inventoryBytes": 1529155584,
+      "differenceFromFirst": null
+    },
+    {
+      "engine": "node-inventory",
+      "workers": 8,
+      "status": "complete",
+      "files": 27976164,
+      "directories": 3692131,
+      "bytes": 4001889988608,
+      "apparentBytes": 7877495135258,
+      "skippedLinks": 474771,
+      "issues": 445,
+      "excluded": 4,
+      "scanMs": 326576,
+      "persistMs": 12997,
+      "metadataEngine": "sync",
+      "durationMs": 339619,
+      "nodePeakRssKiB": 4962592,
+      "peakRssUpperBoundKiB": 4962592,
+      "cpuMs": 990378.43,
+      "run": 2,
+      "exit": {
+        "code": 0,
+        "signal": null
+      },
+      "endToEndMs": 340212,
+      "sampledPeakTreeRssKiB": 4962592,
+      "memorySamples": 340,
+      "before": {
+        "at": "2026-11-21T16:57:48.690Z",
+        "availableGiB": 8.577434539794922,
+        "swap": "vm.swapusage: total = 9216.00M  used = 7748.75M  free = 1467.25M  (encrypted)",
+        "vm": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                              178722.\nPages active:                           1141695.\nPages inactive:                         1090737.\nPages speculative:                        86569.\nPages throttled:                              0.\nPages wired down:                        243217.\nPages purgeable:                          43656.\n\"Translation faults\":                 646373763.\nPages copy-on-write:                   33531787.\nPages zero filled:                    387820683.\nPages reactivated:                     56117801.\nPages purged:                           5527594.\nFile-backed pages:                       407126.\nAnonymous pages:                        1911875.\nPages stored in compressor:             1409700.\nPages occupied by compressor:            330268.\nDecompressions:                        44837426.\nCompressions:                          57239299.\nPageins:                               40861867.\nPageouts:                                 78533.\nSwapins:                                 234131.\nSwapouts:                                912064.",
+        "load": "vm.loadavg: { 5.06 6.38 7.11 }"
+      },
+      "after": {
+        "at": "2026-11-21T17:03:28.901Z",
+        "availableGiB": 8.049095153808594,
+        "swap": "vm.swapusage: total = 9216.00M  used = 7740.75M  free = 1475.25M  (encrypted)",
+        "vm": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                              282986.\nPages active:                           1070765.\nPages inactive:                          968436.\nPages speculative:                       101087.\nPages throttled:                              0.\nPages wired down:                        278779.\nPages purgeable:                          11486.\n\"Translation faults\":                 654279984.\nPages copy-on-write:                   33742805.\nPages zero filled:                    392730951.\nPages reactivated:                     56507979.\nPages purged:                           5572869.\nFile-backed pages:                       467659.\nAnonymous pages:                        1672629.\nPages stored in compressor:             1529652.\nPages occupied by compressor:            368787.\nDecompressions:                        44853850.\nCompressions:                          57377372.\nPageins:                               41666494.\nPageouts:                                 80087.\nSwapins:                                 235458.\nSwapouts:                                912064.",
+        "load": "vm.loadavg: { 9.93 8.47 7.81 }"
+      },
+      "inventoryBytes": 2473142564,
+      "differenceFromFirst": {
+        "files": 1534,
+        "directories": 247,
+        "bytes": 22446080,
+        "apparentBytes": 18264597,
+        "skippedLinks": 8,
+        "issues": 3,
+        "excluded": 0
+      }
+    },
+    {
+      "engine": "node-inventory",
+      "workers": 8,
+      "status": "complete",
+      "files": 28463365,
+      "directories": 3765977,
+      "bytes": 4010231611392,
+      "apparentBytes": 7884425575282,
+      "skippedLinks": 484403,
+      "issues": 449,
+      "excluded": 4,
+      "scanMs": 306387,
+      "persistMs": 14111,
+      "metadataEngine": "sync",
+      "durationMs": 320547,
+      "nodePeakRssKiB": 4963888,
+      "peakRssUpperBoundKiB": 4963888,
+      "cpuMs": 1001639.1,
+      "run": 3,
+      "exit": {
+        "code": 0,
+        "signal": null
+      },
+      "endToEndMs": 321089,
+      "sampledPeakTreeRssKiB": 4934272,
+      "memorySamples": 321,
+      "before": {
+        "at": "2026-11-21T17:03:28.940Z",
+        "availableGiB": 8.049030303955078,
+        "swap": "vm.swapusage: total = 9216.00M  used = 7740.75M  free = 1475.25M  (encrypted)",
+        "vm": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                              281916.\nPages active:                           1071550.\nPages inactive:                          968928.\nPages speculative:                       101161.\nPages throttled:                              0.\nPages wired down:                        278818.\nPages purgeable:                          11489.\n\"Translation faults\":                 654284793.\nPages copy-on-write:                   33743006.\nPages zero filled:                    392732074.\nPages reactivated:                     56507982.\nPages purged:                           5572869.\nFile-backed pages:                       467961.\nAnonymous pages:                        1673678.\nPages stored in compressor:             1529648.\nPages occupied by compressor:            368787.\nDecompressions:                        44853854.\nCompressions:                          57377372.\nPageins:                               41666725.\nPageouts:                                 80087.\nSwapins:                                 235458.\nSwapouts:                                912064.",
+        "load": "vm.loadavg: { 9.93 8.47 7.81 }"
+      },
+      "after": {
+        "at": "2026-11-21T17:08:50.028Z",
+        "availableGiB": 5.466098785400391,
+        "swap": "vm.swapusage: total = 9216.00M  used = 7732.75M  free = 1483.25M  (encrypted)",
+        "vm": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                              536961.\nPages active:                            825062.\nPages inactive:                          766893.\nPages speculative:                       157223.\nPages throttled:                              0.\nPages wired down:                        266686.\nPages purgeable:                          17477.\n\"Translation faults\":                 663151065.\nPages copy-on-write:                   33920376.\nPages zero filled:                    398400407.\nPages reactivated:                     57250800.\nPages purged:                           5598574.\nFile-backed pages:                       530993.\nAnonymous pages:                        1218185.\nPages stored in compressor:             1875823.\nPages occupied by compressor:            518413.\nDecompressions:                        44994094.\nCompressions:                          57878680.\nPageins:                               42538704.\nPageouts:                                 80663.\nSwapins:                                 236734.\nSwapouts:                                912064.",
+        "load": "vm.loadavg: { 11.83 10.42 8.83 }"
+      },
+      "inventoryBytes": 2523209625,
+      "differenceFromFirst": {
+        "files": 488735,
+        "directories": 74093,
+        "bytes": 8364068864,
+        "apparentBytes": 6948704621,
+        "skippedLinks": 9640,
+        "issues": 7,
+        "excluded": 0
+      }
+    },
+    {
+      "engine": "rust",
+      "workers": 4,
+      "format": "whyfull-crawler-spike",
+      "protocol": 1,
+      "root": "/System/Volumes/Data",
+      "topFiles": 32,
+      "queueLimit": 256,
+      "excludes": [],
+      "status": "complete",
+      "startedAt": "2026-11-21T17:08:53.199Z",
+      "files": 28463507,
+      "directories": 3765924,
+      "bytes": 4010228183040,
+      "apparentBytes": 7884432351789,
+      "skippedLinks": 484420,
+      "issues": 442,
+      "excluded": 4,
+      "durationMs": 243738,
+      "completedAt": "2026-11-21T17:12:56.909Z",
+      "nodePeakRssKiB": 115152,
+      "crawlerPeakRssKiB": 4544,
+      "interruptedRetries": 0,
+      "peakRssUpperBoundKiB": 119696,
+      "nodeCpuMs": 76717.084,
+      "crawlerCpuMs": 451529.59,
+      "scanMs": 243712,
+      "metadataEngine": "sync",
+      "cpuMs": 528252.88,
+      "run": 4,
+      "exit": {
+        "code": 0,
+        "signal": null
+      },
+      "endToEndMs": 243771,
+      "sampledPeakTreeRssKiB": 119536,
+      "memorySamples": 244,
+      "before": {
+        "at": "2026-11-21T17:08:53.160Z",
+        "availableGiB": 7.759082794189453,
+        "swap": "vm.swapusage: total = 9216.00M  used = 7732.75M  free = 1483.25M  (encrypted)",
+        "vm": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                              534543.\nPages active:                            829605.\nPages inactive:                          767431.\nPages speculative:                       155133.\nPages throttled:                              0.\nPages wired down:                        266423.\nPages purgeable:                          17477.\n\"Translation faults\":                 663260479.\nPages copy-on-write:                   33921195.\nPages zero filled:                    398491482.\nPages reactivated:                     57250800.\nPages purged:                           5598577.\nFile-backed pages:                       535819.\nAnonymous pages:                        1216350.\nPages stored in compressor:             1875327.\nPages occupied by compressor:            518219.\nDecompressions:                        44994544.\nCompressions:                          57878680.\nPageins:                               42542599.\nPageouts:                                 80663.\nSwapins:                                 236734.\nSwapouts:                                912064.",
+        "load": "vm.loadavg: { 11.04 10.28 8.79 }"
+      },
+      "after": {
+        "at": "2026-11-21T17:12:56.931Z",
+        "availableGiB": 6.14910888671875,
+        "swap": "vm.swapusage: total = 9216.00M  used = 7716.75M  free = 1499.25M  (encrypted)",
+        "vm": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                              526886.\nPages active:                            851543.\nPages inactive:                          750861.\nPages speculative:                       143198.\nPages throttled:                              0.\nPages wired down:                        309741.\nPages purgeable:                          13584.\n\"Translation faults\":                 668601848.\nPages copy-on-write:                   34052923.\nPages zero filled:                    401485715.\nPages reactivated:                     57252866.\nPages purged:                           5602310.\nFile-backed pages:                       488229.\nAnonymous pages:                        1257373.\nPages stored in compressor:             1800884.\nPages occupied by compressor:            489051.\nDecompressions:                        45047168.\nCompressions:                          57878680.\nPageins:                               43151518.\nPageouts:                                 80663.\nSwapins:                                 237166.\nSwapouts:                                912064.",
+        "load": "vm.loadavg: { 7.75 8.67 8.44 }"
+      },
+      "inventoryBytes": 1555595264,
+      "differenceFromFirst": {
+        "files": 488877,
+        "directories": 74040,
+        "bytes": 8360640512,
+        "apparentBytes": 6955481128,
+        "skippedLinks": 9657,
+        "issues": 0,
+        "excluded": 0
+      }
+    }
+  ],
+  "completedAt": "2026-11-21T17:12:56.940Z",
+  "after": {
+    "at": "2026-11-21T17:12:56.940Z",
+    "availableGiB": 6.149066925048828,
+    "swap": "vm.swapusage: total = 9216.00M  used = 7716.75M  free = 1499.25M  (encrypted)",
+    "vm": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                              526621.\nPages active:                            851542.\nPages inactive:                          750863.\nPages speculative:                       143200.\nPages throttled:                              0.\nPages wired down:                        309740.\nPages purgeable:                          13584.\n\"Translation faults\":                 668602241.\nPages copy-on-write:                   34052986.\nPages zero filled:                    401485822.\nPages reactivated:                     57252866.\nPages purged:                           5602310.\nFile-backed pages:                       488231.\nAnonymous pages:                        1257374.\nPages stored in compressor:             1800883.\nPages occupied by compressor:            489050.\nDecompressions:                        45047169.\nCompressions:                          57878680.\nPageins:                               43151521.\nPageouts:                                 80663.\nSwapins:                                 237166.\nSwapouts:                                912064.",
+    "load": "vm.loadavg: { 7.75 8.67 8.44 }"
+  },
+  "summary": {
+    "elapsedTimeReduction": 0.24278051900722963,
+    "cpuTimeReduction": 0.46703443819593293,
+    "peakRssReduction": 0.9759092850637889,
+    "peakRssFactor": 41.509768499933095
+  },
+  "coverage": {
+    "root": "/System/Volumes/Data",
+    "nodeFiles": 28463365,
+    "rustFiles": 28463507,
+    "fileDifference": 142,
+    "fileDifferenceFraction": 0.000004988869025148643,
+    "nodeIssues": 449,
+    "rustIssues": 442,
+    "rustErrorDirectories": 415,
+    "matchedErrorDirectories": 415,
+    "unreadableInBoth": 388,
+    "unmatchedRustErrorDirectories": 0,
+    "rustOnlyUnreadableFilesSeenByNode": 0,
+    "nodeOnlyUnreadableDirectFilesSeenByRust": 0
+  },
+  "caveats": [
+    "Two repetitions per configuration, live APFS volume, no cache purge. The volume gained about 489,000 file paths between adjacent pairs; use timing ranges, not a universal speedup claim.",
+    "Node uses the current app default of eight workers; Rust uses four. Both Node runtimes have a 12 GiB old-space limit, topFiles=32, no custom exclusions, and persist their results.",
+    "RSS covers scanner processes, not OS file caches or the full desktop application. Rust's OS figure sums the independent peaks of controller and helper; one-second simultaneous process-tree samples are also retained.",
+    "A superseded 2.3 GiB exploratory export was unlinked during the first corrected Node pass to recover disk space. This maintenance and other background activity limit timing precision; the second Node pass has no such maintenance.",
+    "Exploratory measurements before the EINTR retry fix are excluded. Unit tests inject an interruption mid-directory and verify that all entries remain available. Neither corrected Rust pass encountered an interruption (retry count zero)."
+  ],
+  "integrity": {
+    "integrity": [
+      {
+        "quick_check": "ok"
+      }
+    ],
+    "totals": {
+      "directories": 3765924,
+      "files": 28463507,
+      "bytes": 4010228183040,
+      "apparentBytes": 7884432351789
+    },
+    "matches": true,
+    "status": "complete"
+  },
+  "exploratoryNode4": {
+    "engine": "node-inventory",
+    "workers": 4,
+    "status": "complete",
+    "files": 28226202,
+    "directories": 3728012,
+    "bytes": 4005794119680,
+    "apparentBytes": 7880660645013,
+    "skippedLinks": 484361,
+    "issues": 444,
+    "excluded": 4,
+    "scanMs": 482758,
+    "persistMs": 18805,
+    "metadataEngine": "sync",
+    "durationMs": 501614,
+    "nodePeakRssKiB": 4686528,
+    "peakRssUpperBoundKiB": 4686528,
+    "cpuMs": 733052.791,
+    "run": 2,
+    "exit": {
+      "code": 0,
+      "signal": null
+    },
+    "endToEndMs": 502164,
+    "sampledPeakTreeRssKiB": 4676576,
+    "memorySamples": 502,
+    "before": {
+      "at": "2026-11-21T16:32:01.492Z",
+      "availableGiB": 8.543148040771484,
+      "swap": "vm.swapusage: total = 12288.00M  used = 11061.25M  free = 1226.75M  (encrypted)",
+      "vm": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                               57892.\nPages active:                           1082303.\nPages inactive:                         1075390.\nPages speculative:                         8713.\nPages throttled:                              0.\nPages wired down:                        391313.\nPages purgeable:                          11286.\n\"Translation faults\":                 609713148.\nPages copy-on-write:                   31970531.\nPages zero filled:                    361568088.\nPages reactivated:                     55397343.\nPages purged:                           5291941.\nFile-backed pages:                       308136.\nAnonymous pages:                        1858270.\nPages stored in compressor:             1921775.\nPages occupied by compressor:            455614.\nDecompressions:                        44449205.\nCompressions:                          56866349.\nPageins:                               36761771.\nPageouts:                                 75714.\nSwapins:                                 170172.\nSwapouts:                                876012.",
+      "load": "vm.loadavg: { 8.57 8.77 9.18 }"
+    },
+    "after": {
+      "at": "2026-11-21T16:40:23.660Z",
+      "availableGiB": 5.919269561767578,
+      "swap": "vm.swapusage: total = 12288.00M  used = 11005.25M  free = 1282.75M  (encrypted)",
+      "vm": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                              407410.\nPages active:                            812500.\nPages inactive:                          928510.\nPages speculative:                       164605.\nPages throttled:                              0.\nPages wired down:                        364267.\nPages purgeable:                          22013.\n\"Translation faults\":                 619807198.\nPages copy-on-write:                   32477024.\nPages zero filled:                    368469135.\nPages reactivated:                     56022144.\nPages purged:                           5328266.\nFile-backed pages:                       452502.\nAnonymous pages:                        1453113.\nPages stored in compressor:             1836534.\nPages occupied by compressor:            393745.\nDecompressions:                        44656397.\nCompressions:                          57173264.\nPageins:                               37803368.\nPageouts:                                 75911.\nSwapins:                                 174005.\nSwapouts:                                876012.",
+      "load": "vm.loadavg: { 4.01 6.12 7.68 }"
+    },
+    "inventoryBytes": 2497612730,
+    "differenceFromFirst": {
+      "files": 78643,
+      "directories": 6999,
+      "bytes": 1892016128,
+      "apparentBytes": 2751579911,
+      "skippedLinks": 2,
+      "issues": -1,
+      "excluded": 0
+    },
+    "caveat": "One earlier run on the live volume, not part of the balanced corrected sequence and not included in the mean comparisons."
+  }
+}

@@ -7,12 +7,23 @@ import {
   renameSync,
   writeFileSync,
   unlinkSync,
+  existsSync,
 } from "node:fs"
 import { randomUUID } from "node:crypto"
 import type { DiskPolicy } from "./filesystem-types"
 
-export const defaultPolicyPath = () =>
-  join(homedir(), ".config", "whyfull", "config.json")
+export const defaultPolicyPath = () => {
+  const legacy = join(homedir(), ".config", "whyfull")
+  // Preserve existing Keep/Exclude rules and caches when adopting XDG support.
+  const directory =
+    process.env.WHYFULL_CONFIG_DIR ||
+    (existsSync(legacy)
+      ? legacy
+      : process.env.XDG_CONFIG_HOME
+        ? join(process.env.XDG_CONFIG_HOME, "whyfull")
+        : legacy)
+  return join(directory, "config.json")
+}
 
 export function normalizePolicyPath(path: string): string {
   const expanded = resolve(
@@ -32,8 +43,9 @@ export function normalizePolicyPath(path: string): string {
 /** The data volume also exposes user paths through macOS firmlinks. */
 export function policyPath(path: string): string {
   return process.platform === "darwin" &&
-    path.startsWith("/System/Volumes/Data/")
-    ? path.slice("/System/Volumes/Data".length)
+    (path === "/System/Volumes/Data" ||
+      path.startsWith("/System/Volumes/Data/"))
+    ? path.slice("/System/Volumes/Data".length) || "/"
     : path
 }
 
@@ -114,6 +126,7 @@ function updateConfig(next: Record<string, unknown>, path: string): void {
 }
 
 export interface ViewerPreferences {
+  scanner: "node" | "rust"
   view: "treemap" | "sunburst"
   sort: "size" | "name"
   theme: "light" | "dark" | "system"
@@ -139,6 +152,7 @@ export function loadViewerPreferences(
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error
   }
   return {
+    scanner: value.scanner === "rust" ? "rust" : "node",
     view: value.view === "sunburst" ? "sunburst" : "treemap",
     sort: value.sort === "name" ? "name" : "size",
     theme:
@@ -162,6 +176,11 @@ export function saveViewerPreferences(
   path = defaultPolicyPath()
 ): ViewerPreferences {
   const next = loadViewerPreferences(path)
+  if (patch.scanner !== undefined) {
+    if (patch.scanner !== "node" && patch.scanner !== "rust")
+      throw new Error("Unknown scanner")
+    next.scanner = patch.scanner
+  }
   if (patch.minFileBytes !== undefined) {
     if (
       typeof patch.minFileBytes !== "number" ||

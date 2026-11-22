@@ -44,6 +44,23 @@ function age(atimeMs: number): string {
 export function render(report: Report, opts: RenderOptions = {}): string {
   const { showAll = false } = opts
   const out: string[] = []
+  if (report.localContext) {
+    const instructions = [
+      report.localContext.userInstructions,
+      report.localContext.computerInstructions,
+    ].filter(Boolean)
+    if (instructions.length)
+      out.push(
+        "",
+        `  ${bold("YOUR INSTRUCTIONS")}`,
+        ...instructions.map((value) =>
+          value
+            .split("\n")
+            .map((line) => `  ${line}`)
+            .join("\n")
+        )
+      )
+  }
   const pad = (s: string | number, n: number) => String(s).padEnd(n)
   const lpad = (s: string | number, n: number) => String(s).padStart(n)
 
@@ -198,6 +215,7 @@ export function render(report: Report, opts: RenderOptions = {}): string {
           `    ${lpad(human(child.bytes), 10)}    ${dim("↳")} ${child.name}`
         )
       }
+      if (d.hint) out.push(`      ${dim(d.hint)}`)
     }
     out.push("")
     out.push(

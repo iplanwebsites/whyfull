@@ -1,4 +1,4 @@
-import { toast } from "@workspace/ui/components/sonner"
+import { toast } from "@/lib/notifications"
 
 export async function copyPath(path: string) {
   try {

@@ -1,0 +1,4 @@
+{
+  "$comment": "Platforms that ship in draft releases (stable and preview). A platform may join stable but never leave it. Entry criteria: docs/desktop-builds.md#platform-entry-criteria",
+  "platforms": ["macos-arm64", "macos-x64"]
+}

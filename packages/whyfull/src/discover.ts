@@ -18,6 +18,7 @@ import { homedir } from "node:os"
 import { basename, dirname, join, sep } from "node:path"
 import { measure } from "./size"
 import { forPlatform } from "./targets"
+import { loadKnowledge } from "./knowledge"
 import type {
   DiscoveredDir,
   DiscoveredChild,
@@ -164,7 +165,7 @@ function scanRoots(
     onProgress = null,
   } = opts
 
-  const knownPaths = forPlatform(platform)
+  const knownPaths = forPlatform(platform, opts.policyFile)
     .flatMap((t) => t.candidates)
     .filter(Boolean)
     .map((p) => p!.toLowerCase())
@@ -224,6 +225,11 @@ function scanRoots(
         bytes,
         root: root.label,
         children,
+        ...(entry.name === ".turbo"
+          ? {
+              hint: "Turbo build cache. Review recent use; the cache/ child holds generated build outputs and can be moved to Trash, then rebuilt when needed.",
+            }
+          : {}),
       })
     }
   }
@@ -294,6 +300,9 @@ export function discoverCaches(opts: DiscoverOptions = {}): DiscoverResult {
     (opts.roots === undefined
       ? [
           ...(PROJECT_ROOTS[platform] ?? []),
+          ...loadKnowledge(opts.policyFile)
+            .locations.filter((item) => item.enabled && item.kind === "project")
+            .map((item) => ({ path: item.resolvedPath, label: item.name })),
           { path: process.cwd(), label: "Project cache" },
           { path: join(home, ".codex", "worktrees"), label: "Worktree cache" },
         ]

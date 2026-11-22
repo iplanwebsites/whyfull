@@ -25,7 +25,7 @@ Escalate the investigation only where useful:
 - `--exact`: count huge stores fully when a budget-limited measurement matters.
 - `--worktree-root <dir>`: include another known worktree location.
 - `--json-file <new-path>`: save the report when requested; refuses to overwrite an existing file.
-- `--view --root <dir>`: open a local visual scan of the relevant folder. Use `--no-open` in a headless session; the server runs on the machine executing the command. Keep it running while the user explores.
+- `--ui --root <dir>`: open the visual explorer on the relevant folder. Use `--no-open` in a headless session; the server runs on the machine executing the command. Keep it running while the user explores.
 
 Do not start a full-drive viewer scan by default when the report answers the question.
 

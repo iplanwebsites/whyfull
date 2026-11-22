@@ -52,9 +52,15 @@ fn node(_runtime: &std::path::Path) -> Command {
         } else {
             "whyfull-node"
         });
-    let mut command = Command::new(sidecar);
+    let mut command = Command::new(&sidecar);
     // Inherited Node injection flags must not modify the bundled engine.
     command.env_remove("NODE_OPTIONS").env_remove("NODE_PATH");
+    // Prefer the executable Tauri signs as an external binary. The portable
+    // archive also carries its own helper beside the Node engine.
+    let crawler = sidecar.parent().unwrap().join("whyfull-crawler");
+    if crawler.is_file() {
+        command.env("WHYFULL_RUST_CRAWLER", crawler);
+    }
     command
 }
 
@@ -66,6 +72,7 @@ struct Ready {
 fn start_engine(runtime: PathBuf) -> Result<(Engine, url::Url), Box<dyn std::error::Error>> {
     let mut command = node(&runtime);
     command
+        .arg("--max-old-space-size=12288")
         .arg(runtime.join("desktop.mjs"))
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
