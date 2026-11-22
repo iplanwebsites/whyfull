@@ -73,8 +73,23 @@ $19 after a 30-day trial. Run these steps in order. Details live in
 - [ ] Database: run `wrangler d1 create whyfull-licenses`, paste the real
       `database_id` into `apps/brochure/wrangler.jsonc` (deploys fail until
       you do), then apply the migrations.
-- [ ] Email: verify the sending domain with Resend and set `EMAIL_FROM` and
-      `SUPPORT_EMAIL`.
+- [ ] Email (Mailjet, reusing the Kicking Lotus account): the
+      `*@whyfull.app` sender exists and `MAILJET_API_KEY`/`MAILJET_SECRET_KEY`
+      are uploaded to both sites. Add these TXT records to the whyfull.app
+      zone in Cloudflare DNS (DNS only), then ask Mailjet to check the domain:
+  - `mailjet._2cd0b883.whyfull.app` → `2cd0b8835245ad8701fca8d0e3cea027`
+  - `mailjet._domainkey.whyfull.app` → the DKIM key shown in Mailjet
+    (Account → Domains → whyfull.app), starting `k=rsa; p=MIIBIjAN…`
+  - `whyfull.app` → `v=spf1 include:spf.mailjet.com ?all` (merge with Cloudflare
+    Email Routing's `include:_spf.mx.cloudflare.net` if you add routing)
+
+  Once verified, set `EMAIL_FROM` to `Whyfull <licenses@whyfull.app>` and
+  `SUPPORT_EMAIL` to `support@whyfull.app` in `wrangler.jsonc` (both
+  environments) and redeploy. Until then the site sends no email.
+
+- [ ] Support inbox: support@whyfull.app is already published in the terms.
+      Turn on Cloudflare Email Routing for whyfull.app and forward
+      `support@` to your inbox.
 - [ ] Set the secrets with `wrangler secret put`: `STRIPE_SECRET_KEY`,
       `STRIPE_WEBHOOK_SECRET` and `RESEND_API_KEY`. `LICENSE_PRIVATE_KEY` is uploaded
       (re-run `pnpm --filter @whyfull/brochure secret:license` if the key changes).

@@ -627,3 +627,39 @@ test("key pages get privacy headers", async () => {
   assert.equal(response.headers.get("Referrer-Policy"), "no-referrer")
   assert.equal(await response.text(), "asset")
 })
+
+test("purchase emails go through Mailjet when Resend isn't configured", async () => {
+  const env = environment({
+    RESEND_API_KEY: undefined,
+    MAILJET_API_KEY: "mj_public",
+    MAILJET_SECRET_KEY: "mj_secret",
+  })
+  const mailjetOk = {
+    "https://api.mailjet.com/v3.1/send": () =>
+      Response.json({ Messages: [{ Status: "success" }] }),
+  }
+  await withFetch(mailjetOk, async (calls) => {
+    const event = {
+      type: "checkout.session.completed",
+      data: { object: session() },
+    }
+    assert.equal((await webhook(env, event)).status, 200)
+    assert.equal((await webhook(env, event)).status, 200)
+    assert.equal(calls.length, 1, "retries don't resend")
+    const { init } = calls[0]
+    assert.equal(
+      init.headers.Authorization,
+      `Basic ${Buffer.from("mj_public:mj_secret").toString("base64")}`
+    )
+    const [message] = JSON.parse(init.body).Messages
+    const [row] = env.LICENSES.sqlite.prepare("SELECT * FROM licenses").all()
+    assert.deepEqual(message.From, {
+      Email: "licenses@whyfull.app",
+      Name: "Whyfull",
+    })
+    assert.deepEqual(message.To, [{ Email: "ada@example.com" }])
+    assert.deepEqual(message.ReplyTo, { Email: "support@whyfull.app" })
+    assert.ok(message.TextPart.includes(row.key))
+    assert.ok(message.HTMLPart.includes(row.key))
+  })
+})

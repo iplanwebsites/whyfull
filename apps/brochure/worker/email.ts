@@ -1,13 +1,25 @@
-// Transactional email through Resend's REST API. Keys and addresses are
+// Transactional email through Resend or Mailjet. Keys and addresses are
 // never logged; only the HTTP status of a failed send is.
 import type { LicenseRow } from "./licenses.ts"
 
 export const SITE = "https://whyfull.app"
 
 export interface EmailConfig {
+  provider: "resend" | "mailjet"
   apiKey: string
+  /** Mailjet only: the API secret key. */
+  apiSecret?: string
+  /** "Name <address>" or a bare address; must be a verified sender. */
   from: string
   replyTo?: string
+}
+
+/** Split "Whyfull <licenses@whyfull.app>" into its name and address. */
+export function parseSender(from: string): { name?: string; email: string } {
+  const match = /^\s*(.*?)\s*<([^<>\s]+@[^<>\s]+)>\s*$/.exec(from)
+  return match
+    ? { ...(match[1] ? { name: match[1] } : {}), email: match[2] }
+    : { email: from.trim() }
 }
 
 export interface Message {
@@ -31,6 +43,7 @@ const escape = (value: string) =>
   )
 
 export async function sendEmail(config: EmailConfig, message: Message) {
+  if (config.provider === "mailjet") return sendMailjet(config, message)
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -47,6 +60,39 @@ export async function sendEmail(config: EmailConfig, message: Message) {
       text: message.text,
       html: message.html,
       ...(config.replyTo ? { reply_to: config.replyTo } : {}),
+    }),
+    signal: AbortSignal.timeout(10_000),
+  })
+  if (!response.ok) throw new Error(`Email service returned ${response.status}`)
+}
+
+// Mailjet Send API v3.1. It has no idempotency key; the Worker records
+// emailed_at so webhook retries don't resend.
+async function sendMailjet(config: EmailConfig, message: Message) {
+  const sender = parseSender(config.from)
+  const response = await fetch("https://api.mailjet.com/v3.1/send", {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${btoa(`${config.apiKey}:${config.apiSecret ?? ""}`)}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      Messages: [
+        {
+          From: {
+            Email: sender.email,
+            ...(sender.name ? { Name: sender.name } : {}),
+          },
+          To: [{ Email: message.to }],
+          Subject: message.subject,
+          TextPart: message.text,
+          HTMLPart: message.html,
+          ...(config.replyTo ? { ReplyTo: { Email: config.replyTo } } : {}),
+          ...(message.idempotencyKey
+            ? { CustomID: message.idempotencyKey.slice(0, 255) }
+            : {}),
+        },
+      ],
     }),
     signal: AbortSignal.timeout(10_000),
   })

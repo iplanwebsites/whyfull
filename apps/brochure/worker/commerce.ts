@@ -45,6 +45,9 @@ export interface CommerceEnv {
   LICENSE_PUBLIC_KEY?: string
   /** Secret. Resend API key. */
   RESEND_API_KEY?: string
+  /** Secrets. Mailjet keys, used when RESEND_API_KEY isn't set. */
+  MAILJET_API_KEY?: string
+  MAILJET_SECRET_KEY?: string
   /** Var. e.g. "Whyfull <licenses@whyfull.app>" on a verified domain. */
   EMAIL_FROM?: string
   /** Var. Reply-to and the contact shown when email isn't configured. */
@@ -92,14 +95,26 @@ const signer = (env: CommerceEnv): Signer | null =>
       }
     : null
 
-const emailConfig = (env: CommerceEnv): EmailConfig | null =>
-  env.RESEND_API_KEY && env.EMAIL_FROM
-    ? {
-        apiKey: env.RESEND_API_KEY,
-        from: env.EMAIL_FROM,
-        replyTo: normalizeEmail(env.SUPPORT_EMAIL) ?? undefined,
-      }
-    : null
+function emailConfig(env: CommerceEnv): EmailConfig | null {
+  if (!env.EMAIL_FROM) return null
+  const replyTo = normalizeEmail(env.SUPPORT_EMAIL) ?? undefined
+  if (env.RESEND_API_KEY)
+    return {
+      provider: "resend",
+      apiKey: env.RESEND_API_KEY,
+      from: env.EMAIL_FROM,
+      replyTo,
+    }
+  if (env.MAILJET_API_KEY && env.MAILJET_SECRET_KEY)
+    return {
+      provider: "mailjet",
+      apiKey: env.MAILJET_API_KEY,
+      apiSecret: env.MAILJET_SECRET_KEY,
+      from: env.EMAIL_FROM,
+      replyTo,
+    }
+  return null
+}
 
 const clientIp = (request: Request) =>
   request.headers.get("CF-Connecting-IP") ?? "unknown"
