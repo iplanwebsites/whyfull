@@ -164,12 +164,54 @@ fn check_updates(app: tauri::AppHandle, manual: bool) {
     });
 }
 
+/// Tauri returns Windows resource paths in verbatim form (`\\?\D:\...`).
+/// Node can't resolve a main script given that way (it fails with EISDIR on
+/// `lstat 'D:'`), so pass the engine ordinary drive or UNC paths.
+fn plain_path(path: PathBuf) -> PathBuf {
+    #[cfg(windows)]
+    {
+        let text = path.to_string_lossy();
+        if let Some(rest) = text.strip_prefix(r"\\?\UNC\") {
+            return PathBuf::from(format!(r"\\{rest}"));
+        }
+        if let Some(rest) = text.strip_prefix(r"\\?\") {
+            if rest.as_bytes().get(1) == Some(&b':') {
+                return PathBuf::from(rest);
+            }
+        }
+    }
+    path
+}
+
+#[cfg(all(test, windows))]
+mod plain_path_tests {
+    use super::plain_path;
+    use std::path::PathBuf;
+
+    #[test]
+    fn strips_verbatim_prefixes() {
+        assert_eq!(
+            plain_path(PathBuf::from(r"\\?\D:\a\Whyfull\runtime")),
+            PathBuf::from(r"D:\a\Whyfull\runtime")
+        );
+        assert_eq!(
+            plain_path(PathBuf::from(r"\\?\UNC\server\share\runtime")),
+            PathBuf::from(r"\\server\share\runtime")
+        );
+        assert_eq!(
+            plain_path(PathBuf::from(r"C:\Program Files\Whyfull")),
+            PathBuf::from(r"C:\Program Files\Whyfull")
+        );
+    }
+}
+
 fn main() {
     let context = tauri::generate_context!();
-    let runtime =
+    let runtime = plain_path(
         tauri::utils::platform::resource_dir(context.package_info(), &tauri::Env::default())
             .expect("Could not locate Whyfull resources")
-            .join("runtime");
+            .join("runtime"),
+    );
     let args: Vec<_> = std::env::args_os().skip(1).collect();
     // This path runs before Tauri, single-instance registration, or a webview:
     // headless reports work in SSH sessions and while the desktop is open.
