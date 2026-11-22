@@ -206,7 +206,17 @@ jobs:
           node apps/desktop/scripts/configure.mjs "${args[@]}"
           cat apps/desktop/src-tauri/version.conf.json | grep -v pubkey
       - name: Build installers
-        run: pnpm --filter @whyfull/desktop tauri build --config src-tauri/version.conf.json --bundles ${{ matrix.bundles }}
+        shell: bash
+        env:
+          BUNDLES: ${{ matrix.bundles }}
+        run: |
+          # Job-level env always defines the signing variables, empty when a
+          # mode is off. Tauri treats a defined-but-empty APPLE_CERTIFICATE as
+          # "import this certificate" and fails, so drop the empty ones.
+          for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID TAURI_SIGNING_PRIVATE_KEY TAURI_SIGNING_PRIVATE_KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then unset "$name"; fi
+          done
+          pnpm --filter @whyfull/desktop tauri build --config src-tauri/version.conf.json --bundles "$BUNDLES"
       - name: Verify native command-line entry without a display
         run: node apps/desktop/scripts/check-native.mjs
       - name: Verify Windows Authenticode signatures

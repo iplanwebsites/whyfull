@@ -35,8 +35,10 @@ export interface CommerceEnv {
   STRIPE_WEBHOOK_SECRET?: string
   /** Var. The one-time $19 Price (price_…). */
   STRIPE_PRICE_ID?: string
-  /** Var. "true" enables Stripe Tax on Checkout. */
+  /** Var. "true" enables Stripe Tax on Checkout (ignored with Managed Payments). */
   STRIPE_AUTOMATIC_TAX?: string
+  /** Var. "true" sells through Stripe Managed Payments (merchant of record). */
+  STRIPE_MANAGED_PAYMENTS?: string
   /** Secret. Ed25519 PKCS#8 PEM or base64 DER. */
   LICENSE_PRIVATE_KEY?: string
   /** Var, tests only. Overrides the public key the app ships with. */
@@ -161,6 +163,7 @@ async function buy(request: Request, env: CommerceEnv, url: URL) {
       priceId: env.STRIPE_PRICE_ID!,
       origin: url.origin,
       automaticTax: env.STRIPE_AUTOMATIC_TAX === "true",
+      managedPayments: env.STRIPE_MANAGED_PAYMENTS === "true",
     })
     return redirect(session.url)
   } catch (error) {

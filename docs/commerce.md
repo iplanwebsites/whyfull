@@ -81,17 +81,18 @@ no-referrer` and `noindex`; key responses are `Cache-Control: no-store`.
 Non-secret vars live in `apps/brochure/wrangler.jsonc` under `vars`; secrets
 are set with `wrangler secret put` (and `.dev.vars` locally, which git ignores).
 
-| Name                    | Kind   | Purpose                                                                                       |
-| ----------------------- | ------ | --------------------------------------------------------------------------------------------- |
-| `STRIPE_SECRET_KEY`     | secret | `sk_live_…`/`sk_test_…`, or a restricted key with write access to Checkout Sessions.          |
-| `STRIPE_WEBHOOK_SECRET` | secret | `whsec_…` of the webhook endpoint.                                                            |
-| `STRIPE_PRICE_ID`       | var    | `price_…` of the one-time $19 Price. `/buy/` stays on the fallback until set.                 |
-| `STRIPE_AUTOMATIC_TAX`  | var    | `"true"` enables Stripe Tax on Checkout (requires Stripe Tax set up). Default `"false"`.      |
-| `LICENSE_PRIVATE_KEY`   | secret | Ed25519 private key, PKCS#8 PEM (literal `\n` escapes are accepted) or base64 DER.            |
-| `RESEND_API_KEY`        | secret | Resend API key. Without it (or `EMAIL_FROM`) no email is sent and `/recover/` shows support.  |
-| `EMAIL_FROM`            | var    | Sender on a Resend-verified domain, e.g. `Whyfull <licenses@whyfull.app>`.                    |
-| `SUPPORT_EMAIL`         | var    | Reply-to for emails and the contact shown when email isn't configured.                        |
-| `LICENSE_PUBLIC_KEY`    | var    | Tests and staging only: overrides the public key the app ships with. Never set in production. |
+| Name                      | Kind   | Purpose                                                                                                                                                                                |
+| ------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `STRIPE_SECRET_KEY`       | secret | `sk_live_…`/`sk_test_…`, or a restricted key with write access to Checkout Sessions.                                                                                                   |
+| `STRIPE_WEBHOOK_SECRET`   | secret | `whsec_…` of the webhook endpoint.                                                                                                                                                     |
+| `STRIPE_PRICE_ID`         | var    | `price_…` of the one-time $19 Price. `/buy/` stays on the fallback until set.                                                                                                          |
+| `STRIPE_AUTOMATIC_TAX`    | var    | `"true"` enables Stripe Tax on Checkout (requires Stripe Tax set up). Default `"false"`.                                                                                               |
+| `STRIPE_MANAGED_PAYMENTS` | var    | `"true"` sells through Stripe Managed Payments (merchant of record): sends `managed_payments[enabled]` with API version `2026-04-22.dahlia` and omits tax settings. Chosen for launch. |
+| `LICENSE_PRIVATE_KEY`     | secret | Ed25519 private key, PKCS#8 PEM (literal `\n` escapes are accepted) or base64 DER.                                                                                                     |
+| `RESEND_API_KEY`          | secret | Resend API key. Without it (or `EMAIL_FROM`) no email is sent and `/recover/` shows support.                                                                                           |
+| `EMAIL_FROM`              | var    | Sender on a Resend-verified domain, e.g. `Whyfull <licenses@whyfull.app>`.                                                                                                             |
+| `SUPPORT_EMAIL`           | var    | Reply-to for emails and the contact shown when email isn't configured.                                                                                                                 |
+| `LICENSE_PUBLIC_KEY`      | var    | Tests and staging only: overrides the public key the app ships with. Never set in production.                                                                                          |
 
 ## Setup (owner)
 

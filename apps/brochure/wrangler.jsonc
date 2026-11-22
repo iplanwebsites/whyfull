@@ -25,6 +25,9 @@
   // STRIPE_WEBHOOK_SECRET, LICENSE_PRIVATE_KEY, RESEND_API_KEY.
   "vars": {
     "STRIPE_AUTOMATIC_TAX": "false",
+    // Stripe Managed Payments (merchant of record). Turn on once activated
+    // for the account; Stripe then handles tax and receipts.
+    "STRIPE_MANAGED_PAYMENTS": "false",
   },
   "assets": {
     // Vite generates the complete brochure here; no SSR is needed.

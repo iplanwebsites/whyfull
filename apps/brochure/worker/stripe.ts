@@ -36,16 +36,21 @@ export class StripeError extends Error {
   }
 }
 
+/** API version for requests that need one (Managed Payments needs a recent one). */
+export const MANAGED_PAYMENTS_API_VERSION = "2026-04-22.dahlia"
+
 async function stripe(
   secret: string,
   method: "GET" | "POST",
   path: string,
-  body?: URLSearchParams
+  body?: URLSearchParams,
+  version?: string
 ): Promise<unknown> {
   const response = await fetch(`${api}${path}`, {
     method,
     headers: {
       Authorization: `Bearer ${secret}`,
+      ...(version ? { "Stripe-Version": version } : {}),
       ...(body ? { "Content-Type": "application/x-www-form-urlencoded" } : {}),
     },
     body,
@@ -61,6 +66,11 @@ export interface CheckoutOptions {
   priceId: string
   origin: string
   automaticTax: boolean
+  /**
+   * Stripe Managed Payments: Stripe is the merchant of record and handles
+   * tax, receipts and the statement descriptor, so tax settings are omitted.
+   */
+  managedPayments?: boolean
 }
 
 /** Field key for the optional "name on license" input shown at checkout. */
@@ -74,7 +84,6 @@ export function checkoutParameters(options: CheckoutOptions): URLSearchParams {
     customer_creation: "always",
     allow_promotion_codes: "true",
     submit_type: "pay",
-    "automatic_tax[enabled]": options.automaticTax ? "true" : "false",
     // Stripe substitutes the literal {CHECKOUT_SESSION_ID} placeholder.
     success_url: `${options.origin}/thanks/?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${options.origin}/download/`,
@@ -89,6 +98,12 @@ export function checkoutParameters(options: CheckoutOptions): URLSearchParams {
     "custom_text[submit][message]":
       "Your license key appears right after payment and is emailed to you. One-time purchase, 30-day refunds. Terms: whyfull.app/legal/",
   })
+  if (options.managedPayments) params.set("managed_payments[enabled]", "true")
+  else
+    params.set(
+      "automatic_tax[enabled]",
+      options.automaticTax ? "true" : "false"
+    )
   return params
 }
 
@@ -99,7 +114,8 @@ export async function createCheckoutSession(
     options.secret,
     "POST",
     "/checkout/sessions",
-    checkoutParameters(options)
+    checkoutParameters(options),
+    options.managedPayments ? MANAGED_PAYMENTS_API_VERSION : undefined
   )) as { id?: unknown; url?: unknown }
   if (
     typeof session.url !== "string" ||

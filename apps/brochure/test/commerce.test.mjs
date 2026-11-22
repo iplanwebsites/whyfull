@@ -535,6 +535,15 @@ test("/buy/ creates a Checkout Session, or falls back to /download/", async () =
     }).get("automatic_tax[enabled]"),
     "false"
   )
+  const managed = checkoutParameters({
+    secret: "",
+    priceId: "price_1",
+    origin: "https://whyfull.app",
+    automaticTax: true,
+    managedPayments: true,
+  })
+  assert.equal(managed.get("managed_payments[enabled]"), "true")
+  assert.equal(managed.has("automatic_tax[enabled]"), false)
 })
 
 test("/api/recover answers the same either way and rate limits", async () => {
