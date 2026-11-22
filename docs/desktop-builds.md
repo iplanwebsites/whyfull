@@ -28,13 +28,15 @@ therefore never left half-filled, and no two jobs ever read and rewrite
 downloaded, merged, deleted and re-uploaded `latest.json` with no locking, so a
 platform could silently drop out. The workflow now calls the Tauri CLI directly.
 The CLI reads the same signing environment variables (`APPLE_*`, `TAURI_SIGNING_*`).
+Windows Authenticode goes through `bundle.windows.signCommand`; the Azure
+credentials it needs (`AZURE_*`) reach only the Windows job.
 
 Scripts:
 
 | Script                          | Role                                                                                                                                                                                       |
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `scripts/prepare.mjs`           | Builds the engine bundle; copies the running `node` as `binaries/whyfull-node-<rust host triple>`; on macOS/Linux builds `experiments/disk-crawler` as `binaries/whyfull-crawler-<triple>` |
-| `scripts/configure.mjs`         | Writes `src-tauri/version.conf.json`: version, `externalBin` list (crawler only on macOS/Linux), updater pubkey + endpoint for stable                                                      |
+| `scripts/configure.mjs`         | Writes `src-tauri/version.conf.json`: version, `externalBin` list (crawler only on macOS/Linux), updater pubkey + endpoint for stable, Windows `signCommand` with `--windows-signing`      |
 | `scripts/dmg.mjs`               | Finder-free DMG `Whyfull_<v>_<aarch64 or x64>.dmg`, Developer ID signed when an identity is set                                                                                            |
 | `scripts/archive-cli.mjs`       | Portable CLI `whyfull-<v>-<platform>-<arch>.tar.gz or zip`                                                                                                                                 |
 | `scripts/release-assets.mjs`    | `collect`: copy one runner's files under final asset names + an updater fragment; `latest`: merge fragments into `latest.json`                                                             |
@@ -123,10 +125,13 @@ These come from the working tree, not from the workflow:
   and `nsis_tauri_utils` itself.
 - Sidecar: `whyfull-node-x86_64-pc-windows-msvc.exe` (the official `node.exe`,
   which keeps its OpenJS Authenticode signature after renaming). No crawler.
-- Signing: **unsigned (decided 2026-11; Authenticode deferred)**. The updater
-  payload is still minisign-signed, so updates are verified even without
-  Authenticode. `downloads.json` records `windowsSigning` as `unsigned`, and the download page
-  shows that.
+- Signing: **optional Authenticode through Azure Artifact Signing, off by
+  default**. Until the owner opts in (see
+  [Windows code signing](#windows-code-signing-azure-artifact-signing)) the
+  installer stays unsigned. The updater payload is minisign-signed either way,
+  so updates are verified even without Authenticode. `downloads.json` records
+  `windowsSigning` as `signed` or `unsigned`, and the download page shows it.
+  The release notes pick the matching Windows line.
 - Updater artifact: `Whyfull_<v>_x64-setup.exe` + `.sig`, keys `windows-x86_64`
   and `windows-x86_64-nsis`. The NSIS installer defaults to per-user install
   (`%LOCALAPPDATA%`), so updates need no admin rights. The updater stops the
@@ -136,20 +141,24 @@ These come from the working tree, not from the workflow:
   Windows in principle, but the Windows engine paths and NSIS packaging have
   never run.
 - Risks:
-  - SmartScreen: Edge may first say the file "isn't commonly downloaded" (… →
+  - SmartScreen (unsigned): Edge may first say the file "isn't commonly downloaded" (… →
     Keep). Running it shows "Windows protected your PC" with publisher
     "Unknown publisher"; users choose **More info → Run anyway**. The release notes
     say this and ask users to compare the SHA-256 first. Reputation for unsigned
     files resets with every new file hash, so expect the warning on every version.
     In-app updates are not affected, because the updater runs the installer
     directly and never goes through the download prompt.
+  - SmartScreen (signed): the publisher name shows instead of "Unknown
+    publisher". Reputation builds on the signing identity, so early signed
+    versions may still warn.
   - The `--cli` launcher uses a GUI-subsystem exe plus `AttachConsole`.
     Stdout/exit codes through `whyfull.cmd` in `cmd.exe` and PowerShell need a manual check.
   - Defender may slow first launch while it scans the 80 MB Node binary.
   - Engine behavior on Windows (drive discovery, paths) belongs to
     `packages/whyfull`, not to the build.
-- Test the installer: run the setup exe (expect SmartScreen → _More info → Run
-  anyway_), launch from Start, scan, _Install command-line tool…_, then in a new
+- Test the installer: run the setup exe (unsigned: expect SmartScreen → _More info → Run
+  anyway_; signed: the file's Properties → Digital Signatures tab shows the
+  publisher), launch from Start, scan, _Install command-line tool…_, then in a new
   `cmd.exe`: `%USERPROFILE%\AppData\Local\Whyfull\bin\whyfull.cmd --json`.
   Check `echo %ERRORLEVEL%`. Uninstall from Settings → Apps.
 - Test an update: as on macOS. The installer runs in passive mode and the app
@@ -279,6 +288,8 @@ releases always use the committed set.
 3. **Build-only, fully signed** (after the secret setup): `mode: build-only`, all
    `auto`. Proves notarization, the updater signatures (including `.deb.sig`) and the
    assembled `latest.json` (9 keys with `build_platforms: all`), still without a release.
+   With `WHYFULL_WINDOWS_SIGNING=azure` this also proves Authenticode; set
+   `windows_signing: signed` to make the run fail if anything is missing.
 4. **Preview draft**: set `0.0.2-preview.1`, push tag `v0.0.2-preview.1`. Creates a
    prerelease draft. Publishing it is safe because it is not the updater feed.
 5. **Stable draft**: set `0.0.2`, push `v0.0.2`, test, then publish.
@@ -306,6 +317,9 @@ Names only; never paste values into issues, commits or chat.
 | `APPLE_PASSWORD`                     | Secret   | App-specific password for that Apple ID         |
 | `APPLE_TEAM_ID`                      | Secret   | 10-character team id                            |
 
+Windows Authenticode names are listed under
+[Windows code signing](#windows-code-signing-azure-artifact-signing).
+
 ```sh
 R=iplanwebsites/whyfull
 # Updater key (once; keep the private key backed up outside the repo)
@@ -326,6 +340,84 @@ gh secret set APPLE_TEAM_ID -R $R                        # prompts
 gh secret list -R $R && gh variable list -R $R           # names only
 ```
 
+## Windows code signing (Azure Artifact Signing)
+
+Azure Artifact Signing (formerly Trusted Signing; Basic is listed at
+$9.99/month) issues short-lived certificates from Microsoft's HSMs. There is
+no key to export. Nothing changes until `WHYFULL_WINDOWS_SIGNING` is `azure`.
+
+How the workflow uses it:
+
+- Input `windows_signing`: `auto` (default) signs only when the repository
+  variable `WHYFULL_WINDOWS_SIGNING` is `azure`, except on a build-only run
+  with `macos_signing: unsigned` (the no-secrets dry run). `signed` forces
+  signing, `unsigned` skips it. `prepare` resolves it in `release-info.mjs`
+  (output `windows_signing`). It fails when signing is chosen but a variable or
+  secret is missing. It never sees the secret values, only whether they are set.
+- Only the Windows build job gets the values, and only when signing. It
+  installs `artifact-signing-cli` 0.12.0 (the renamed `trusted-signing-cli`
+  from Tauri's docs, same flags) and points it at the newest SDK `signtool.exe`
+  and the runner's Azure CLI. `configure.mjs --windows-signing` writes
+  `bundle.windows.signCommand`:
+  `artifact-signing-cli -e <endpoint> -a <account> -c <profile> -d Whyfull %1`.
+  Tauri runs it for the app exe, the sidecar and the NSIS installer. The CLI reads
+  `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET` and `AZURE_TENANT_ID` from the
+  environment, so no secret lands in `version.conf.json`.
+- After the build, `Get-AuthenticodeSignature` must report `Valid` for
+  `whyfull-desktop.exe`, `whyfull-node.exe` and the setup exe.
+- `downloads.json` records `windowsSigning: signed`, the download page says
+  "Code-signed installer", and the release notes drop the "not code-signed" line.
+
+Owner steps (manual, outside CI):
+
+1. In the Azure portal, create a subscription if needed and register the
+   `Microsoft.CodeSigning` resource provider.
+2. Create an Artifact Signing account. Note its region endpoint, for example
+   `https://eus.codesigning.azure.net`.
+3. Under the account, start identity validation (Public, individual or
+   organization) and wait until it is approved. Without approval, no
+   certificate profile can be created.
+4. Create a **Public Trust** certificate profile from that validation.
+5. In Microsoft Entra ID, register an app (for example `whyfull-release`) and
+   create a client secret. Note the expiry, because CI breaks when it expires.
+6. On the Artifact Signing account (Access control (IAM)), assign that app the
+   **Trusted Signing Certificate Profile Signer** role (newer portals may call
+   it _Artifact Signing Certificate Profile Signer_).
+7. Set the names below, then run a signed build-only dry run.
+
+| Name                             | Kind     | Used for                                       |
+| -------------------------------- | -------- | ---------------------------------------------- |
+| `WHYFULL_WINDOWS_SIGNING`        | Variable | `azure` turns on `auto` signing                |
+| `WHYFULL_AZURE_SIGNING_ENDPOINT` | Variable | Account region endpoint (`https://…azure.net`) |
+| `WHYFULL_AZURE_SIGNING_ACCOUNT`  | Variable | Artifact Signing account name                  |
+| `WHYFULL_AZURE_SIGNING_PROFILE`  | Variable | Certificate profile name                       |
+| `AZURE_CLIENT_ID`                | Secret   | App registration (client) id                   |
+| `AZURE_CLIENT_SECRET`            | Secret   | App registration client secret                 |
+| `AZURE_TENANT_ID`                | Secret   | Entra tenant id                                |
+
+```sh
+R=iplanwebsites/whyfull
+gh variable set WHYFULL_AZURE_SIGNING_ENDPOINT -R $R     # prompts
+gh variable set WHYFULL_AZURE_SIGNING_ACCOUNT -R $R      # prompts
+gh variable set WHYFULL_AZURE_SIGNING_PROFILE -R $R      # prompts
+gh secret set AZURE_CLIENT_ID -R $R                       # prompts
+gh secret set AZURE_CLIENT_SECRET -R $R                   # prompts
+gh secret set AZURE_TENANT_ID -R $R                       # prompts
+
+# Signed Windows dry run, before turning auto on. No Apple or updater secrets
+# needed; an explicit `signed` overrides the macos_signing=unsigned exemption.
+gh workflow run desktop-release.yml -R $R -f mode=build-only \
+  -f macos_signing=unsigned -f updater=off -f windows_signing=signed
+# Once it passed and the installer checked out on a real machine:
+gh variable set WHYFULL_WINDOWS_SIGNING -R $R --body azure
+```
+
+The dry run builds every platform (`build_platforms: all`); the Windows job's
+"Verify Windows Authenticode signatures" step shows each file's status and
+signer. Download `whyfull-windows-x64` and check the setup exe's Digital
+Signatures tab on Windows. To go back to unsigned, delete the
+`WHYFULL_WINDOWS_SIGNING` variable (or pass `windows_signing: unsigned`).
+
 ## Pre-publish checklist (maintainer only, not for release notes)
 
 - [ ] `finalize` succeeded: the set's downloads (4 for the Mac-only set),
@@ -338,7 +430,7 @@ gh secret list -R $R && gh variable list -R $R           # names only
       `whyfull --json`, uninstall.
 - [ ] Preview only: unsigned macOS first-launch instructions still accurate.
 - [ ] Stable: `downloads.json` has channel `stable`, macosSigning `notarized`
-      and updater `true`. From the second stable release on, update N-1 → N on
+      and updater `true`. Once Windows is signed, windowsSigning is `signed`. From the second stable release on, update N-1 → N on
       each platform once.
 - [ ] Publishing stable marks it **Latest**. Never mark a preview or an npm-only
       release Latest.
@@ -349,26 +441,14 @@ Made (2026-11):
 
 - **Mac-first stable**: implemented through `release-platforms.json` and the
   join-never-leave check.
-- **Windows stays unsigned** for now. If that changes, the options are Azure
-  Trusted Signing (cheapest, wired through `bundle.windows.signCommand`) or an
-  OV/EV certificate on a cloud HSM. Signing also requires updating `windowsSigning` in
-  `release-manifest.mjs` and in the brochure validation, which hard-codes
-  `unsigned`.
-- **Revisit before Windows joins stable (2026-11).** The desktop app now asks
-  for a $19 license after its trial ([business model](business-model.md)).
-  "Unknown publisher" on every version undercuts a paid app: it appears at the
-  moment someone decides whether to trust us. Azure Artifact Signing (formerly
-  Trusted Signing) Basic is listed at $9.99/month. Check whether a solo
-  developer passes its identity validation before planning around it. If it
-  doesn't, an OV certificate on a cloud HSM is the fallback. Proposed order:
-  1. Enroll and pass identity validation (manual, outside CI).
-  2. Add `windows_signing: auto | signed | unsigned` to the release inputs.
-     Pass the Azure credentials only to the Windows job, and set
-     `bundle.windows.signCommand` from `configure.mjs` when signing is on.
-  3. Let `windowsSigning` be `signed` in `release-manifest.mjs` and the
-     brochure validation, and verify with `Get-AuthenticodeSignature` in the
-     build job.
-  4. Meet the platform entry criteria with a signed build-only run.
+- **Windows signing is optional, off by default** (implemented 2026-11). The
+  desktop app asks for a $19 license after its trial
+  ([business model](business-model.md)), and "Unknown publisher" on every
+  version undercuts a paid app. Releases stay unsigned until the owner enrolls
+  in Azure Artifact Signing and sets `WHYFULL_WINDOWS_SIGNING=azure`. If a solo
+  developer can't pass its identity validation, an OV certificate on a cloud HSM
+  is the fallback (a different `signCommand`). Windows joins stable only after
+  the platform entry criteria, ideally with a signed build-only run.
 - **Linux**: the AppImage is primary with in-app updates. The `.deb` also updates
   in-app through the official `pkexec dpkg -i` path. Linux joins after the entry
   criteria (Ubuntu 24.04 + Fedora).

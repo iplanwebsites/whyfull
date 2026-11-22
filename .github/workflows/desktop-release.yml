@@ -20,6 +20,11 @@ on:
         type: choice
         options: [auto, notarized, unsigned]
         default: auto
+      windows_signing:
+        description: Windows Authenticode via Azure Artifact Signing (auto signs when the WHYFULL_WINDOWS_SIGNING variable is azure, except build-only runs with macos_signing unsigned; signed fails without credentials)
+        type: choice
+        options: [auto, signed, unsigned]
+        default: auto
       updater:
         description: Signed updater artifacts (auto is on for stable; off is allowed only for build-only)
         type: choice
@@ -44,6 +49,7 @@ jobs:
       preview: ${{ steps.info.outputs.preview }}
       channel: ${{ steps.info.outputs.channel }}
       macos_signing: ${{ steps.info.outputs.macosSigning }}
+      windows_signing: ${{ steps.info.outputs.windowsSigning }}
       updater: ${{ steps.info.outputs.updater }}
       build_only: ${{ steps.info.outputs.buildOnly }}
       platforms: ${{ steps.platforms.outputs.platforms }}
@@ -60,6 +66,10 @@ jobs:
           RELEASE_CHANNEL: ${{ inputs.channel }}
           MACOS_SIGNING: ${{ inputs.macos_signing }}
           UPDATER: ${{ inputs.updater }}
+          WINDOWS_SIGNING: ${{ inputs.windows_signing }}
+          WINDOWS_SIGNING_PROVIDER: ${{ vars.WHYFULL_WINDOWS_SIGNING }}
+          # Only whether every value is present; no secret reaches this job.
+          WINDOWS_SIGNING_CREDENTIALS: ${{ vars.WHYFULL_AZURE_SIGNING_ENDPOINT != '' && vars.WHYFULL_AZURE_SIGNING_ACCOUNT != '' && vars.WHYFULL_AZURE_SIGNING_PROFILE != '' && secrets.AZURE_CLIENT_ID != '' && secrets.AZURE_CLIENT_SECRET != '' && secrets.AZURE_TENANT_ID != '' }}
         run: node apps/desktop/scripts/release-info.mjs | tee -a "$GITHUB_OUTPUT"
       - name: Test release metadata validation
         run: node --test apps/desktop/test/release.test.mjs
@@ -112,6 +122,14 @@ jobs:
       APPLE_ID: ${{ needs.prepare.outputs.macos_signing == 'notarized' && secrets.APPLE_ID || '' }}
       APPLE_PASSWORD: ${{ needs.prepare.outputs.macos_signing == 'notarized' && secrets.APPLE_PASSWORD || '' }}
       APPLE_TEAM_ID: ${{ needs.prepare.outputs.macos_signing == 'notarized' && secrets.APPLE_TEAM_ID || '' }}
+      # Azure Artifact Signing reaches only the Windows job, and only when signing.
+      WINDOWS_SIGNING: ${{ matrix.name == 'windows-x64' && needs.prepare.outputs.windows_signing || 'unsigned' }}
+      WHYFULL_AZURE_SIGNING_ENDPOINT: ${{ matrix.name == 'windows-x64' && needs.prepare.outputs.windows_signing == 'signed' && vars.WHYFULL_AZURE_SIGNING_ENDPOINT || '' }}
+      WHYFULL_AZURE_SIGNING_ACCOUNT: ${{ matrix.name == 'windows-x64' && needs.prepare.outputs.windows_signing == 'signed' && vars.WHYFULL_AZURE_SIGNING_ACCOUNT || '' }}
+      WHYFULL_AZURE_SIGNING_PROFILE: ${{ matrix.name == 'windows-x64' && needs.prepare.outputs.windows_signing == 'signed' && vars.WHYFULL_AZURE_SIGNING_PROFILE || '' }}
+      AZURE_CLIENT_ID: ${{ matrix.name == 'windows-x64' && needs.prepare.outputs.windows_signing == 'signed' && secrets.AZURE_CLIENT_ID || '' }}
+      AZURE_CLIENT_SECRET: ${{ matrix.name == 'windows-x64' && needs.prepare.outputs.windows_signing == 'signed' && secrets.AZURE_CLIENT_SECRET || '' }}
+      AZURE_TENANT_ID: ${{ matrix.name == 'windows-x64' && needs.prepare.outputs.windows_signing == 'signed' && secrets.AZURE_TENANT_ID || '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -144,6 +162,23 @@ jobs:
           test -n "$APPLE_CERTIFICATE" && test -n "$APPLE_CERTIFICATE_PASSWORD"
           test -n "$APPLE_SIGNING_IDENTITY" && test -n "$APPLE_ID"
           test -n "$APPLE_PASSWORD" && test -n "$APPLE_TEAM_ID"
+      - name: Install the Azure Artifact Signing tool
+        if: runner.os == 'Windows' && env.WINDOWS_SIGNING == 'signed'
+        shell: pwsh
+        run: |
+          # artifact-signing-cli is the renamed trusted-signing-cli from Tauri's docs (same flags).
+          cargo install artifact-signing-cli --version 0.12.0 --locked
+          # It calls signtool with the Artifact Signing dlib and logs in through the Azure CLI.
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" |
+            Where-Object { $_.Directory.Parent.Name -match '^\d+(\.\d+)+$' } |
+            Sort-Object { [version]$_.Directory.Parent.Name } -Descending |
+            Select-Object -First 1
+          if (-not $signtool) { throw "signtool.exe not found in the Windows SDK" }
+          $az = (Get-Command az.cmd -ErrorAction Stop).Source
+          Add-Content -Path $env:GITHUB_ENV -Value "SIGNTOOL_PATH=$($signtool.FullName)"
+          Add-Content -Path $env:GITHUB_ENV -Value "AZURE_CLI_PATH=$az"
+          "signtool: $($signtool.FullName)"
+          "az: $az"
       - run: pnpm desktop:prepare
       - name: Check sidecars match this runner
         shell: bash
@@ -167,12 +202,26 @@ jobs:
           [ "$RELEASE_PREVIEW" = true ] && args+=(--preview)
           [ "$BUILD_ONLY" = true ] && args+=(--build-only)
           [ "$RELEASE_UPDATER" = true ] || args+=(--no-updater)
+          [ "$RUNNER_OS" = Windows ] && [ "$WINDOWS_SIGNING" = signed ] && args+=(--windows-signing)
           node apps/desktop/scripts/configure.mjs "${args[@]}"
           cat apps/desktop/src-tauri/version.conf.json | grep -v pubkey
       - name: Build installers
         run: pnpm --filter @whyfull/desktop tauri build --config src-tauri/version.conf.json --bundles ${{ matrix.bundles }}
       - name: Verify native command-line entry without a display
         run: node apps/desktop/scripts/check-native.mjs
+      - name: Verify Windows Authenticode signatures
+        if: runner.os == 'Windows' && env.WINDOWS_SIGNING == 'signed'
+        shell: pwsh
+        run: |
+          $release = "apps/desktop/src-tauri/target/release"
+          $installers = @(Get-ChildItem "$release/bundle/nsis/Whyfull_*_x64-setup.exe")
+          if ($installers.Count -ne 1) { throw "Expected one NSIS installer, found $($installers.Count)" }
+          $files = @((Get-Item "$release/whyfull-desktop.exe"), (Get-Item "$release/whyfull-node.exe"), $installers[0])
+          foreach ($file in $files) {
+            $signature = Get-AuthenticodeSignature -FilePath $file.FullName
+            "$($file.Name): $($signature.Status) $($signature.SignerCertificate.Subject)"
+            if ($signature.Status -ne 'Valid') { throw "$($file.Name) is not validly signed: $($signature.StatusMessage)" }
+          }
       - name: Verify macOS signing and notarization
         if: runner.os == 'macOS' && needs.prepare.outputs.macos_signing == 'notarized'
         run: |
@@ -223,6 +272,7 @@ jobs:
       RELEASE_PREVIEW: ${{ needs.prepare.outputs.preview }}
       RELEASE_CHANNEL: ${{ needs.prepare.outputs.channel }}
       MACOS_SIGNING: ${{ needs.prepare.outputs.macos_signing }}
+      WINDOWS_SIGNING: ${{ needs.prepare.outputs.windows_signing }}
       BUILD_ONLY: ${{ needs.prepare.outputs.build_only }}
       UPDATER: ${{ needs.prepare.outputs.updater == 'true' && 'auto' || 'off' }}
       RELEASE_PLATFORMS: ${{ needs.prepare.outputs.platforms }}
@@ -265,7 +315,7 @@ jobs:
         if: needs.prepare.outputs.build_only == 'true'
         run: |
           {
-            echo "Build-only run for $RELEASE_TAG ($RELEASE_CHANNEL, platforms $RELEASE_PLATFORMS, macOS $MACOS_SIGNING, updater $UPDATER). No GitHub release was created or changed."
+            echo "Build-only run for $RELEASE_TAG ($RELEASE_CHANNEL, platforms $RELEASE_PLATFORMS, macOS $MACOS_SIGNING, Windows $WINDOWS_SIGNING, updater $UPDATER). No GitHub release was created or changed."
             echo "Installers are attached to this run as whyfull-<platform> artifacts."
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Create or reuse the draft and attach every file
@@ -278,7 +328,7 @@ jobs:
           if ! gh release view "$RELEASE_TAG" --json id > /dev/null; then
             template=apps/desktop/release-notes-stable.md
             [ "$RELEASE_PREVIEW" = true ] && template=apps/desktop/release-notes-preview.md
-            node apps/desktop/scripts/release-platforms.mjs notes "$template" "$RELEASE_PLATFORMS" > "$RUNNER_TEMP/notes.md"
+            node apps/desktop/scripts/release-platforms.mjs notes "$template" "$RELEASE_PLATFORMS" "$WINDOWS_SIGNING" > "$RUNNER_TEMP/notes.md"
             if [ "$MACOS_SIGNING" = notarized ]; then
               printf '\nmacOS: Developer ID signed and notarized.\n' >> "$RUNNER_TEMP/notes.md"
             else

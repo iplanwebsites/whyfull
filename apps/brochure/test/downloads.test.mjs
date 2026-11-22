@@ -100,8 +100,23 @@ test("only a published preview is explicitly offered before the first stable rel
   assert.deepEqual(await loadDownloads(upstream([preview])), { release: null })
 })
 
+test("accepts both Windows signing states and passes them to the page", async () => {
+  for (const windowsSigning of ["unsigned", "signed"]) {
+    const stable = fixture()
+    stable.manifest.windowsSigning = windowsSigning
+    const data = await loadDownloads(upstream([stable]))
+    assert.equal(data.release.windowsSigning, windowsSigning)
+  }
+})
+
 test("refuses mismatched metadata, missing assets, and download URLs outside the repository", async () => {
   for (const mutate of [
+    ({ manifest }) => {
+      manifest.windowsSigning = "notarized"
+    },
+    ({ manifest }) => {
+      delete manifest.windowsSigning
+    },
     ({ manifest }) => {
       manifest.version = "9.9.9"
     },

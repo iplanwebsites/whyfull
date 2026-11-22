@@ -12,6 +12,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { createHash } from "node:crypto"
 import { releaseInfo } from "../scripts/release-info.mjs"
+import { windowsSignCommand } from "../scripts/configure.mjs"
 import {
   artifactSpecs,
   createManifest,
@@ -42,6 +43,7 @@ test("stable releases require notarization; previews need distinct prerelease ve
     channel: "preview",
     preview: true,
     macosSigning: "unsigned",
+    windowsSigning: "unsigned",
     updater: false,
     buildOnly: false,
   })
@@ -80,6 +82,116 @@ test("build-only runs may skip notarization and updates but never enable preview
   )
 })
 
+test("Windows signing stays off until the owner opts in through WHYFULL_WINDOWS_SIGNING", () => {
+  const windows = (options) =>
+    releaseInfo({ version: "1.2.3", ...options }).windowsSigning
+  // Default: unsigned, for stable releases too.
+  assert.equal(windows({}), "unsigned")
+  assert.equal(windows({ windowsSigningProvider: "" }), "unsigned")
+  assert.equal(windows({ windowsSigningProvider: "other" }), "unsigned")
+  // auto signs once the variable is azure and the credentials exist.
+  assert.equal(
+    windows({ windowsSigningProvider: "azure", windowsCredentials: true }),
+    "signed"
+  )
+  assert.equal(
+    releaseInfo({
+      version: "1.2.4-preview.1",
+      windowsSigningProvider: "azure",
+      windowsCredentials: true,
+    }).windowsSigning,
+    "signed"
+  )
+  // The no-secrets dry run (build-only with macOS unsigned) stays unsigned.
+  assert.equal(
+    windows({
+      buildOnly: true,
+      macosSigning: "unsigned",
+      windowsSigningProvider: "azure",
+      windowsCredentials: false,
+    }),
+    "unsigned"
+  )
+  assert.equal(
+    windows({
+      buildOnly: true,
+      windowsSigningProvider: "azure",
+      windowsCredentials: true,
+    }),
+    "signed"
+  )
+  // An opted-in repository with missing credentials fails instead of shipping unsigned.
+  assert.throws(
+    () =>
+      windows({ windowsSigningProvider: "azure", windowsCredentials: false }),
+    /AZURE_CLIENT_ID/
+  )
+  // signed forces signing and fails fast without credentials.
+  assert.equal(
+    windows({ windowsSigning: "signed", windowsCredentials: true }),
+    "signed"
+  )
+  assert.throws(
+    () => windows({ windowsSigning: "signed", windowsCredentials: false }),
+    /Windows signing needs/
+  )
+  assert.equal(
+    windows({
+      windowsSigning: "unsigned",
+      windowsSigningProvider: "azure",
+      windowsCredentials: false,
+    }),
+    "unsigned"
+  )
+  // Later steps pass the resolved mode without credential information.
+  assert.equal(windows({ windowsSigning: "signed" }), "signed")
+  assert.throws(() => windows({ windowsSigning: "ev" }), /Unknown Windows/)
+})
+
+test("the Windows sign command uses Artifact Signing values from the environment", () => {
+  const env = {
+    WHYFULL_AZURE_SIGNING_ENDPOINT: "https://eus.codesigning.azure.net",
+    WHYFULL_AZURE_SIGNING_ACCOUNT: "whyfull",
+    WHYFULL_AZURE_SIGNING_PROFILE: "Whyfull Public",
+    AZURE_CLIENT_ID: "id",
+    AZURE_CLIENT_SECRET: "secret",
+    AZURE_TENANT_ID: "tenant",
+  }
+  const command = windowsSignCommand(env)
+  assert.deepEqual(command, {
+    cmd: "artifact-signing-cli",
+    args: [
+      "-e",
+      "https://eus.codesigning.azure.net",
+      "-a",
+      "whyfull",
+      "-c",
+      "Whyfull Public",
+      "-d",
+      "Whyfull",
+      "%1",
+    ],
+  })
+  // Secrets stay in the environment, never in version.conf.json.
+  assert.ok(!JSON.stringify(command).includes("secret"))
+  assert.throws(
+    () => windowsSignCommand({ ...env, AZURE_CLIENT_SECRET: "" }),
+    /AZURE_CLIENT_SECRET/
+  )
+  assert.throws(
+    () => windowsSignCommand({ ...env, WHYFULL_AZURE_SIGNING_PROFILE: " " }),
+    /WHYFULL_AZURE_SIGNING_PROFILE/
+  )
+  assert.throws(
+    () =>
+      windowsSignCommand({
+        ...env,
+        WHYFULL_AZURE_SIGNING_ENDPOINT: "https://example.com",
+      }),
+    /codesigning\.azure\.net/
+  )
+})
+
 async function fixture(t, version) {
   const directory = await mkdtemp(join(tmpdir(), "whyfull-release-"))
   t.after(() => rm(directory, { recursive: true, force: true }))
@@ -93,8 +205,14 @@ test("preview metadata requires all nine real artifacts and records their checks
   const directory = await fixture(t, version)
   const manifest = await createManifest({ directory, version })
   assert.equal(manifest.macosSigning, "unsigned")
+  assert.equal(manifest.windowsSigning, "unsigned")
   assert.equal(manifest.updater, false)
   assert.equal(manifest.downloads.length, 9)
+  assert.equal(
+    (await createManifest({ directory, version, windowsSigning: "signed" }))
+      .windowsSigning,
+    "signed"
+  )
   assert.ok(
     manifest.downloads.every(
       (entry) =>
@@ -365,6 +483,24 @@ test("release notes keep only the shipped platforms' instructions", async () => 
   assert.doesNotMatch(macOnly, /^- (Windows|Linux):/m)
   assert.match(macOnly, /Windows and Linux builds are not part of this release/)
   const all = releaseNotes(template, allPlatforms)
+  assert.match(all, /^- Windows:.*not code-signed/m)
+  assert.equal(
+    releaseNotes(template, allPlatforms, { windowsSigning: "unsigned" }),
+    all
+  )
+  const signed = releaseNotes(template, allPlatforms, {
+    windowsSigning: "signed",
+  })
+  assert.match(signed, /^- Windows:.*Authenticode signed/m)
+  assert.doesNotMatch(signed, /not code-signed/)
+  assert.doesNotMatch(
+    releaseNotes(template, ["macos-arm64"], { windowsSigning: "signed" }),
+    /^- Windows:/m
+  )
+  assert.throws(
+    () => releaseNotes(template, allPlatforms, { windowsSigning: "yes" }),
+    /Unknown Windows/
+  )
   assert.match(all, /^- Windows:/m)
   assert.match(all, /^- Linux:.*administrator password/m)
   assert.doesNotMatch(all, /not part of this release/)

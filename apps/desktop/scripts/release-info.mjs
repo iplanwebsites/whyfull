@@ -3,12 +3,22 @@ import { pathToFileURL } from "node:url"
 
 // buildOnly runs never create or change a GitHub release. They may relax
 // signing so each platform can be exercised on CI before secrets exist.
+//
+// Windows Authenticode signing (Azure Artifact Signing) is optional until the
+// owner enrolls. `auto` signs only when the repository variable
+// WHYFULL_WINDOWS_SIGNING (windowsSigningProvider) is `azure`, except on a
+// build-only run that explicitly chose macos_signing `unsigned` (the
+// no-secrets dry run). windowsCredentials is checked only when given: prepare
+// passes it, later steps pass the already resolved mode.
 export function releaseInfo({
   version,
   channel = "auto",
   macosSigning = "auto",
   buildOnly = false,
   updater = "auto",
+  windowsSigning = "auto",
+  windowsSigningProvider = "",
+  windowsCredentials,
 }) {
   if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version))
     throw new Error("Release version must be a semantic version")
@@ -20,6 +30,18 @@ export function releaseInfo({
   )
     throw new Error(
       "Preview releases need a prerelease version, e.g. 0.0.2-preview.1; stable releases need a plain version"
+    )
+  if (!["auto", "signed", "unsigned"].includes(windowsSigning))
+    throw new Error("Unknown Windows signing mode")
+  if (windowsSigning === "auto")
+    windowsSigning =
+      windowsSigningProvider === "azure" &&
+      !(buildOnly && macosSigning === "unsigned")
+        ? "signed"
+        : "unsigned"
+  if (windowsSigning === "signed" && windowsCredentials === false)
+    throw new Error(
+      "Windows signing needs the WHYFULL_AZURE_SIGNING_* variables and the AZURE_CLIENT_ID, AZURE_CLIENT_SECRET and AZURE_TENANT_ID secrets"
     )
   if (macosSigning === "auto") macosSigning = preview ? "unsigned" : "notarized"
   if (!["unsigned", "notarized"].includes(macosSigning))
@@ -38,6 +60,7 @@ export function releaseInfo({
     channel,
     preview,
     macosSigning,
+    windowsSigning,
     updater: updates,
     buildOnly,
   }
@@ -56,6 +79,9 @@ if (
     macosSigning: process.env.MACOS_SIGNING || "auto",
     buildOnly: process.env.BUILD_ONLY === "true",
     updater: process.env.UPDATER || "auto",
+    windowsSigning: process.env.WINDOWS_SIGNING || "auto",
+    windowsSigningProvider: process.env.WINDOWS_SIGNING_PROVIDER || "",
+    windowsCredentials: process.env.WINDOWS_SIGNING_CREDENTIALS === "true",
   })
   if (
     !info.buildOnly &&

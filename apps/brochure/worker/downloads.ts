@@ -30,7 +30,7 @@ interface Manifest {
   version: string
   channel: "stable" | "preview"
   macosSigning: "notarized" | "unsigned"
-  windowsSigning: "unsigned"
+  windowsSigning: "signed" | "unsigned"
   updater: boolean
   downloads: { id: string; name: string; size: number; sha256: string }[]
 }
@@ -106,7 +106,7 @@ export async function loadDownloads(fetcher: typeof fetch = fetch) {
     manifest.channel !== channel ||
     typeof manifest.updater !== "boolean" ||
     !["notarized", "unsigned"].includes(manifest.macosSigning) ||
-    manifest.windowsSigning !== "unsigned" ||
+    !["signed", "unsigned"].includes(manifest.windowsSigning) ||
     (channel === "preview") !== manifest.version.includes("-") ||
     (channel === "stable" &&
       (manifest.macosSigning !== "notarized" || !manifest.updater)) ||

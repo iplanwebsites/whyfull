@@ -2,11 +2,42 @@ import { readFileSync, writeFileSync } from "node:fs"
 import { pathToFileURL } from "node:url"
 import { releaseInfo } from "./release-info.mjs"
 
+// Authenticode through Azure Artifact Signing. Tauri runs this for the app exe,
+// the sidecars and the NSIS installer, replacing %1 with each file's path.
+// The CLI reads AZURE_CLIENT_ID, AZURE_CLIENT_SECRET and AZURE_TENANT_ID itself.
+export function windowsSignCommand(env = process.env) {
+  const endpoint = env.WHYFULL_AZURE_SIGNING_ENDPOINT?.trim()
+  const account = env.WHYFULL_AZURE_SIGNING_ACCOUNT?.trim()
+  const profile = env.WHYFULL_AZURE_SIGNING_PROFILE?.trim()
+  const missing = [
+    ["WHYFULL_AZURE_SIGNING_ENDPOINT", endpoint],
+    ["WHYFULL_AZURE_SIGNING_ACCOUNT", account],
+    ["WHYFULL_AZURE_SIGNING_PROFILE", profile],
+    ["AZURE_CLIENT_ID", env.AZURE_CLIENT_ID],
+    ["AZURE_CLIENT_SECRET", env.AZURE_CLIENT_SECRET],
+    ["AZURE_TENANT_ID", env.AZURE_TENANT_ID],
+  ].filter(([, value]) => !value)
+  if (missing.length)
+    throw new Error(
+      `Windows signing requires ${missing.map(([name]) => name).join(", ")}`
+    )
+  if (!/^https:\/\/[a-z0-9-]+\.codesigning\.azure\.net\/?$/.test(endpoint))
+    throw new Error(
+      "WHYFULL_AZURE_SIGNING_ENDPOINT must look like https://<region>.codesigning.azure.net"
+    )
+  // Object notation, so no value is split on whitespace.
+  return {
+    cmd: "artifact-signing-cli",
+    args: ["-e", endpoint, "-a", account, "-c", profile, "-d", "Whyfull", "%1"],
+  }
+}
+
 export function configure({
   release = false,
   preview,
   updater = true,
   buildOnly = false,
+  windowsSigning = false,
 } = {}) {
   const { version } = JSON.parse(
     readFileSync(new URL("../package.json", import.meta.url))
@@ -30,6 +61,11 @@ export function configure({
           : []),
       ],
     },
+  }
+  if (windowsSigning) {
+    if (process.platform !== "win32")
+      throw new Error("Windows signing is configured only on Windows runners")
+    config.bundle.windows = { signCommand: windowsSignCommand() }
   }
   // Preview builds never follow the stable updater feed.
   const publicKey =
@@ -75,4 +111,5 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href)
     preview: process.argv.includes("--preview") || undefined,
     updater: !process.argv.includes("--no-updater"),
     buildOnly: process.argv.includes("--build-only"),
+    windowsSigning: process.argv.includes("--windows-signing"),
   })

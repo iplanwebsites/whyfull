@@ -137,13 +137,19 @@ const families = [
   ["- Linux:", ["linux-x64"], "Linux"],
 ]
 
+// The templates describe the unsigned Windows installer (the default).
+const signedWindowsNotes =
+  "- Windows: run the x64 installer, then launch Whyfull from Start. The installer and app are Authenticode signed, so Windows shows the verified publisher. Microsoft Defender SmartScreen may still warn while a new version builds reputation; compare the file's SHA-256 with this release, then choose More info → Run anyway."
+
 // Drops install instructions for platforms this release does not ship.
-export function releaseNotes(template, names) {
+export function releaseNotes(template, names, { windowsSigning } = {}) {
   names = parsePlatforms(names)
+  if (!["signed", "unsigned", undefined].includes(windowsSigning))
+    throw new Error("Unknown Windows signing mode")
   const absent = families
     .filter(([, members]) => !members.some((name) => names.includes(name)))
     .map(([, , label]) => label)
-  const lines = template
+  let lines = template
     .split("\n")
     .filter(
       (line) =>
@@ -152,6 +158,10 @@ export function releaseNotes(template, names) {
             line.startsWith(prefix) &&
             !members.some((name) => names.includes(name))
         )
+    )
+  if (windowsSigning === "signed")
+    lines = lines.map((line) =>
+      line.startsWith("- Windows:") ? signedWindowsNotes : line
     )
   let notes = lines.join("\n").trimEnd() + "\n"
   if (absent.length)
@@ -201,13 +211,15 @@ if (
         : "No previous stable release with latest.json"
     )
   } else if (command === "notes") {
-    // notes <template> <platforms> → stdout
+    // notes <template> <platforms> [signed|unsigned] → stdout
     process.stdout.write(
-      releaseNotes(readFileSync(argument, "utf8"), process.argv[4])
+      releaseNotes(readFileSync(argument, "utf8"), process.argv[4], {
+        windowsSigning: process.argv[5],
+      })
     )
   } else {
     throw new Error(
-      "Usage: node release-platforms.mjs outputs [all] | previous <out-file> | continuity <previous-latest.json> <platforms> | notes <template> <platforms>"
+      "Usage: node release-platforms.mjs outputs [all] | previous <out-file> | continuity <previous-latest.json> <platforms> | notes <template> <platforms> [signed|unsigned]"
     )
   }
 }

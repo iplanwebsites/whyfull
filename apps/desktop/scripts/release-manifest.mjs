@@ -25,6 +25,8 @@ export async function createManifest({
   version,
   channel,
   macosSigning,
+  // Resolved by prepare; the Windows build job verified the signature.
+  windowsSigning = "unsigned",
   buildOnly = false,
   updater = "auto",
   platforms = allPlatforms,
@@ -35,6 +37,7 @@ export async function createManifest({
     version,
     channel,
     macosSigning,
+    windowsSigning,
     buildOnly,
     updater,
   })
@@ -86,7 +89,7 @@ export async function createManifest({
     channel: info.channel,
     createdAt: now.toISOString(),
     macosSigning: info.macosSigning,
-    windowsSigning: "unsigned",
+    windowsSigning: info.windowsSigning,
     updater: info.updater,
     platforms,
     downloads,
@@ -110,6 +113,7 @@ if (
     version,
     channel: process.env.RELEASE_CHANNEL || "auto",
     macosSigning: process.env.MACOS_SIGNING || "auto",
+    windowsSigning: process.env.WINDOWS_SIGNING || "unsigned",
     buildOnly: process.env.BUILD_ONLY === "true",
     updater: process.env.UPDATER || "auto",
     platforms: process.env.RELEASE_PLATFORMS || allPlatforms,
