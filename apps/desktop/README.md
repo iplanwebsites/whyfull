@@ -26,6 +26,30 @@ sends nothing anywhere. The bundled CLI (`whyfull --cli` and the installed
 launcher) is free and never checks a license. See
 [`docs/viewer.md`](../../docs/viewer.md#desktop-license) for the mechanics.
 
+The app registers the `whyfull://` URL scheme (tauri-plugin-deep-link). Opening
+`whyfull://activate?key=WHYFULL-…` (or `#key=`), as the purchase email and the
+`/thanks/` and `/activate/` pages offer, focuses the app and activates the key
+without copy and paste. The Rust shell checks the key's shape, then posts it to
+the engine's authenticated local API (`POST /api/license`), so the engine
+verifies and stores it exactly as a pasted key. The viewer gets a
+`whyfull-license` event and shows a toast; a failure before the viewer loads
+shows a native dialog. A link that reaches a second instance is forwarded to the
+running one through the single-instance plugin's `deep-link` feature.
+
+- **macOS**: the scheme is in the bundle's `Info.plist`, so it only works from a
+  built app (`pnpm desktop:build`), not `desktop:dev`. If an older or other copy
+  claims the scheme, open the wanted `Whyfull.app` once (or move it to
+  /Applications) so Launch Services prefers it.
+- **Windows**: the NSIS/MSI installer registers the scheme; dev builds register
+  it for the current user at startup.
+- **Linux**: `.deb` installs declare it in the `.desktop` file. AppImages and dev
+  builds register a user `.desktop` handler at startup (needs
+  `xdg-mime`/`update-desktop-database`).
+
+Try it with `open 'whyfull://activate?key=WHYFULL-bad.bad'` (macOS),
+`xdg-open …` (Linux) or `start "" "whyfull://…"` (Windows): an invalid key shows
+an error without touching the license file.
+
 ## Build and run
 
 Prerequisites: Node 22.23.2, pnpm 9.12, Rust stable (at least 1.90), and the
