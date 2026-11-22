@@ -7,7 +7,8 @@ import pc from "picocolors"
 export async function runSelectedCommand(args: string[], entryFile: string) {
   const ui = args.includes("--ui")
   const disk = args.includes("--scan")
-  const help = args.includes("--help")
+  // Help and license status print at once; no spinner.
+  const help = args.includes("--help") || args[0] === "license"
   const loading = spinner({ indicator: "timer", output: process.stderr })
   let active = !help
   if (active)

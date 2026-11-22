@@ -19,8 +19,9 @@ The desktop app is a paid product with an honor-system trial: free for 30 days
 of use (days the app is opened), then **$19 one-time** per person for all of
 their computers, updates included. After the trial the app keeps working and
 shows a reminder at most once a day after a scan; the EULA still requires a
-license for continued use. **Support Whyfull** in the app accepts a key or the
-purchase-email link, and links to buying (`/buy/`), key recovery (`/recover/`)
+license for continued use. **Settings › License** in the app (or
+`whyfull license activate` in a terminal) accepts a key or the purchase-email
+link, and links to buying (`/buy/`), key recovery (`/recover/`)
 and the terms (`/legal/`) on whyfull.app. Keys are verified offline; the app
 sends nothing anywhere. The bundled CLI (`whyfull --cli` and the installed
 launcher) is free and never checks a license. See

@@ -2,7 +2,9 @@
  * Honor-system desktop license. Nothing here blocks a feature: the desktop app
  * shows an occasional reminder after its trial, and a signed key silences it.
  * Keys are verified offline with Ed25519; no request ever leaves the machine.
- * The CLI, npx, JSON reports, and agent output never read this state.
+ * Scans, npx reports, and JSON output never read this state; only
+ * `whyfull license` reads or changes it from the command line, and it never
+ * counts a trial day.
  */
 import { createPublicKey, randomUUID, verify } from "node:crypto"
 import {
@@ -17,6 +19,8 @@ import { defaultPolicyPath } from "./disk-policy"
 import type { LicenseView } from "./viewer-types"
 
 export type { LicenseView }
+/** License state as the desktop app sees it (always enabled). */
+export type DesktopLicenseView = Extract<LicenseView, { enabled: true }>
 
 /** Public half of the signing key. The private key never enters the repo. */
 export const LICENSE_PUBLIC_KEY =
@@ -44,11 +48,101 @@ export function licensePageUrl(page: unknown): string | null {
     : null
 }
 
+/** Fresh copy of the whyfull.app license pages, for output and links. */
+export function licenseLinks(): Record<LicensePage, string> {
+  return { ...LICENSE_PAGES }
+}
+
+/** The CLI's terms in one sentence. */
+export const CLI_LICENSE_TERMS =
+  "Free for personal and commercial use. No key, no account."
+/** The desktop app's terms in one line. */
+export const DESKTOP_LICENSE_TERMS = `${TRIAL_DAYS}-day free trial counted in days of use, then ${LICENSE_PRICE} one-time per person`
+
 /**
  * One line for human-facing CLI output (help, terminal report, picker).
  * Never written to --json stdout or --json-file.
  */
-export const CLI_LICENSE_NOTICE = `Free for command-line use · Desktop app: ${TRIAL_DAYS}-day trial, then ${LICENSE_PRICE} · Terms: ${LICENSE_PAGES.legal}`
+export const CLI_LICENSE_NOTICE = `Free for command-line use · Desktop app: ${TRIAL_DAYS}-day trial, then ${LICENSE_PRICE} · Details: whyfull license`
+
+export type LicenseState = "licensed" | "trial" | "trial-ended"
+
+/** Where an enabled license view stands. */
+export function licenseState(view: DesktopLicenseView): LicenseState {
+  return view.licensed
+    ? "licensed"
+    : view.trialRemaining > 0
+      ? "trial"
+      : "trial-ended"
+}
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`
+
+/** One line describing the desktop license or trial, for people. */
+export function trialSummary(view: LicenseView): string {
+  if (!view.enabled) return "Desktop license not used here"
+  const state = licenseState(view)
+  if (state === "licensed")
+    return [
+      view.holder ? `Licensed to ${view.holder}` : "Licensed",
+      view.licenseId && `License ID ${view.licenseId}`,
+    ]
+      .filter(Boolean)
+      .join(" · ")
+  if (state === "trial")
+    return view.usageDays === 0
+      ? `Trial not started · ${plural(view.trialDays, "day")} of use, then ${view.price}`
+      : `Trial · ${view.usageDays} of ${plural(view.trialDays, "day")} used · ${plural(view.trialRemaining, "day")} left, then ${view.price}`
+  return `Trial ended after ${plural(view.trialDays, "day")} of use · ${view.price} one-time license`
+}
+
+/**
+ * Stable machine-readable license status (`whyfull license status --json`).
+ * Never includes the key itself.
+ */
+export interface LicenseStatusReport {
+  format: "whyfull-license"
+  version: 1
+  cli: { free: true; terms: string }
+  desktop: {
+    state: LicenseState
+    licensed: boolean
+    holder: string | null
+    licenseId: string | null
+    trialDays: number
+    usageDays: number
+    trialRemaining: number
+    summary: string
+  }
+  price: string
+  links: Record<LicensePage, string>
+  /** license.json shared with the desktop app on this computer. */
+  file: string
+}
+
+export function licenseStatusReport(
+  view: DesktopLicenseView,
+  file: string
+): LicenseStatusReport {
+  return {
+    format: "whyfull-license",
+    version: 1,
+    cli: { free: true, terms: CLI_LICENSE_TERMS },
+    desktop: {
+      state: licenseState(view),
+      licensed: view.licensed,
+      holder: view.holder,
+      licenseId: view.licenseId,
+      trialDays: view.trialDays,
+      usageDays: view.usageDays,
+      trialRemaining: view.trialRemaining,
+      summary: trialSummary(view),
+    },
+    price: view.price,
+    links: licenseLinks(),
+    file,
+  }
+}
 const PREFIX = "WHYFULL-"
 const KEY_PATTERN = /WHYFULL-[A-Za-z0-9_-]{8,2048}\.[A-Za-z0-9_-]{40,200}/
 
@@ -196,7 +290,7 @@ export class DesktopLicense {
   }
 
   /** Count today once. Call when the desktop app opens. */
-  recordUse(): LicenseView {
+  recordUse(): DesktopLicenseView {
     const state = read(this.path)
     const today = localDay(this.clock())
     if (state.lastUseDay !== today) {
@@ -212,11 +306,11 @@ export class DesktopLicense {
     return this.view(state)
   }
 
-  status(): LicenseView {
+  status(): DesktopLicenseView {
     return this.view(read(this.path))
   }
 
-  activate(input: string): LicenseView {
+  activate(input: string): DesktopLicenseView {
     const key = extractLicenseKey(String(input ?? ""))
     if (!key || !verifyLicenseKey(key, this.publicKey))
       throw new Error(
@@ -228,7 +322,7 @@ export class DesktopLicense {
     return this.view(state)
   }
 
-  deactivate(): LicenseView {
+  deactivate(): DesktopLicenseView {
     const state = read(this.path)
     state.key = null
     write(this.path, state)
@@ -236,14 +330,14 @@ export class DesktopLicense {
   }
 
   /** The reminder was shown today; don't show it again until tomorrow. */
-  reminded(): LicenseView {
+  reminded(): DesktopLicenseView {
     const state = read(this.path)
     state.lastReminderDay = localDay(this.clock())
     write(this.path, state)
     return this.view(state)
   }
 
-  private view(state: LicenseFile): LicenseView {
+  private view(state: LicenseFile): DesktopLicenseView {
     const payload = state.key
       ? verifyLicenseKey(state.key, this.publicKey)
       : null

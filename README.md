@@ -248,10 +248,31 @@ whyfull
 | `whyfull --no-worktrees`                             | Skip the default git worktree scan.                             |
 | `whyfull --worktree-age 7`                           | Only show worktrees idle for at least seven days.               |
 | `whyfull --all`                                      | Include known locations that were not found.                    |
+| `whyfull license`                                    | Pricing, plus the desktop license or trial on this computer.    |
+| `whyfull license status --json`                      | The same as stable JSON (`format: "whyfull-license"`).          |
+| `whyfull license activate <key or link>`             | Activate the desktop app offline; `-` reads the key from stdin. |
+| `whyfull license deactivate`                         | Remove the desktop license from this computer.                  |
+| `whyfull license buy`                                | Print the purchase page; `--open` opens it in your browser.     |
 
 The command exits with `0` after a report or help output, and `2` for an invalid
 option or value. Permission-denied locations are marked as undercounts in the
 report rather than treated as a failed run.
+
+### License
+
+The CLI is free for personal and commercial use and never checks a license.
+`whyfull license` shows the desktop app's state on this computer (licensed to
+whom, or trial days used and left) and links to buy, recover a key, and the
+terms. `whyfull license activate` verifies a key offline and saves it in the
+same `license.json` the desktop app reads (beside `config.json`), so you can
+activate from a terminal; the app's **Settings › License** does the same.
+`license` commands never count a trial day or print the full key, and exit `0`
+on success, `1` for an invalid key or failed action, and `2` for a usage error.
+`--json` output has a stable shape: `format`, `version`, `cli` (`free`,
+`terms`), `desktop` (`state`: `licensed`, `trial` or `trial-ended`;
+`licensed`, `holder`, `licenseId`, `trialDays`, `usageDays`,
+`trialRemaining`, `summary`), `price`, `links` (`buy`, `recover`, `legal`) and
+`file`.
 
 ## Viewer and scanner details
 

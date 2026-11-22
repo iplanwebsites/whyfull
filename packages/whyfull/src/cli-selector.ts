@@ -31,6 +31,7 @@ const choices = [
     args: ["--scan", "--json-file"],
   },
   { label: "Help & commands for agents", args: ["--help"] },
+  { label: "License & pricing", args: ["license"] },
 ] as const
 
 function command(args: readonly string[]) {

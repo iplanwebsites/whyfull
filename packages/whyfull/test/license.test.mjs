@@ -21,6 +21,7 @@ import {
   verifyLicenseKey,
   LICENSE_PUBLIC_KEY,
   TRIAL_DAYS,
+  LICENSE_PRICE,
   LICENSE_PAGES,
   licensePageUrl,
   CLI_LICENSE_NOTICE,
@@ -104,7 +105,9 @@ test("only fixed whyfull.app pages can be opened", () => {
   ])
     assert.equal(licensePageUrl(page), null, String(page))
   assert.match(CLI_LICENSE_NOTICE, /Free for command-line use/)
-  assert.ok(CLI_LICENSE_NOTICE.includes(LICENSE_PAGES.legal))
+  assert.ok(CLI_LICENSE_NOTICE.includes(`${TRIAL_DAYS}-day trial`))
+  assert.ok(CLI_LICENSE_NOTICE.includes(LICENSE_PRICE))
+  assert.ok(CLI_LICENSE_NOTICE.includes("whyfull license"))
 })
 
 test("the trial counts distinct days of use and reminds at most daily", (t) => {

@@ -49,3 +49,7 @@ Give a concrete plan, then act within the user's existing authorization. If clea
 Prefer the owning tool's cleanup mechanism and review what it removes. Avoid blanket directory deletion or broad prune flags that extend beyond the agreed scope. Whyfull's optional macOS viewer Trash workflow requires `--allow-trash`, enabling Trash in the UI, and confirming each preview; saved snapshots support demo cleanup only.
 
 After approved cleanup, repeat the relevant report or measurement and summarize observed changes. If a build/install failed for lack of space, retry the original operation when appropriate. Distinguish measured reduction from estimated savings, and stop once the user's storage problem is resolved.
+
+## Licensing
+
+The Whyfull CLI (including `npx whyfull` and `--ui`) is free for personal and commercial use and needs no key. Only the desktop app has a trial and a paid license. `whyfull license status --json` reports the desktop app's license or trial on this computer (`format: "whyfull-license"`) and never counts a trial day. Never buy, activate, or remove a license (`whyfull license activate`/`deactivate`), or open purchase pages (`whyfull license buy --open`), unless the user explicitly asks you to.

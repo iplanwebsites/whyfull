@@ -112,6 +112,21 @@ export {
   LICENSE_PAGES,
   licensePageUrl,
   CLI_LICENSE_NOTICE,
+  CLI_LICENSE_TERMS,
+  DESKTOP_LICENSE_TERMS,
+  LICENSE_PRICE,
+  licenseLinks,
+  licenseState,
+  trialSummary,
+  licenseStatusReport,
 } from "./license"
-export type { LicensePayload, LicenseView } from "./license"
+export type {
+  LicensePayload,
+  LicenseView,
+  DesktopLicenseView,
+  LicenseState,
+  LicenseStatusReport,
+} from "./license"
+export { runLicenseCli } from "./license-cli"
+export type { LicenseCliIo } from "./license-cli"
 export { privacyPromptPaths, privacyExclusions } from "./privacy"

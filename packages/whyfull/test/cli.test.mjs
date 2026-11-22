@@ -187,6 +187,26 @@ test("keyboard selector updates command hints and runs help with Enter", async (
   await prompt.waitFor(/Examples for scripts and agents/)
 })
 
+test("keyboard selector shows license status without counting a trial day", async (t) => {
+  const root = mkdtempSync(join(tmpdir(), "whyfull-menu-license-"))
+  t.after(() => rmSync(root, { recursive: true, force: true }))
+  const prompt = menu(t, {
+    PATH: process.env.PATH,
+    HOME: root,
+    WHYFULL_CONFIG_DIR: root,
+    NO_COLOR: "1",
+  })
+  await prompt.waitFor(/Choose an action/)
+  prompt.send("\x1b[A\x1b[A")
+  await prompt.waitFor(/License & pricing/)
+  await prompt.waitFor(/npx whyfull license/)
+  prompt.send("\r")
+  await prompt.waitFor(/Running: npx whyfull license/)
+  await prompt.waitFor(/Already bought it\? whyfull license activate/)
+  assert.match(prompt.output(), /Command line {3}Free for personal/)
+  assert.throws(() => readFileSync(join(root, "license.json")), /ENOENT/)
+})
+
 test("keyboard selector supports Escape, Ctrl+C, and selecting Quit", async (t) => {
   for (const keys of ["\x1b", "\x03", "\x1b[A\r"]) {
     const prompt = menu(t)

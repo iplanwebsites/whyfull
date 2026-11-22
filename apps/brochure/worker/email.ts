@@ -112,7 +112,7 @@ const keyBlock = (key: string) =>
   `<p style="margin:0 0 16px;padding:12px;background:#ffffff;border:1px solid #dedfd1;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;word-break:break-all">${escape(key)}</p>`
 
 const steps =
-  "In Whyfull, open the Whyfull menu → Support Whyfull…, paste the key (or the whole activation link), and choose Activate."
+  "In Whyfull, open Settings › License, paste the key (or the whole activation link), and choose Activate. From a terminal: whyfull license activate <key>."
 
 export function purchaseEmail(license: LicenseRow): Message {
   const greeting = license.name ? `Thank you, ${license.name}!` : "Thank you!"

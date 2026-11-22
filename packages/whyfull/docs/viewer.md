@@ -498,6 +498,12 @@ leaves the machine. Because the webview cannot navigate off-origin, the
 fixed allowlist of whyfull.app pages (`buy`, `recover`, `legal`) in the default
 browser; `checkout` remains an alias for `buy`.
 
+People manage the license in **Settings › License**, or from a terminal with
+`whyfull license` (status, `--json`, `activate <key or link>`, `deactivate`,
+`buy`). Both read and write the same `license.json`; the command never counts a
+trial day. Prices, the trial length, page URLs and license wording all come from
+`packages/whyfull/src/license.ts`.
+
 ### Local API security
 
 The server listens only on IPv4 loopback (`127.0.0.1`) at an OS-assigned port.

@@ -218,8 +218,8 @@ pages offer an **Open in Whyfull** link,
 and the copy button. The desktop app registers the `whyfull` scheme; opening the
 link focuses the app and activates the key through the engine's local API, so
 the buyer never copies anything. Copying the key (or pasting the whole
-`https://whyfull.app/activate#key=…` link) into **Support Whyfull** remains the
-fallback.
+`https://whyfull.app/activate#key=…` link) into **Settings › License**, or
+running `whyfull license activate <key or link>`, remains the fallback.
 
 - The key is in the URL query here, unlike the web link's `#` fragment, but the
   link never goes to a server: the OS hands it straight to the app.

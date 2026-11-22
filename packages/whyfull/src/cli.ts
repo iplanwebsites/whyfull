@@ -17,6 +17,7 @@ import { render, dim } from "./report"
 import { human } from "./size"
 import { runDiskCli } from "./disk-cli"
 import { runKnowledgeCli } from "./knowledge-cli"
+import { runLicenseCli } from "./license-cli"
 import { loadKnowledge } from "./knowledge"
 import { resolve } from "node:path"
 import { CLI_LICENSE_NOTICE } from "./license"
@@ -33,6 +34,8 @@ const HELP = `
     npx whyfull scan [path]           inventory a folder (defaults to cwd)
     npx whyfull locations --help      save, list, and contribute frequent places
     npx whyfull instructions --help   private user / computer guidance
+    npx whyfull license               pricing and this computer's desktop license
+                                      (status --json, activate, deactivate, buy)
 
   Examples for scripts and agents (no prompts)
     npx whyfull --tui --json-file report.json
@@ -218,6 +221,10 @@ async function main() {
   let argv = process.argv.slice(2)
   if (["locations", "instructions"].includes(argv[0])) {
     runKnowledgeCli(argv)
+    return
+  }
+  if (argv[0] === "license") {
+    process.exitCode = await runLicenseCli(argv.slice(1))
     return
   }
   if (argv[0] === "scan") {

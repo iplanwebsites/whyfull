@@ -64,6 +64,7 @@ import { TrashController } from "./trash"
 import { ScanCompletionEstimate } from "./scan-progress"
 import { ScanCache } from "./scan-cache"
 import { DesktopLicense, licensePageUrl } from "./license"
+import { openExternalUrl } from "./open-url"
 import {
   loadKnowledge,
   updateKnowledge,
@@ -689,20 +690,7 @@ export async function startViewer(options: ViewerOptions) {
     return shortlistCache.indexed
   }
   /** Opens a fixed https URL from this module in the default browser. */
-  async function openUrl(target: string) {
-    if (!/^https:\/\/[\w./-]+$/.test(target)) throw new Error("Invalid URL")
-    const [command, args] =
-      process.platform === "darwin"
-        ? ["/usr/bin/open", [target]]
-        : process.platform === "win32"
-          ? ["rundll32.exe", ["url.dll,FileProtocolHandler", target]]
-          : ["xdg-open", [target]]
-    await new Promise<void>((resolve, reject) =>
-      execFile(command, args, { timeout: 15000 }, (error) =>
-        error ? reject(new Error("Could not open your browser")) : resolve()
-      )
-    )
-  }
+  const openUrl = openExternalUrl
   async function openFinder(path: string) {
     if (!options.finder && process.platform !== "darwin")
       throw new Error("Finder is available on macOS only")
