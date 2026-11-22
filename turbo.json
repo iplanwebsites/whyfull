@@ -28,8 +28,36 @@
       "dependsOn": ["@whyfull/viewer#build"],
       "outputs": ["dist/**"]
     },
+    "@whyfull/brochure#build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/EULA.md",
+        "$TURBO_ROOT$/LICENSE",
+        "$TURBO_ROOT$/PRIVACY.md",
+        "$TURBO_ROOT$/TRADEMARKS.md"
+      ]
+    },
+    "@whyfull/brochure#typecheck": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/EULA.md",
+        "$TURBO_ROOT$/LICENSE",
+        "$TURBO_ROOT$/PRIVACY.md",
+        "$TURBO_ROOT$/TRADEMARKS.md"
+      ]
+    },
     "@whyfull/brochure#test": {
-      "dependsOn": ["build", "whyfull#build"]
+      "dependsOn": ["build", "whyfull#build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/EULA.md",
+        "$TURBO_ROOT$/LICENSE",
+        "$TURBO_ROOT$/PRIVACY.md",
+        "$TURBO_ROOT$/TRADEMARKS.md"
+      ]
     }
   }
 }

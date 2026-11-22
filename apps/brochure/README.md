@@ -130,6 +130,16 @@ the in-app Support dialog (`apps/web/src/components/license.tsx`). Whyfull is
 source available, not open source; don't reintroduce "open source" claims in
 copy, meta tags, or JSON-LD.
 
+## Legal page
+
+`/legal/` is generated from the repository's `EULA.md`, `LICENSE`,
+`PRIVACY.md` and `TRADEMARKS.md` by `scripts/build-legal.mjs`; don't edit
+`legal/index.html` by hand. `build` and `dev` regenerate it, and
+`pnpm --filter @whyfull/brochure legal` does so on its own. The page is
+committed because it is a Vite input, and `typecheck` runs the script with
+`--check` to fail when it is stale. The draft banner shows while any document
+still contains an `[UPPERCASE PLACEHOLDER]`.
+
 ## Template source
 
 Adapted at the owner's request from `iplanwebsites/slidepig`, specifically

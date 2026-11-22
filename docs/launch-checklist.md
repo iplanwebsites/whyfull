@@ -24,9 +24,12 @@ $19 after a 30-day trial. Run these steps in order. Details live in
     paying is treated as a breach, with no technical enforcement.
   - **Source-license limits.** Whether "review only" use of the source and the
     ban on AI training can be enforced.
-- [ ] Remove the "Draft" banner from `legal/index.html`.
-- [ ] The legal page is a hand-made HTML copy of the Markdown files. After
-      any change to the Markdown, update both and compare them.
+- [ ] The legal page (`apps/brochure/legal/index.html`) is now generated
+      from the Markdown files by `apps/brochure/scripts/build-legal.mjs` on
+      every brochure build. After changing the Markdown, run
+      `pnpm --filter @whyfull/brochure legal` and commit the page; the
+      brochure typecheck fails while it is stale. The "Draft" banner disappears
+      once no `[PLACEHOLDER]` is left.
 - [ ] Confirm that whyfull.app has Cloudflare Web Analytics switched off, or
       update `PRIVACY.md` to say it's on.
 
@@ -68,11 +71,11 @@ $19 after a 30-day trial. Run these steps in order. Details live in
    Apache-2.0, and everything after it follows the new terms.
 2. Switch the site to live Stripe keys and deploy it **before** the app
    release, because the app's Buy button opens whyfull.app/buy/.
-3. Publish npm `whyfull` with a new version (suggested `0.1.0`), never
+3. Publish npm `whyfull` 0.1.0 (already set in package.json). Never publish
    `0.0.3`: the docs name 0.0.1 and 0.0.2 as the last Apache releases.
    Afterwards, check that the npm page shows the new license and includes
    `EULA.md`.
-4. Desktop: set the version (suggested `0.1.0`), build a test version with
+4. Desktop (already at 0.1.0): build a test version with
    the "build-only" release mode on GitHub CI, check the trial and reminder
    on both Macs, then tag the release.
 5. Update the GitHub repository's description and topics. GitHub will show
