@@ -17,6 +17,11 @@ export function extractKey(text) {
   return KEY_PATTERN.exec(String(text || "").replace(/\s+/g, ""))?.[0] ?? null
 }
 
+/** Opens the installed desktop app, which activates the key itself. */
+export function appLink(key) {
+  return `whyfull://activate?key=${encodeURIComponent(key)}`
+}
+
 /** Unverified payload for display; the app verifies the signature. */
 export function describeKey(key) {
   try {
@@ -46,6 +51,9 @@ export function licenseText(key, { id, name } = {}) {
     key,
     "",
     "How to activate:",
+    `With Whyfull installed, open this link to activate it in one step: ${appLink(key)}`,
+    "",
+    "Or by hand:",
     "1. Open Whyfull on your computer.",
     "2. Choose Whyfull menu → Support Whyfull…",
     "3. Paste the key above (or the activation link below) and choose Activate.",
@@ -69,6 +77,11 @@ export function showKey(key, details = {}) {
   holder.textContent = parts.join(" · ")
   holder.hidden = parts.length === 0
 
+  const open = $("wf-license-open")
+  if (open) {
+    open.href = appLink(key)
+    open.hidden = false
+  }
   const copy = $("wf-license-copy")
   const status = $("wf-license-copy-status")
   copy.addEventListener("click", async () => {

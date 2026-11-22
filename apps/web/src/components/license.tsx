@@ -13,6 +13,7 @@ import {
 } from "@workspace/ui/components/dialog"
 import { api, formatSize } from "@/lib/api"
 import type { ViewerStatus } from "@/lib/api"
+import { listenForLicense, SUCCESS_MESSAGE } from "@/lib/license-events"
 import { toast } from "@/lib/notifications"
 import { reportFindings } from "@/lib/report-actions"
 import type { LicenseView } from "../../../../packages/whyfull/src/viewer-types"
@@ -23,8 +24,31 @@ type EnabledLicense = Extract<LicenseView, { enabled: true }>
 // Module-level so the explorer's loading and map screens share one record.
 const observedScans = new Set<string>()
 
+// Only one mounted useLicense() reacts to activation links.
+let linkListeners = 0
+
 /** Desktop only. npx and CLI viewers report `{ enabled: false }`. */
 export function useLicense() {
+  const client = useQueryClient()
+  useEffect(() => {
+    if (linkListeners++ > 0)
+      return () => {
+        linkListeners--
+      }
+    const stop = listenForLicense(window, (detail) => {
+      void client.invalidateQueries({ queryKey: ["license"] })
+      if (detail.ok)
+        toast.success(SUCCESS_MESSAGE, {
+          description:
+            detail.message === SUCCESS_MESSAGE ? undefined : detail.message,
+        })
+      else toast.error(detail.message)
+    })
+    return () => {
+      linkListeners--
+      stop()
+    }
+  }, [client])
   return useQuery({
     queryKey: ["license"],
     queryFn: ({ signal }) => api<LicenseView>("license", undefined, signal),
@@ -90,7 +114,7 @@ export function LicenseDialog({
     try {
       const next = await action({ action: "activate", key })
       if ("enabled" in next && next.enabled && next.licensed) {
-        toast.success("License activated")
+        toast.success(SUCCESS_MESSAGE)
         onOpenChange(false)
       }
     } catch (error) {

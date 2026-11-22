@@ -209,3 +209,24 @@ sale) and for US sales tax once state thresholds are crossed.
 
 At $19 and low volume, a merchant of record is usually simpler for a solo
 developer. Get advice for your jurisdiction before launch.
+
+## Opening the app from activation links
+
+The purchase email, the recovery email and the `/thanks/` and `/activate/`
+pages offer an **Open in Whyfull** link,
+`whyfull://activate?key=<encodeURIComponent(key)>`, above the web license page
+and the copy button. The desktop app registers the `whyfull` scheme; opening the
+link focuses the app and activates the key through the engine's local API, so
+the buyer never copies anything. Copying the key (or pasting the whole
+`https://whyfull.app/activate#key=…` link) into **Support Whyfull** remains the
+fallback.
+
+- The key is in the URL query here, unlike the web link's `#` fragment, but the
+  link never goes to a server: the OS hands it straight to the app.
+- Some webmail clients (notably Gmail on the web) strip or block non-`https`
+  links, so the email keeps the web license page as the second option, and that
+  page offers the same button.
+- If Whyfull isn't installed, the browser does nothing or reports an unknown
+  protocol; the page text points to copying the key instead.
+- Platform details and testing are in
+  [`apps/desktop/README.md`](../apps/desktop/README.md#license-and-trial).

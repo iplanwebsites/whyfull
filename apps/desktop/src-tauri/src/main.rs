@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod activation;
 mod launcher;
 
 use serde::Deserialize;
@@ -15,9 +16,11 @@ use std::{
 };
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem, Submenu},
+    webview::PageLoadEvent,
     Manager, WebviewUrl, WebviewWindowBuilder,
 };
-use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
+use tauri_plugin_deep_link::DeepLinkExt;
+use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 use tauri_plugin_updater::UpdaterExt;
 
 struct Engine(Mutex<Option<Child>>);
@@ -155,10 +158,89 @@ fn watch_engine(app: tauri::AppHandle, runtime: PathBuf, allowed: Arc<Mutex<url:
                     target.set_query(current.query());
                 }
                 *allowed.lock().unwrap() = url.origin();
+                *app.state::<Mutex<activation::EngineApi>>().lock().unwrap() =
+                    activation::EngineApi::from_url(&url);
                 let _ = window.navigate(target);
             }
         }
     });
+}
+
+/// Whether the viewer page has loaded, and activation results it hasn't seen yet.
+#[derive(Default)]
+struct Viewer {
+    loaded: AtomicBool,
+    pending: Mutex<Vec<String>>,
+}
+
+fn focus(app: &tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.show();
+        let _ = window.unminimize();
+        let _ = window.set_focus();
+    }
+}
+
+fn notify_viewer(app: &tauri::AppHandle, outcome: activation::Outcome) {
+    let viewer = app.state::<Viewer>();
+    match app.get_webview_window("main") {
+        Some(window) if viewer.loaded.load(Ordering::SeqCst) => {
+            let _ = window.eval(activation::viewer_script(&outcome));
+        }
+        // The viewer reads it once the page loads.
+        _ if outcome.ok => viewer
+            .pending
+            .lock()
+            .unwrap()
+            .push(activation::viewer_script(&outcome)),
+        _ => {
+            app.dialog()
+                .message(outcome.message)
+                .title("Could not activate Whyfull")
+                .kind(MessageDialogKind::Error)
+                .show(|_| {});
+        }
+    }
+}
+
+static LAST_LINK: Mutex<Option<(String, Instant)>> = Mutex::new(None);
+/// Activate the key in each `whyfull://activate` link through the local engine.
+fn open_links(app: &tauri::AppHandle, urls: Vec<url::Url>) {
+    for url in urls {
+        // macOS can report the launch URL both at startup and as an event.
+        {
+            let mut last = LAST_LINK.lock().unwrap();
+            if last.as_ref().is_some_and(|(seen, at)| {
+                seen == url.as_str() && at.elapsed() < Duration::from_secs(5)
+            }) {
+                continue;
+            }
+            *last = Some((url.to_string(), Instant::now()));
+        }
+        focus(app);
+        let app = app.clone();
+        std::thread::spawn(move || {
+            let outcome = match activation::key_from_url(url.as_str()) {
+                Ok(key) => {
+                    // The engine may have restarted; use its current address.
+                    let api = app
+                        .state::<Mutex<activation::EngineApi>>()
+                        .lock()
+                        .unwrap()
+                        .clone();
+                    activation::activate(&api, &key)
+                }
+                Err(message) => activation::Outcome {
+                    ok: false,
+                    message: message.into(),
+                },
+            };
+            // Messages never include the key.
+            eprintln!("whyfull: activation link: {}", outcome.message);
+            focus(&app);
+            notify_viewer(&app, outcome);
+        });
+    }
 }
 
 static CHECKING: AtomicBool = AtomicBool::new(false);
@@ -285,22 +367,53 @@ fn main() {
             }
         });
     }
-    let app = tauri::Builder::default()
+    let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _, _| {
-            if let Some(window) = app.get_webview_window("main") { let _ = window.show(); let _ = window.set_focus(); }
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
         }))
-        .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_deep_link::init())
+        .plugin(tauri_plugin_dialog::init());
+    // Local builds have no updater config, which the plugin can't deserialize;
+    // check_updates explains that instead.
+    if context.config().plugins.0.contains_key("updater") {
+        builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+    }
+    let app = builder
         .setup(move |app| {
             let (engine, url) = start_engine(runtime.clone())?;
             app.manage(engine);
+            app.manage(Mutex::new(activation::EngineApi::from_url(&url)));
+            app.manage(Viewer::default());
             let allowed = Arc::new(Mutex::new(url.origin()));
             let navigation = allowed.clone();
             WebviewWindowBuilder::new(app, "main", WebviewUrl::External(url))
                 .title("Whyfull").inner_size(1280.0, 860.0).min_inner_size(800.0, 600.0)
                 .on_navigation(move |url| url.origin() == *navigation.lock().unwrap())
+                .on_page_load(|window, payload| {
+                    let viewer = window.state::<Viewer>();
+                    let loaded = matches!(payload.event(), PageLoadEvent::Finished);
+                    viewer.loaded.store(loaded, Ordering::SeqCst);
+                    if loaded {
+                        for script in viewer.pending.lock().unwrap().drain(..) {
+                            let _ = window.eval(script);
+                        }
+                    }
+                })
                 .build()?;
             watch_engine(app.handle().clone(), runtime.clone(), allowed);
+            // Installers register the scheme. AppImages and Linux/Windows dev builds do it here.
+            #[cfg(any(target_os = "linux", windows))]
+            if cfg!(debug_assertions) || std::env::var_os("APPIMAGE").is_some() {
+                let _ = app.deep_link().register_all();
+            }
+            let handle = app.handle().clone();
+            app.deep_link().on_open_url(move |event| open_links(&handle, event.urls()));
+            if let Some(urls) = app.deep_link().get_current()? {
+                open_links(app.handle(), urls);
+            }
             let install = MenuItem::with_id(app, "install-cli", "Install command-line tool…", true, None::<&str>)?;
             let update = MenuItem::with_id(app, "check-updates", "Check for updates…", true, None::<&str>)?;
             let tools = Submenu::with_items(app, "Whyfull", true, &[

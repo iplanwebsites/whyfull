@@ -32,6 +32,9 @@ export interface Message {
 }
 
 export const activationLink = (key: string) => `${SITE}/activate#key=${key}`
+/** Opens the installed desktop app, which activates the key in one step. */
+export const appLink = (key: string) =>
+  `whyfull://activate?key=${encodeURIComponent(key)}`
 
 const escape = (value: string) =>
   value.replace(
@@ -117,7 +120,10 @@ export function purchaseEmail(license: LicenseRow): Message {
   const text = [
     `${greeting} Your Whyfull license is ready.`,
     "",
-    "Open your license page on the computer where Whyfull is installed:",
+    "On the computer where Whyfull is installed, open this link to activate it in one step:",
+    appLink(license.key),
+    "",
+    "Or open your license page:",
     activate,
     "",
     "Or copy this key:",
@@ -136,7 +142,10 @@ export function purchaseEmail(license: LicenseRow): Message {
   const html = layout([
     p(`${escape(greeting)} Your Whyfull license is ready.`),
     p(
-      `${link(activate, "Open your license page")} on the computer where Whyfull is installed, or copy this key:`
+      `On the computer where Whyfull is installed: ${link(appLink(license.key), "Open in Whyfull")} to activate it in one step.`
+    ),
+    p(
+      `If that doesn’t open the app, ${link(activate, "open your license page")} or copy this key:`
     ),
     keyBlock(license.key),
     p(escape(steps)),
@@ -166,7 +175,8 @@ export function recoveryEmail(email: string, licenses: LicenseRow[]): Message {
     "",
     ...licenses.flatMap((license) => [
       `License ${license.id} (issued ${license.created_at.slice(0, 10)}${license.name ? `, licensed to ${license.name}` : ""})`,
-      activationLink(license.key),
+      `Open in Whyfull: ${appLink(license.key)}`,
+      `License page: ${activationLink(license.key)}`,
       license.key,
       "",
     ]),
@@ -181,7 +191,7 @@ export function recoveryEmail(email: string, licenses: LicenseRow[]): Message {
     ...licenses.map(
       (license) =>
         p(
-          `<strong>${escape(license.id)}</strong> · issued ${escape(license.created_at.slice(0, 10))}${license.name ? ` · licensed to ${escape(license.name)}` : ""}<br>${link(activationLink(license.key), "Open license page")}`
+          `<strong>${escape(license.id)}</strong> · issued ${escape(license.created_at.slice(0, 10))}${license.name ? ` · licensed to ${escape(license.name)}` : ""}<br>${link(appLink(license.key), "Open in Whyfull")} · ${link(activationLink(license.key), "Open license page")}`
         ) + keyBlock(license.key)
     ),
     p(escape(steps)),
