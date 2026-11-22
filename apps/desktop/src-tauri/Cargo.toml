@@ -1,6 +1,6 @@
 [package]
 name = "whyfull-desktop"
-version = "0.0.1"
+version = "0.1.0"
 description = "Whyfull disk explorer and command-line reports"
 authors = ["Felix Menard"]
 license-file = "../../../LICENSE"

@@ -1,6 +1,6 @@
 {
   "name": "whyfull",
-  "version": "0.0.3",
+  "version": "0.1.0",
   "private": false,
   "description": "Find where disk space went on a dev machine: AI models (Hugging Face, Ollama, LM Studio), caches, package stores, Docker, build output and agent worktrees, ranked by how safe each is to delete. Free CLI with JSON reports for coding agents, a local browser explorer and demo-first macOS Trash cleanup. Source available.",
   "author": "Felix Menard",
