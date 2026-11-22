@@ -152,7 +152,8 @@ scan as JSON**, with command previews and loading indicators.
 
 ### Make Whyfull yours
 
-Open **Places** in the app to save frequent folders and write instructions for
+Open **Settings → Saved places** in the app to save frequent folders, and
+**Settings → Instructions** to write preferences for
 your user profile or this computer. Saved places appear in the scan menu and
 opportunity reports. Project locations also help discover caches and worktrees.
 Use **Scan a folder…** for a one-time scan.
@@ -166,7 +167,7 @@ whyfull locations list --json
 
 Instructions are private guidance, and Keep / exclude rules still control file
 protection. Agents can update locations by stable ID, with revision checks for
-concurrent edits. **Contribute** prepares a public JSON draft using explicit
+concurrent edits. **Prepare public contribution…** in a place’s advanced editor prepares a public JSON draft using explicit
 portable paths and public guidance, without copying your private notes.
 [Personalization, agent workflow, and PR guide](docs/personalization.md).
 

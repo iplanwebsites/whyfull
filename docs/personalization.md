@@ -1,9 +1,14 @@
 # Personal places and instructions
 
 Whyfull shares local knowledge between its desktop app, browser viewer, CLI,
-and coding agents. Open **Places** in the viewer to save a location, edit its
-guidance, or write instructions. Use the location menu’s **Scan a folder…**
+and coding agents. Open **Settings → Saved places** in the viewer to save a
+location or edit its guidance. Use **Settings → Instructions** for general
+preferences and **Settings → Keep & exclude** for enforced folder rules. Use the location menu’s **Scan a folder…**
 for a one-time scan without saving a place.
+
+Direct viewer links: `/?settings=general`, `/?settings=places`,
+`/?settings=instructions`, `/?settings=rules`, and `/?settings=advanced`.
+Section navigation updates the URL and supports browser Back/Forward and reloads.
 
 ## What is saved
 
@@ -101,12 +106,13 @@ The API exports `loadKnowledge`, `updateKnowledge`, `knowledgeTargets`, and
 `locationProposal`. The authenticated local viewer exposes `GET/POST /api/knowledge`
 and `POST /api/knowledge/proposal`. These endpoints use the same validation and
 persistence as the CLI. Running viewers pick up agent changes on subsequent API
-requests; the Places panel refreshes every five seconds. Already exported reports
+requests; the Settings panel refreshes every five seconds. Already exported reports
 retain the instructions present when they were generated.
 
 ## Contribute reusable locations through a PR
 
-Use **Contribute** on a saved place, or generate an explicit public draft:
+Edit a saved place, expand **Advanced**, and choose **Prepare public
+contribution…**, or generate an explicit public draft:
 
 ```bash
 whyfull locations export example-tool \

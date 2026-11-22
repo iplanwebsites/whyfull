@@ -3,6 +3,7 @@ import { homedir } from "node:os"
 import { basename, join, parse } from "node:path"
 import { volume } from "./size"
 import type { DiskSnapshot } from "./filesystem-types"
+import type { ScanProgress } from "./scan-progress"
 export interface CachedScan {
   documentId: string
   status: DiskSnapshot["status"]
@@ -15,6 +16,10 @@ export interface CachedScan {
     estimateBasis?: "history" | "live" | "previous"
     elapsedMs: number
     files: number
+    bytes: number
+    usedBytes: number | null
+    phase: ScanProgress["phase"]
+    remainingMs: ScanProgress["remainingMs"]
   } | null
 }
 export interface ScanDrive {

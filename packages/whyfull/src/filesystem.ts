@@ -3,6 +3,7 @@ import { availableParallelism } from "node:os"
 import { statSync } from "node:fs"
 import { basename, join } from "node:path"
 import { pathWithin, policyPath } from "./disk-policy"
+import { PRIVACY_REASON } from "./privacy"
 import { SqliteScanner } from "./sqlite-scanner"
 import type {
   DiskScanOptions,
@@ -62,7 +63,9 @@ export class DiskScanner extends SqliteScanner {
               pathWithin(policyPath(path), policyPath(p))
             )
           ? "Excluded by your preferences"
-          : null
+          : this.privacy.some((p) => pathWithin(policyPath(path), p))
+            ? PRIVACY_REASON
+            : null
     if (reason) {
       this.inventory.acceptDirectory(
         {

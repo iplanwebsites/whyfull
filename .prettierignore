@@ -16,3 +16,4 @@ apps/desktop/src-tauri/gen
 
 experiments/disk-crawler/target
 experiments/disk-crawler/results
+.claude/

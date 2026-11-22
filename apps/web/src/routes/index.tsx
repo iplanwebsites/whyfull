@@ -1,4 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router"
+import {
+  parseSettingsSection,
+  type SettingsSection,
+} from "@/lib/settings-navigation"
+import {
+  parseViewerPanel,
+  parseReportSection,
+  type ViewerPanel,
+  type ReportSection,
+} from "@/lib/panel-navigation"
 import { Explorer } from "@/components/explorer"
 export interface ExplorerSearch {
   id?: number
@@ -9,7 +19,9 @@ export interface ExplorerSearch {
   q?: string
   files?: boolean
   page?: "report" | "locations"
-  panel?: "rules" | "scan"
+  panel?: ViewerPanel
+  reportSection?: ReportSection
+  settings?: SettingsSection
 }
 export const Route = createFileRoute("/")({
   validateSearch: (raw: Record<string, unknown>): ExplorerSearch => ({
@@ -26,8 +38,9 @@ export const Route = createFileRoute("/")({
     files: raw.files === true || raw.files === "true" ? true : undefined,
     page:
       raw.page === "report" || raw.page === "locations" ? raw.page : undefined,
-    panel:
-      raw.panel === "rules" || raw.panel === "scan" ? raw.panel : undefined,
+    settings: parseSettingsSection(raw.settings),
+    panel: parseViewerPanel(raw.panel),
+    reportSection: parseReportSection(raw.reportSection),
   }),
   component: Explorer,
 })

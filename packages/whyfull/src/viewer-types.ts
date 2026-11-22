@@ -51,6 +51,8 @@ export interface ViewerStatus extends Omit<
 > {
   /** No scan has started yet (--ui --no-scan). */
   awaitingScan?: boolean
+  /** Served by the desktop app rather than `whyfull --view`. */
+  desktop?: boolean
   directories: number
   bytes: number
   pending: number
@@ -88,6 +90,8 @@ export interface ViewerStatus extends Omit<
     active: "node" | "rust"
     rust: { available: boolean; reason: string | null }
   }
+  /** Folders skipped unless the user allows them; empty off macOS. */
+  privateFolders: string[]
 }
 
 export interface ShortlistEntry {

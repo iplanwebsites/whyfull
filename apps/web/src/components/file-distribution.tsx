@@ -1,8 +1,6 @@
-import { useEffect } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { RefreshCw } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
-import { toast } from "@/lib/notifications"
 import { api, formatCount, formatSize } from "@/lib/api"
 import type { DirectoryView, FileDistribution as Distribution } from "@/lib/api"
 // Small to large file sizes, in the viewer's earthy chart family.
@@ -22,9 +20,11 @@ function fraction(value: number, total: number) {
 export function FileDistribution({
   directory,
   documentId,
+  showTitle = true,
 }: {
   directory: DirectoryView
   documentId: string
+  showTitle?: boolean
 }) {
   const result = useQuery({
     queryKey: ["file-distribution", documentId, directory.node.id],
@@ -35,38 +35,32 @@ export function FileDistribution({
     staleTime: Infinity,
   })
   const data = result.data
-  useEffect(() => {
-    if (data?.unreadable)
-      toast.error(
-        `${data.unreadable} files could not be measured. The distribution is incomplete.`
-      )
-  }, [data])
   return (
     <div
       className="flex h-full min-h-0 flex-col bg-background p-4"
       onContextMenu={(event) => event.stopPropagation()}
     >
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <h2 className="flex-1 text-sm font-medium">File sizes</h2>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={result.isFetching}
-          onClick={() => void result.refetch()}
-        >
-          <RefreshCw className={result.isFetching ? "animate-spin" : ""} />
-          {result.isFetching
-            ? "Measuring…"
-            : data
-              ? "Refresh"
-              : "Measure file sizes"}
-        </Button>
-      </div>
+      {(showTitle || data) && (
+        <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
+          {showTitle && (
+            <h2 className="flex-1 text-sm font-medium">File sizes</h2>
+          )}
+          {data && (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={result.isFetching}
+              onClick={() => void result.refetch()}
+            >
+              <RefreshCw className={result.isFetching ? "animate-spin" : ""} />
+              {result.isFetching ? "Measuring…" : "Refresh"}
+            </Button>
+          )}
+        </div>
+      )}
       <div className="mb-5 flex flex-wrap gap-x-8 gap-y-3">
         <div>
-          <div className="text-xs text-muted-foreground">
-            {data ? "Measured files" : "Files"}
-          </div>
+          <div className="text-xs text-muted-foreground">Files</div>
           <div
             className="text-2xl font-semibold tabular-nums"
             title={(data?.files ?? directory.ownFiles).toLocaleString()}
@@ -75,9 +69,7 @@ export function FileDistribution({
           </div>
         </div>
         <div>
-          <div className="text-xs text-muted-foreground">
-            {data ? "Average file size" : "Average file on disk"}
-          </div>
+          <div className="text-xs text-muted-foreground">Average size</div>
           <div className="text-2xl font-semibold tabular-nums">
             {formatSize(
               data?.averageBytes ??
@@ -86,9 +78,7 @@ export function FileDistribution({
           </div>
         </div>
         <div>
-          <div className="text-xs text-muted-foreground">
-            {data ? "Largest file" : "Largest file on disk"}
-          </div>
+          <div className="text-xs text-muted-foreground">Largest file</div>
           <div className="text-2xl font-semibold tabular-nums">
             {formatSize(data?.largestBytes ?? directory.largestFileBytes)}
           </div>
@@ -146,15 +136,31 @@ export function FileDistribution({
             </div>
           ))}
           <p className="mt-4 text-xs text-muted-foreground">
-            Live direct-file metadata ·{" "}
-            {new Date(data.measuredAt).toLocaleTimeString()}
-            {data.unreadable ? " · incomplete" : ""}. Shared blocks can overlap
-            across filenames.
+            Measured {new Date(data.measuredAt).toLocaleTimeString()}
+            {data.unreadable
+              ? ` · ${formatCount(data.unreadable)} unreadable files not counted`
+              : ""}{" "}
+            · Shared blocks may overlap
           </p>
         </div>
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center text-sm text-muted-foreground">
-          <p>Measure file sizes to see how many are small, medium, or large.</p>
+          {result.error ? (
+            <p role="alert">Couldn’t measure. {result.error.message}</p>
+          ) : (
+            <p>Size breakdown not measured</p>
+          )}
+          <Button
+            disabled={result.isFetching}
+            onClick={() => void result.refetch()}
+          >
+            <RefreshCw className={result.isFetching ? "animate-spin" : ""} />
+            {result.isFetching
+              ? "Measuring…"
+              : result.error
+                ? "Try again"
+                : "Measure file sizes"}
+          </Button>
         </div>
       )}
     </div>

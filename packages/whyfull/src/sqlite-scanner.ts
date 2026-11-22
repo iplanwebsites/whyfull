@@ -10,6 +10,7 @@ import {
 } from "./sqlite-inventory"
 import { normalizePolicyPath } from "./disk-policy"
 import { ScanProgressTracker } from "./scan-progress"
+import { privacyExclusions } from "./privacy"
 import type { ScanProgress } from "./scan-progress"
 import type { DiskScanOptions, DiskSnapshot } from "./filesystem-types"
 
@@ -30,6 +31,8 @@ export abstract class SqliteScanner extends EventEmitter {
   protected lastActivity = 0
   private batch = 0
   private lastCommit = Date.now()
+  /** Folders macOS guards with a permission dialog; never read during scans. */
+  protected privacy: string[] = []
 
   constructor(protected options: DiskScanOptions) {
     super()
@@ -48,6 +51,7 @@ export abstract class SqliteScanner extends EventEmitter {
     const root = realpathSync(input)
     if (!lstatSync(root).isDirectory())
       throw new Error("Scan root must be a directory")
+    this.privacy = options.includePrivate ? [] : privacyExclusions(root)
     const workers = options.workers ?? 4,
       topFiles = options.topFiles ?? 32
     if (!Number.isInteger(workers) || workers < 1 || workers > 32)

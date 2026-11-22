@@ -15,6 +15,7 @@ import { fileURLToPath } from "node:url"
 import { createHash, randomUUID } from "node:crypto"
 import { copyFile, link, mkdir, rename, rm, writeFile } from "node:fs/promises"
 import { setImmediate } from "node:timers/promises"
+import { privacyPromptPaths } from "./privacy"
 import type { DatabaseSync, StatementSync } from "node:sqlite"
 import type {
   DiskDirectory,
@@ -107,6 +108,9 @@ export function inventoryIdentity(root: string, options: DiskScanOptions) {
     exclude: (options.policy?.exclude ?? [])
       .map((p) => policyPath(normalizePolicyPath(p)))
       .sort(),
+    ...(options.includePrivate && privacyPromptPaths().length
+      ? { includePrivate: true }
+      : {}),
   })
 }
 

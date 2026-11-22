@@ -90,7 +90,7 @@ export function LicenseDialog({
     try {
       const next = await action({ action: "activate", key })
       if ("enabled" in next && next.enabled && next.licensed) {
-        toast.success("Thank you for supporting Whyfull!")
+        toast.success("License activated")
         onOpenChange(false)
       }
     } catch (error) {
@@ -105,16 +105,14 @@ export function LicenseDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Heart className="size-4" />
-            {license.licensed
-              ? "Thanks for supporting Whyfull"
-              : "Support Whyfull"}
+            {license.licensed ? "License" : "Support Whyfull"}
           </DialogTitle>
           <DialogDescription>
             {license.licensed
-              ? `${trialLabel(license)}. Every feature stays on, and you won’t see reminders.`
+              ? trialLabel(license)
               : license.trialRemaining > 0
-                ? `You’ve used the desktop app on ${license.usageDays} of ${license.trialDays} free trial days. After that, keeping the app means a ${license.price} one-time license: yours on all your computers, with updates.`
-                : `Your ${license.trialDays}-day trial is over. Whyfull keeps working, and nothing is locked, but continued use of the desktop app needs a license: ${license.price} once, for all your computers. If it saved you space, that’s what keeps it going.`}
+                ? `${license.trialRemaining} trial ${license.trialRemaining === 1 ? "day" : "days"} left. ${license.price} once for all your computers, updates included.`
+                : `Trial ended. The desktop app needs a license: ${license.price} once for all your computers. Features stay unlocked.`}
           </DialogDescription>
         </DialogHeader>
         {!license.licensed && (
@@ -127,7 +125,7 @@ export function LicenseDialog({
           >
             <Input
               aria-label="License key"
-              placeholder="Paste your key or purchase link"
+              placeholder="License key or purchase link"
               value={key}
               onChange={(event) => setKey(event.target.value)}
               autoComplete="off"
@@ -139,11 +137,11 @@ export function LicenseDialog({
             </Button>
           </form>
         )}
-        <p className="text-xs text-muted-foreground">
-          The command line and <code>npx whyfull</code> stay free. Keys are
-          checked on this computer; nothing is sent anywhere. Refunds within 30
-          days, no questions asked.
-        </p>
+        {!license.licensed && (
+          <p className="text-xs text-muted-foreground">
+            Offline activation · 30-day refunds · CLI stays free
+          </p>
+        )}
         <p className="flex gap-4 text-xs">
           <button
             type="button"
@@ -242,10 +240,8 @@ export function SupportReminder({
               : `Whyfull mapped ${formatSize(status.bytes)} of your disk`}
           </DialogTitle>
           <DialogDescription>
-            Your trial is over, so continued use of the desktop app needs a
-            license: {license.price} once, for all your computers. Nothing stops
-            working in the meantime, and the command line stays free. If Whyfull
-            helped, thank you for keeping it going.
+            Trial ended. The desktop app needs a license: {license.price} once
+            for all your computers. Features stay unlocked; the CLI stays free.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="gap-2 sm:justify-between">

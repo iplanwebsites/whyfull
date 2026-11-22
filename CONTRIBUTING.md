@@ -18,6 +18,11 @@ Reports can contain private paths: remove anything you'd rather not share.
 For security problems, please do not open a public issue; write to
 support@whyfull.app instead.
 
+## UI changes
+
+Follow [the UI principles](docs/ui-principles.md): concise copy, clear separation
+of navigation and actions, and URL state for persistent destinations.
+
 ## Pull requests
 
 1. Keep each pull request focused on one change.

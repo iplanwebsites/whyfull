@@ -72,11 +72,11 @@ export class TrashController {
       supported,
       enabled: !!this.options.allowTrash && !snapshotMode && supported,
       reason: snapshotMode
-        ? "Saved inventories support demos only. Start a live scan to move files to Trash."
+        ? "Saved inventories can only simulate cleanup. Start a live scan to move files to Trash."
         : !supported
-          ? "Native Trash is supported on macOS 14 or newer. Demo mode is available here."
+          ? "Moving to Trash needs macOS 14 or newer. Cleanup is simulated here."
           : !this.options.allowTrash
-            ? "Start whyfull --ui --allow-trash to enable real Trash moves. Every session still starts in demo mode."
+            ? "Start whyfull --ui --allow-trash to move files to Trash. Sessions still start in simulation."
             : null,
     }
   }

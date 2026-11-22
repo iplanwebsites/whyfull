@@ -13,12 +13,12 @@ const status = $("wf-license-status")
 
 if (key) {
   const details = describeKey(key) ?? {}
-  status.textContent = "Here’s your Whyfull license key."
+  status.textContent = "License ready."
   showKey(key, details)
   $("wf-license-steps").hidden = false
 } else {
   status.textContent =
-    "No license key in this link. Open the link from your purchase email, or paste the key directly into Whyfull."
+    "No key in this link. Open your purchase email’s link or paste the key into Whyfull."
   $("wf-license-help").hidden = false
 }
 showInstallers()

@@ -38,15 +38,9 @@ test("elapsed time stays readable through long scans", () => {
 })
 
 test("remaining time is rounded into a range rather than a precise countdown", () => {
-  assert.equal(
-    remainingLabel({ min: 10100, max: 19100 }),
-    "About 10–20 sec left"
-  )
-  assert.equal(
-    remainingLabel({ min: 65000, max: 140000 }),
-    "About 1–3 min left"
-  )
-  assert.equal(remainingLabel({ min: 100, max: 500 }), "About 5 sec left")
+  assert.equal(remainingLabel({ min: 10100, max: 19100 }), "≈ 10–20s left")
+  assert.equal(remainingLabel({ min: 65000, max: 140000 }), "≈ 1–3m left")
+  assert.equal(remainingLabel({ min: 100, max: 500 }), "≈ 5s left")
 })
 
 test("rerun timing uses the previous full scan as an explicitly approximate baseline", () => {

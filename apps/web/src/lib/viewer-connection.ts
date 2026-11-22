@@ -1,5 +1,4 @@
-export const VIEWER_OFFLINE_MESSAGE =
-  "The viewer is offline. Run whyfull --view and open the URL printed in your terminal."
+export const VIEWER_OFFLINE_MESSAGE = "Can’t reach the viewer."
 
 export class ViewerOfflineError extends Error {
   constructor() {

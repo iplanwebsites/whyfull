@@ -41,12 +41,13 @@ export class RustScanner extends SqliteScanner {
   protected async crawl() {
     try {
       const root = this.snapshot.root
-      const excludes = this.snapshot.policy.exclude.map((p) =>
-        root === "/System/Volumes/Data" ||
-        root.startsWith("/System/Volumes/Data/")
-          ? "/System/Volumes/Data" +
-            (policyPath(p) === "/" ? "" : policyPath(p))
-          : policyPath(p)
+      const excludes = [...this.snapshot.policy.exclude, ...this.privacy].map(
+        (p) =>
+          root === "/System/Volumes/Data" ||
+          root.startsWith("/System/Volumes/Data/")
+            ? "/System/Volumes/Data" +
+              (policyPath(p) === "/" ? "" : policyPath(p))
+            : policyPath(p)
       )
       this.child = spawn(
         this.binary,

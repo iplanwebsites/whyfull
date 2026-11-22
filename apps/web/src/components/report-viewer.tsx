@@ -25,7 +25,6 @@ import {
   FileJson,
   FolderOpen,
   Copy,
-  Play,
   Trash2,
   Flag,
   ShieldCheck,
@@ -51,7 +50,8 @@ import { RunnerControls } from "./runner-controls"
 import { copyPath } from "@/lib/clipboard"
 import { api, formatSize, exportSnapshot, isSmallEntry } from "@/lib/api"
 import type { ViewerStatus, WhyfullJsonReport } from "@/lib/api"
-type ReportSection = "targets" | "caches" | "discovered" | "worktrees"
+import { Route } from "@/routes/index"
+import type { ReportSection } from "@/lib/panel-navigation"
 interface LocationState {
   path: string
   mark: "trash" | "useless" | null
@@ -120,12 +120,33 @@ export function ReportViewer({
       if (action === "scan") onPendingChange(false)
     }
   }
-  const [shortlist, setShortlist] = useState(false)
-  const [section, setSection] = useState<ReportSection>("targets"),
-    [query, setQuery] = useState(""),
-    [page, setPage] = useState(0),
+  const search = Route.useSearch()
+  const navigate = Route.useNavigate()
+  const shortlist = search.panel === "shortlist"
+  const section = search.reportSection ?? "targets"
+  const setShortlist = (open: boolean) =>
+    void navigate({
+      search: (previous) => ({
+        ...previous,
+        panel: open ? "shortlist" : undefined,
+      }),
+    })
+  const setSection = (reportSection: ReportSection) =>
+    void navigate({ search: (previous) => ({ ...previous, reportSection }) })
+  const query = search.q ?? ""
+  const setQuery = (q: string) =>
+    void navigate({
+      search: (previous) => ({ ...previous, q: q || undefined }),
+      replace: true,
+    })
+  const [page, setPage] = useState(0),
     [expanded, setExpanded] = useState<string | null>(null)
-  useEffect(() => setPage(0), [status.viewer.minFileBytes])
+  useEffect(() => setPage(0), [status.viewer.minFileBytes, query])
+  useEffect(() => {
+    setPage(0)
+    setExpanded(null)
+    setTier("all")
+  }, [section])
   const result = useQuery({
     queryKey: ["report", status.documentId],
     queryFn: ({ signal }) =>
@@ -377,8 +398,7 @@ export function ReportViewer({
           </span>
         </div>
         <p className="px-1 text-xs text-muted-foreground">
-          Measured locations may overlap. Section totals are not whole-disk
-          usage or guaranteed reclaimable space.
+          Sizes may overlap and differ from reclaimable space.
         </p>
         <div className="min-h-0 flex-1 overflow-auto rounded-lg border">
           <table className="w-full text-left text-sm">
@@ -416,27 +436,60 @@ export function ReportViewer({
                   }
                 />
               ))}
-              {!result.isPending && filtered.length === 0 && (
+              {result.isSuccess && filtered.length === 0 && (
                 <tr>
                   <td
                     colSpan={4}
                     className="p-5 text-center text-xs text-muted-foreground"
                   >
-                    No matching locations.
+                    <p>
+                      {rows.length
+                        ? "No matching locations"
+                        : "Nothing in this section"}
+                    </p>
+                    {(query || tier !== "all" || markedOnly) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-3"
+                        onClick={() => {
+                          setQuery("")
+                          setTier("all")
+                          setMarkedOnly(false)
+                        }}
+                      >
+                        Clear filters
+                      </Button>
+                    )}
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
           {result.isPending && (
-            <div className="p-5 text-xs text-muted-foreground">
+            <div role="status" className="p-5 text-xs text-muted-foreground">
               Opening report…
+            </div>
+          )}
+          {result.error && (
+            <div role="alert" className="p-5 text-xs">
+              <p>Couldn’t open report. {result.error.message}</p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3"
+                onClick={() => void result.refetch()}
+              >
+                Try again
+              </Button>
             </div>
           )}
         </div>
         <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>{filtered.length} locations</span>
-          <div>
+          <span>
+            {filtered.length} {filtered.length === 1 ? "location" : "locations"}
+          </span>
+          <div hidden={filtered.length <= 100}>
             <Button
               variant="ghost"
               size="sm"
@@ -479,7 +532,7 @@ function ReportRows({
   const location = row.path ? locations.get(row.path) : undefined
   const finder = () =>
     void api("report/finder", { path: row.path })
-      .then(() => toast.success("Sent to Finder"))
+      .then(() => toast.success("Shown in Finder"))
       .catch((error) => toast.error(error.message))
   return (
     <ContextMenu>
@@ -555,8 +608,10 @@ function ReportRows({
               .writeText(
                 observationContext([{ ...row, category: "Report location" }])
               )
-              .then(() => toast.success("Copied for agent · observations only"))
-              .catch(() => toast.error("Could not copy"))
+              .then(() => toast.success("Copied for agent"))
+              .catch(() =>
+                toast.error("Could not copy. Check clipboard permissions.")
+              )
           }
         >
           <Copy />
@@ -571,22 +626,22 @@ function ReportRows({
           <td />
           <td colSpan={3} className="space-y-3 p-3">
             {row.path && (
-              <ReportAction
-                path={row.path}
-                state={location}
-                onAction={onAction}
-              />
-            )}
-            {row.path && (
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={!finderAvailable}
-                onClick={finder}
-              >
-                <FolderOpen />
-                Finder
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <ReportAction
+                  path={row.path}
+                  state={location}
+                  onAction={onAction}
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!finderAvailable}
+                  onClick={finder}
+                >
+                  <FolderOpen />
+                  Show in Finder
+                </Button>
+              </div>
             )}
             {row.hint && (
               <div className="flex items-start gap-2">
@@ -605,10 +660,12 @@ function ReportRows({
                           { ...row, category: "Report location" },
                         ])
                       )
-                      .then(() =>
-                        toast.success("Copied for agent · observations only")
+                      .then(() => toast.success("Copied for agent"))
+                      .catch(() =>
+                        toast.error(
+                          "Could not copy. Check clipboard permissions."
+                        )
                       )
-                      .catch(() => toast.error("Could not copy"))
                   }
                 >
                   <Copy />
@@ -694,12 +751,12 @@ function ReportRows({
               ))}
             {row.children.length > 100 && (
               <p className="text-xs text-muted-foreground">
-                {row.children.length - 100} more entries in the JSON report.
+                {row.children.length - 100} more in the JSON report.
               </p>
             )}
             {!row.hint && !row.children.length && (
               <p className="text-xs text-muted-foreground">
-                No additional detail recorded.
+                No additional details.
               </p>
             )}
           </td>
@@ -713,44 +770,48 @@ function ReportMenu({
   path,
   state,
   onAction,
+  dropdown = false,
+  includeInspect = true,
 }: {
   path: string
   state?: LocationState
   onAction: (path: string, action: string) => Promise<void>
+  dropdown?: boolean
+  includeInspect?: boolean
 }) {
+  const Item = dropdown ? DropdownMenuItem : ContextMenuItem
   return (
     <>
-      <ContextMenuItem onClick={() => void onAction(path, "scan")}>
-        <ScanSearch />
-        Inspect folder
-      </ContextMenuItem>
-      <ContextMenuItem
-        disabled={state?.kept}
-        onClick={() => void onAction(path, "trash")}
-      >
+      {includeInspect && (
+        <Item onClick={() => void onAction(path, "scan")}>
+          <ScanSearch />
+          Inspect folder
+        </Item>
+      )}
+      <Item disabled={state?.kept} onClick={() => void onAction(path, "trash")}>
         <Trash2 />
         Mark for Trash
-      </ContextMenuItem>
-      <ContextMenuItem
+      </Item>
+      <Item
         disabled={state?.kept}
         onClick={() => void onAction(path, "useless")}
       >
         <Flag />
         Mark as useless
-      </ContextMenuItem>
-      <ContextMenuItem
+      </Item>
+      <Item
         onClick={() =>
           void onAction(path, state?.directKeep ? "unkeep" : "keep")
         }
       >
         <ShieldCheck />
         {state?.directKeep ? "Remove keep rule" : "Keep"}
-      </ContextMenuItem>
+      </Item>
       {state?.mark && (
-        <ContextMenuItem onClick={() => void onAction(path, "clear")}>
+        <Item onClick={() => void onAction(path, "clear")}>
           <X />
           Clear mark
-        </ContextMenuItem>
+        </Item>
       )}
     </>
   )
@@ -764,68 +825,57 @@ function ReportAction({
   state?: LocationState
   onAction: (path: string, action: string) => Promise<void>
 }) {
-  const [selected, setSelected] = useState("scan")
   const [busy, setBusy] = useState(false)
+  async function perform(path: string, action: string) {
+    setBusy(true)
+    try {
+      await onAction(path, action)
+    } finally {
+      setBusy(false)
+    }
+  }
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Select
-        value={selected}
-        onValueChange={(value) => {
-          if (value !== null) setSelected(value)
-        }}
-        items={[
-          { value: "scan", label: "Inspect folder · recommended" },
-          { value: "trash", label: "Mark for Trash" },
-          { value: "useless", label: "Mark as useless" },
-          {
-            value: state?.directKeep ? "unkeep" : "keep",
-            label: state?.directKeep ? "Remove keep rule" : "Keep",
-          },
-          ...(state?.mark ? [{ value: "clear", label: "Clear mark" }] : []),
-        ]}
-      >
-        <SelectTrigger
-          aria-label={`Action for ${path.split("/").at(-1)}`}
-          className="min-w-0 max-w-full text-xs"
-        >
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="scan">Inspect folder · recommended</SelectItem>
-          <SelectItem value="trash" disabled={state?.kept}>
-            Mark for Trash
-          </SelectItem>
-          <SelectItem value="useless" disabled={state?.kept}>
-            Mark as useless
-          </SelectItem>
-          <SelectItem value={state?.directKeep ? "unkeep" : "keep"}>
-            {state?.directKeep ? "Remove keep rule" : "Keep"}
-          </SelectItem>
-          {state?.mark && <SelectItem value="clear">Clear mark</SelectItem>}
-        </SelectContent>
-      </Select>
       <Button
         size="sm"
-        disabled={
-          busy || (state?.kept && ["trash", "useless"].includes(selected))
-        }
-        onClick={() => {
-          setBusy(true)
-          void onAction(path, selected).finally(() => setBusy(false))
-        }}
+        disabled={busy}
+        onClick={() => void perform(path, "scan")}
       >
-        <Play />
-        {selected === "scan" ? "Run" : "Apply"}
+        <ScanSearch />
+        Inspect folder
       </Button>
-      <span className="text-xs text-muted-foreground">
-        {state?.kept
-          ? "Kept"
-          : state?.mark === "trash"
-            ? "Marked for Trash"
-            : state?.mark === "useless"
-              ? "Marked as useless"
-              : "No files moved"}
-      </span>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              variant="outline"
+              size="icon-sm"
+              disabled={busy}
+              aria-label={`Actions for ${path.split("/").at(-1)}`}
+            />
+          }
+        >
+          <Ellipsis />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          <ReportMenu
+            path={path}
+            state={state}
+            onAction={perform}
+            dropdown
+            includeInspect={false}
+          />
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {(state?.kept || state?.mark) && (
+        <span className="text-xs text-muted-foreground">
+          {state.kept
+            ? "Kept"
+            : state.mark === "trash"
+              ? "Marked for Trash"
+              : "Marked as useless"}
+        </span>
+      )}
     </div>
   )
 }

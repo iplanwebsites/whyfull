@@ -44,7 +44,7 @@ function showRelease(release) {
     month: "short",
     day: "numeric",
   })
-  releaseStatus.textContent = `Version ${release.version} · ${release.channel === "preview" ? "Preview — early build for testing" : "Stable release"} · ${date}`
+  releaseStatus.textContent = `Version ${release.version} · ${release.channel === "preview" ? "Preview" : "Stable release"} · ${date}`
   const notes = $("wf-release-notes")
   if (release.notesUrl) {
     notes.href = release.notesUrl
@@ -126,10 +126,10 @@ function showRelease(release) {
   windowsSigning.hidden = false
 
   $("wf-updates-status").textContent = release.limited
-    ? "This first Mac release doesn’t update itself yet. Check this page for newer versions; the complete desktop release adds signed in-app updates."
+    ? "No automatic updates. Download newer versions here."
     : release.updater
-      ? "The desktop app checks for signed updates on launch and from Whyfull → Check for updates…. You choose when to install and restart."
-      : "This preview doesn’t check for updates. Download a newer preview here and replace your installed copy. Stable releases offer signed in-app updates."
+      ? "Signed updates: Whyfull → Check for updates…. You choose when to install."
+      : "No automatic updates in this preview. Download a newer version here."
 
   const primary = primaryDownload(release, platform)
   const button = $("wf-primary-download")
@@ -144,8 +144,7 @@ try {
   const release = await loadRelease()
   if (release) showRelease(release)
   else {
-    releaseStatus.textContent =
-      "Desktop and standalone CLI downloads will appear here after the first release is published."
+    releaseStatus.textContent = "No releases published yet."
     $("wf-platforms").hidden = true
     $("linux-downloads").hidden = true
     $("wf-cli-archives").hidden = true

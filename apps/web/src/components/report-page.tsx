@@ -80,8 +80,7 @@ export function ReportDialog({
         className="flex h-[85dvh] max-h-[900px] flex-col gap-0 overflow-hidden p-0 sm:max-w-5xl"
       >
         <DialogDescription className="sr-only">
-          Suggested cleanup actions from your scan. Explore folders or copy them
-          for your agent to review.
+          Cleanup suggestions.
         </DialogDescription>
         <ReportPage
           status={status}
@@ -126,7 +125,7 @@ function ReportPage({
       await navigator.clipboard.writeText(text)
       toast.success(`${label} copied`)
     } catch {
-      toast.error("Could not copy. Check clipboard permissions and try again.")
+      toast.error("Could not copy. Check clipboard permissions.")
     }
   }
   async function location(path: string, action: "finder" | "scan") {
@@ -138,7 +137,7 @@ function ReportPage({
         generatedAt: report?.generatedAt,
       })
       if (action === "scan") await onChanged(next)
-      else toast.success("Sent to Finder")
+      else toast.success("Shown in Finder")
     } catch (error) {
       toast.error(error instanceof Error ? error.message : String(error))
     } finally {
@@ -164,7 +163,7 @@ function ReportPage({
           disabled={busy || !status.finderAvailable}
           title={
             status.finderAvailable
-              ? "Reveal on this computer"
+              ? undefined
               : "Finder is available on macOS only"
           }
           onClick={() => void location(path, "finder")}
@@ -281,11 +280,6 @@ function ReportPage({
               ? "No scan yet"
               : "Suggestions appear when the scan finishes"}
           </p>
-          <p className="text-sm text-muted-foreground">
-            {status.awaitingScan
-              ? "Start a scan to see suggestions for this location."
-              : "They’re built from the folders this scan measures."}
-          </p>
         </div>
       ) : result.isPending ? (
         <p className="p-8 text-sm text-muted-foreground" role="status">
@@ -293,17 +287,18 @@ function ReportPage({
         </p>
       ) : result.error ? (
         <div className="p-8" role="alert">
-          <p>{result.error.message}</p>
-          <Button variant="outline" onClick={() => void result.refetch()}>
+          <p>Couldn’t load suggestions. {result.error.message}</p>
+          <Button
+            variant="outline"
+            className="mt-3"
+            onClick={() => void result.refetch()}
+          >
             Try again
           </Button>
         </div>
       ) : !report ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
-          <p className="font-medium">No suggestions yet</p>
-          <p className="text-sm text-muted-foreground">
-            Run a scan to see suggestions for this location.
-          </p>
+          <p className="font-medium">No suggestions</p>
         </div>
       ) : (
         <>
@@ -311,7 +306,7 @@ function ReportPage({
             report.localContext?.computerInstructions) && (
             <details className="max-h-44 shrink-0 overflow-auto border-b bg-muted/30 px-4 py-3 text-sm">
               <summary className="cursor-pointer font-medium">
-                Your saved instructions
+                Saved instructions
               </summary>
               <div className="mt-3 space-y-3 whitespace-pre-wrap text-xs text-muted-foreground">
                 {report.localContext.userInstructions && (
@@ -723,7 +718,18 @@ function ReportPage({
                       colSpan={4}
                       className="px-4 py-12 text-center text-muted-foreground"
                     >
-                      No matching suggestions.
+                      <p>No matching suggestions</p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-3"
+                        onClick={() => {
+                          setQuery("")
+                          setCategory("")
+                        }}
+                      >
+                        Clear filters
+                      </Button>
                     </td>
                   </tr>
                 )}
@@ -736,7 +742,7 @@ function ReportPage({
                   size="sm"
                   onClick={() => setLimit(limit + 100)}
                 >
-                  Show more suggestions
+                  Show more
                 </Button>
               </div>
             )}
@@ -745,7 +751,7 @@ function ReportPage({
               onToggle={(event) => setAdvanced(event.currentTarget.open)}
             >
               <summary className="cursor-pointer text-muted-foreground">
-                Advanced: coverage and system checks
+                Advanced
               </summary>
               {advanced && (
                 <div className="mt-3 space-y-5">
@@ -755,10 +761,6 @@ function ReportPage({
                   </section>
                   <section className="space-y-2">
                     <h3 className="font-medium">System checks</h3>
-                    <p className="text-muted-foreground">
-                      Optional read-only commands for this computer’s home
-                      volume.
-                    </p>
                     <SystemChecks enabled={advanced} />
                   </section>
                 </div>
@@ -767,9 +769,7 @@ function ReportPage({
           </main>
           <footer className="shrink-0 border-t px-4 py-2 text-[11px] text-muted-foreground">
             <details>
-              <summary className="cursor-pointer">
-                Sizes may overlap · ≥ partial measurement · Report details
-              </summary>
+              <summary className="cursor-pointer">Report details</summary>
               <div className="mt-2 space-y-1 pb-1">
                 <p>
                   {result.data?.source} ·{" "}
@@ -777,8 +777,8 @@ function ReportPage({
                   {report.platform}
                 </p>
                 <p>
-                  Sizes are not guaranteed reclaimable space. Commands are
-                  copied for review and never executed here.
+                  Sizes may overlap; ≥ marks partial measurements. Reclaimable
+                  space may differ. Commands are copied for review.
                 </p>
                 {report.inventory ? (
                   <>
@@ -788,10 +788,7 @@ function ReportPage({
                     ))}
                   </>
                 ) : (
-                  <p>
-                    Imported CLI report. Recommendations use the measurements
-                    recorded in that report.
-                  </p>
+                  <p>Measurements from the imported CLI report.</p>
                 )}
               </div>
             </details>

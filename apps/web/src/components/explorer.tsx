@@ -16,14 +16,15 @@ import {
 import { useIsMobile } from "@workspace/ui/hooks/use-mobile"
 import { MinimumFileSize } from "./minimum-file-size"
 import { toast } from "@/lib/notifications"
-import { RunnerControls, useDrives } from "./runner-controls"
+import { RunnerControls } from "./runner-controls"
+import { SettingsDialog } from "./settings-dialog"
 import { CleanupShortlist, TrashShortlistButton } from "./cleanup-shortlist"
 import { FileDistribution } from "./file-distribution"
 import { ReportDialog, useSuggestions } from "./report-page"
 import { reportFindings } from "@/lib/report-actions"
 import { ReportViewer } from "./report-viewer"
 import { ScanState } from "./scan-state"
-import { ScanTiming } from "./scan-timing"
+import { ScanActivity } from "./scan-activity"
 import {
   LicenseDialog,
   SupportReminder,
@@ -40,17 +41,14 @@ import {
   ShieldCheck,
   Trash2,
   Search,
-  ArrowUp,
   Download,
   LayoutGrid,
   ChartPie,
   ChartColumn,
-  Sun,
-  Moon,
   RefreshCw,
   Info,
   ChevronRight,
-  Eye,
+  Settings,
   Ellipsis,
   FolderOpen,
   Copy,
@@ -65,11 +63,6 @@ import {
   InputGroupInput,
 } from "@workspace/ui/components/input-group"
 import { Badge } from "@workspace/ui/components/badge"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@workspace/ui/components/tooltip"
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -110,7 +103,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
-  DropdownMenuCheckboxItem,
 } from "@workspace/ui/components/dropdown-menu"
 import { Route } from "@/routes/index"
 import {
@@ -131,7 +123,8 @@ import { copyPath } from "@/lib/clipboard"
 import { chartColors, colorFor, isSafeTier } from "@/lib/chart-colors"
 import { tierLabel } from "@/lib/tiers"
 import { Treemap } from "./treemap"
-import { directoryLocation } from "@/lib/destinations"
+import { directoryLocation, isWithinDirectory } from "@/lib/destinations"
+import { setTheme, useTheme } from "@/lib/theme"
 const loadSunburst = () => import("./sunburst")
 type SunburstComponent = (typeof import("./sunburst"))["default"]
 
@@ -146,17 +139,22 @@ export function Explorer() {
     navigate = Route.useNavigate(),
     client = useQueryClient()
   const [page, setPage] = useState(0),
-    [shortlist, setShortlist] = useState(false),
-    [licenseOpen, setLicenseOpen] = useState(false),
     [selected, setSelected] = useState<ViewEntry | null>(null),
     [hover, setHover] = useState<ViewEntry | null>(null),
     [changing, setChanging] = useState(false),
     [working, setBusy] = useState(false),
     [context, setContext] = useState<ViewEntry | null>(null),
     [plan, setPlan] = useState<TrashPlan | null>(null),
-    [enable, setEnable] = useState(false),
     [exclude, setExclude] = useState<ViewEntry | null>(null)
-  const [fileDetails, setFileDetails] = useState(false)
+  const shortlist = search.panel === "shortlist"
+  const licenseOpen = search.panel === "license"
+  const fileDetails = search.panel === "files"
+  const setShortlist = (open: boolean) =>
+    url({ panel: open ? "shortlist" : undefined })
+  const setLicenseOpen = (open: boolean) =>
+    url({ panel: open ? "license" : undefined })
+  const setFileDetails = (open: boolean) =>
+    url({ panel: open ? "files" : undefined })
   const [Sunburst, setSunburst] = useState<SunburstComponent | null>(null)
   const busy = working || changing
   const restored = useRef(false),
@@ -171,7 +169,6 @@ export function Explorer() {
         : 5000,
     enabled: hasToken(),
   })
-  const drives = useDrives()
   const license = useLicense().data
   const s = status.data
   const analysis = useSuggestions(s)
@@ -238,11 +235,7 @@ export function Explorer() {
     manyFiles && !!d && d.ownBytes > 0 && d.ownBytes >= d.node.value * 0.9
   const largestShare =
     d && d.ownBytes > 0 ? d.largestFileBytes / d.ownBytes : null
-  const dark =
-    s?.viewer.theme === "dark" ||
-    (s?.viewer.theme === "system" &&
-      typeof window !== "undefined" &&
-      matchMedia("(prefers-color-scheme: dark)").matches)
+  const { dark } = useTheme()
   const displayChart = useMemo(() => (d ? fileSummaryChart(d) : undefined), [d])
   const colors = useMemo(
     () => chartColors(displayChart, dark),
@@ -549,13 +542,7 @@ export function Explorer() {
   }, [s?.needsRescan, s?.documentId])
   useEffect(() => setPage(0), [s?.viewer.minFileBytes])
   useEffect(() => {
-    const theme = s?.viewer.theme ?? "light"
-    document.documentElement.classList.toggle(
-      "dark",
-      theme === "dark" ||
-        (theme === "system" &&
-          matchMedia("(prefers-color-scheme: dark)").matches)
-    )
+    if (s?.viewer.theme) setTheme(s.viewer.theme)
   }, [s?.viewer.theme])
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -567,6 +554,22 @@ export function Explorer() {
     window.addEventListener("keydown", handler)
     return () => window.removeEventListener("keydown", handler)
   }, [])
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if (
+        event.key !== "ArrowUp" ||
+        !(event.metaKey || event.altKey) ||
+        (event.target as Element | null)?.closest?.(
+          "input, textarea, select, [contenteditable], [role=menu], [role=dialog]"
+        )
+      )
+        return
+      event.preventDefault()
+      up()
+    }
+    window.addEventListener("keydown", handler)
+    return () => window.removeEventListener("keydown", handler)
+  })
   if (!hasToken())
     return (
       <main className="m-auto max-w-lg p-12">
@@ -586,8 +589,73 @@ export function Explorer() {
         onRestart={() => void status.refetch()}
       />
     )
+  const settingsSection =
+    search.settings ??
+    (search.panel === "rules"
+      ? "rules"
+      : search.page === "locations"
+        ? "places"
+        : undefined)
   const suggestions = (
     <>
+      <Dialog
+        open={search.panel === "scan"}
+        onOpenChange={(open) => {
+          if (!open) url({ panel: undefined })
+        }}
+      >
+        <DialogContent
+          aria-describedby={undefined}
+          className="max-h-[80vh] overflow-auto sm:max-w-xl"
+        >
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Info className="size-4 text-muted-foreground" />
+              Scan details
+            </DialogTitle>
+          </DialogHeader>
+          <dl className="space-y-4 text-sm">
+            {Object.entries({
+              Root: s.root,
+              Status: s.status,
+              Files: s.files.toLocaleString(),
+              Folders: s.directories.toLocaleString(),
+              Snapshot: s.savedPath ?? "Not saved",
+              Configuration: s.policyFile,
+              Cleanup: s.cleanup.reason ?? "Native macOS Trash available",
+            }).map(([key, value]) => (
+              <div key={key}>
+                <dt className="text-muted-foreground">{key}</dt>
+                <dd className="break-all">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        </DialogContent>
+      </Dialog>
+
+      {settingsSection && (
+        <SettingsDialog
+          open
+          section={settingsSection}
+          onSectionChange={(settings) =>
+            url({
+              settings,
+              panel: undefined,
+              page: search.page === "locations" ? undefined : search.page,
+            })
+          }
+          onOpenChange={(open) => {
+            if (!open)
+              url({
+                settings: undefined,
+                panel: search.panel === "rules" ? undefined : search.panel,
+                page: search.page === "locations" ? undefined : search.page,
+              })
+          }}
+          status={s}
+          currentPath={search.path ?? s.root}
+        />
+      )}
       <ReportDialog
         open={search.page === "report"}
         onOpenChange={showSuggestions}
@@ -674,116 +742,107 @@ export function Explorer() {
             contextTarget(event)
         }}
       >
-        <header className="flex shrink-0 flex-wrap items-center gap-2 border-b px-3 py-2">
-          <RunnerControls
-            path={search.path}
-            status={s}
-            disabled={busy}
-            onChanged={documentChanged}
-            onNavigate={openDestination}
-            onPendingChange={setChanging}
-          />
-          <Button
-            size="icon-sm"
-            variant="ghost"
-            aria-label="Parent folder"
-            title="Parent folder"
-            disabled={!d || d.crumbs.length < 2}
-            onClick={up}
+        <header className="flex shrink-0 items-center gap-2 border-b px-3 py-2">
+          <nav
+            aria-label="Location"
+            className="flex min-w-0 flex-1 items-center gap-0.5"
           >
-            <ArrowUp />
-          </Button>
-          <Breadcrumb className="min-w-0 flex-1 overflow-x-auto">
-            <BreadcrumbList className="flex-nowrap gap-1">
-              {d?.crumbs
-                .filter(
-                  // The location menu already names the scan root, so only
-                  // show it here as a way back from a subfolder.
-                  (crumb, index, crumbs) =>
-                    index !== 0 ||
-                    (crumbs.length > 1 &&
-                      !drives.data?.some((drive) => drive.id === crumb.path))
-                )
-                .map((crumb, i) => (
-                  <BreadcrumbItem key={crumb.id}>
-                    {i > 0 && <BreadcrumbSeparator />}
-                    <button
-                      className="max-w-36 truncate text-xs hover:text-foreground"
-                      title={crumb.path}
-                      data-entry-id={`d${crumb.id}`}
-                      onClick={() =>
-                        open({
-                          id: `d${crumb.id}`,
-                          kind: "directory",
-                          name: crumb.name,
-                          path: crumb.path,
-                          value: 0,
-                        })
-                      }
-                    >
-                      {crumb.name}
-                    </button>
-                  </BreadcrumbItem>
-                ))}
-            </BreadcrumbList>
-          </Breadcrumb>
-          {d?.node.mark && (
-            <span
-              title={
-                d.node.mark === "trash"
-                  ? "Marked for Trash"
-                  : "Marked as useless"
-              }
-              aria-label={
-                d.node.mark === "trash"
-                  ? "Marked for Trash"
-                  : "Marked as useless"
-              }
-            >
-              {d.node.mark === "trash" ? (
-                <Trash2 className="size-3 text-destructive" />
-              ) : (
-                <Flag className="size-3 text-caution" />
+            <RunnerControls
+              path={search.path}
+              status={s}
+              disabled={busy}
+              showSettings={false}
+              onChanged={documentChanged}
+              onNavigate={openDestination}
+              onPendingChange={setChanging}
+              trail={(anchorPath) => (
+                <Breadcrumb className="min-w-0 overflow-x-auto [scrollbar-width:none]">
+                  <BreadcrumbList className="flex-nowrap gap-1">
+                    {d?.crumbs
+                      .filter(
+                        // The location menu names the anchor folder, so the
+                        // trail starts below it.
+                        (crumb) =>
+                          isWithinDirectory(crumb.path, anchorPath) &&
+                          !isWithinDirectory(anchorPath, crumb.path)
+                      )
+                      .map((crumb, i, crumbs) => (
+                        <BreadcrumbItem
+                          key={crumb.id}
+                          // Narrow screens keep the current folder and its parent.
+                          className={
+                            i < crumbs.length - 2 ? "max-sm:hidden" : "min-w-0"
+                          }
+                        >
+                          <BreadcrumbSeparator />
+                          {i === crumbs.length - 1 ? (
+                            <span
+                              aria-current="page"
+                              className="max-w-48 truncate text-xs font-medium text-foreground"
+                              title={crumb.path}
+                              data-entry-id={`d${crumb.id}`}
+                            >
+                              {crumb.name}
+                            </span>
+                          ) : (
+                            <button
+                              className="max-w-36 truncate rounded-sm text-xs outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                              title={crumb.path}
+                              data-entry-id={`d${crumb.id}`}
+                              onClick={() =>
+                                open({
+                                  id: `d${crumb.id}`,
+                                  kind: "directory",
+                                  name: crumb.name,
+                                  path: crumb.path,
+                                  value: 0,
+                                })
+                              }
+                            >
+                              {crumb.name}
+                            </button>
+                          )}
+                        </BreadcrumbItem>
+                      ))}
+                  </BreadcrumbList>
+                </Breadcrumb>
               )}
-            </span>
-          )}
-          <span
-            className="text-xs tabular-nums text-muted-foreground"
-            title="Allocated size"
-          >
-            {formatSize(d?.node.value ?? s.bytes)}
-          </span>
-          <Button variant="outline" size="sm" onClick={() => showSuggestions()}>
-            <FileText />
-            Suggestions
-            {suggestionCount > 0 && (
-              <span className="tabular-nums text-muted-foreground">
-                {suggestionCount}
+            />
+            {d?.node.mark && (
+              <span
+                className="ml-1 shrink-0"
+                title={
+                  d.node.mark === "trash"
+                    ? "Marked for Trash"
+                    : "Marked as useless"
+                }
+                aria-label={
+                  d.node.mark === "trash"
+                    ? "Marked for Trash"
+                    : "Marked as useless"
+                }
+              >
+                {d.node.mark === "trash" ? (
+                  <Trash2 className="size-3 text-destructive" />
+                ) : (
+                  <Flag className="size-3 text-caution" />
+                )}
               </span>
             )}
+          </nav>
+          <Button
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            onClick={() => showSuggestions()}
+          >
+            <FileText />
+            <span className="max-sm:sr-only">Suggestions</span>
           </Button>
           <TrashShortlistButton
             documentId={s.documentId}
             onClick={() => setShortlist(true)}
           />
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <span
-                  tabIndex={0}
-                  className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring ${demo ? "text-muted-foreground" : "font-medium text-destructive"}`}
-                />
-              }
-            >
-              <Eye className="size-3" />
-              {demo ? "Demo" : "Real Trash"}
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="max-w-64">
-              {demo
-                ? "Demo mode: cleanup actions are simulated. No files are moved. Turn it off in the ⋯ menu."
-                : "Cleanup actions move items to the macOS Trash. You can restore them in Finder."}
-            </TooltipContent>
-          </Tooltip>
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
@@ -834,35 +893,6 @@ export function Explorer() {
                       Radial
                     </DropdownMenuRadioItem>
                   </DropdownMenuRadioGroup>
-                  <DropdownMenuRadioGroup
-                    aria-label="Appearance"
-                    className="flex shrink-0 gap-1 rounded-lg bg-muted p-1"
-                    value={dark ? "dark" : "light"}
-                    onValueChange={(value) =>
-                      void run(() =>
-                        prefs({ theme: value as "light" | "dark" })
-                      )
-                    }
-                  >
-                    <DropdownMenuRadioItem
-                      value="light"
-                      aria-label="Light mode"
-                      title="Light mode"
-                      closeOnClick={false}
-                      className="justify-center px-2 py-1.5 data-checked:bg-background data-checked:text-foreground data-checked:shadow-sm [&>[data-slot=dropdown-menu-radio-item-indicator]]:hidden"
-                    >
-                      <Sun />
-                    </DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem
-                      value="dark"
-                      aria-label="Dark mode"
-                      title="Dark mode"
-                      closeOnClick={false}
-                      className="justify-center px-2 py-1.5 data-checked:bg-background data-checked:text-foreground data-checked:shadow-sm [&>[data-slot=dropdown-menu-radio-item-indicator]]:hidden"
-                    >
-                      <Moon />
-                    </DropdownMenuRadioItem>
-                  </DropdownMenuRadioGroup>
                 </div>
               </DropdownMenuGroup>
               <MinimumFileSize value={s.viewer.minFileBytes} />
@@ -874,17 +904,6 @@ export function Explorer() {
                 {directoryActions(d?.node)}
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
-              <DropdownMenuCheckboxItem
-                checked={demo}
-                onCheckedChange={(checked) =>
-                  checked
-                    ? void run(() => api("cleanup-mode", { mode: "demo" }))
-                    : setEnable(true)
-                }
-              >
-                <Eye />
-                Demo mode
-              </DropdownMenuCheckboxItem>
               <DropdownMenuItem
                 disabled={busy || s.snapshotMode || s.cache?.refreshing}
                 onClick={() => void restartScan()}
@@ -895,10 +914,6 @@ export function Explorer() {
               <DropdownMenuItem onClick={() => setShortlist(true)}>
                 <Trash2 />
                 Trash shortlist
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => url({ panel: "rules" })}>
-                <ShieldCheck />
-                Keep & exclude rules
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => url({ panel: "scan" })}>
                 <Info />
@@ -912,6 +927,10 @@ export function Explorer() {
                 Export snapshot
               </DropdownMenuItem>
               <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => url({ settings: "general" })}>
+                <Settings />
+                Settings
+              </DropdownMenuItem>
               {license?.enabled && (
                 <DropdownMenuItem onClick={() => setLicenseOpen(true)}>
                   <Heart />
@@ -928,26 +947,31 @@ export function Explorer() {
           </DropdownMenu>
         </header>
         <main className="flex min-h-0 flex-1 flex-col gap-2 p-2">
-          {(s.cache?.restored || s.cache?.refreshing) && (
-            <div
-              role="status"
-              className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border bg-muted/40 px-3 py-2 text-xs text-muted-foreground"
-            >
-              <span>
-                {s.cache.refreshing
-                  ? "Updating sizes in the background. Browse the saved map while we scan."
-                  : "Showing saved sizes. They may have changed since the last scan."}
-              </span>
-              <span>
-                <ScanTiming status={s} lastUpdatedAt={status.dataUpdatedAt} />
-              </span>
-              {s.cache.completedAt && (
-                <time dateTime={s.cache.completedAt}>
-                  Saved {new Date(s.cache.completedAt).toLocaleString()}
-                </time>
-              )}
-            </div>
-          )}
+          {s.cache?.refreshing ? (
+            <ScanActivity
+              compact
+              progress={s.progress}
+              usedBytes={s.volume?.used}
+              lastUpdatedAt={status.dataUpdatedAt}
+              previousDurationMs={s.durationMs}
+              refreshing
+              busy={busy}
+              onStop={() =>
+                void run(async () => {
+                  const next = await api<ViewerStatus>("cancel", {})
+                  client.setQueryData(["status"], next)
+                  await client.invalidateQueries({ queryKey: ["drives"] })
+                })
+              }
+            />
+          ) : s.cache?.restored ? (
+            <p className="shrink-0 px-2 py-1 text-xs text-muted-foreground">
+              Showing saved results
+              {s.cache.completedAt
+                ? ` · ${new Date(s.cache.completedAt).toLocaleString()}`
+                : ""}
+            </p>
+          ) : null}
           <ResizablePanelGroup
             key={isMobile ? "vertical" : "horizontal"}
             orientation={isMobile ? "vertical" : "horizontal"}
@@ -1153,7 +1177,7 @@ export function Explorer() {
                       <p>
                         {limitedFiles
                           ? "Other filenames are not included in this list."
-                          : "All-file browsing uses the current folder on disk."}
+                          : "Live file listing."}
                       </p>
                     )}
                     {fileHeavy && (
@@ -1163,7 +1187,7 @@ export function Explorer() {
                         className="mr-3 h-auto p-0 text-xs"
                         onClick={() => setFileDetails(true)}
                       >
-                        File size breakdown…
+                        File sizes…
                       </Button>
                     )}
                     {limitedFiles && (
@@ -1320,9 +1344,7 @@ export function Explorer() {
                       </span>
                     </div>
                     <p className="mb-3 break-all text-xs text-muted-foreground">
-                      {focus.path ??
-                        focus.reason ??
-                        "Grouped entries cannot be moved."}
+                      {focus.path ?? focus.reason ?? "Grouped entries"}
                     </p>
                     {focus.tool && focus.advice && (
                       <p className="mb-3 text-xs text-muted-foreground">
@@ -1391,7 +1413,12 @@ export function Explorer() {
                         }
                       >
                         <Trash2 />
-                        {demo ? "Try cleanup" : "Move to Trash"}
+                        Move to Trash
+                        {demo && (
+                          <span className="text-muted-foreground">
+                            · Simulated
+                          </span>
+                        )}
                       </Button>
                     </div>
                   </div>
@@ -1405,11 +1432,17 @@ export function Explorer() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <ChartColumn className="size-4 text-muted-foreground" />
-                File size breakdown
+                File sizes
               </DialogTitle>
               <DialogDescription>{d?.node.name}</DialogDescription>
             </DialogHeader>
-            {d && <FileDistribution directory={d} documentId={s.documentId} />}
+            {d && (
+              <FileDistribution
+                directory={d}
+                documentId={s.documentId}
+                showTitle={false}
+              />
+            )}
           </DialogContent>
         </Dialog>
         <CleanupShortlist
@@ -1418,100 +1451,14 @@ export function Explorer() {
           finderAvailable={s.finderAvailable}
           documentId={s.documentId}
           onBrowse={(entry) =>
-            open({
-              id: entry.id!,
-              // Marks use canonical paths; browse by this inventory's ID.
-              name: entry.name,
-              value: entry.bytes ?? 0,
-              kind: "directory",
+            url({
+              id: Number(entry.id!.slice(1)),
+              path: entry.path,
+              panel: undefined,
+              q: undefined,
             })
           }
         />
-        <Dialog
-          open={!!search.panel}
-          onOpenChange={(open) => {
-            if (!open) url({ panel: undefined })
-          }}
-        >
-          <DialogContent className="max-h-[80vh] overflow-auto sm:max-w-xl">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                {search.panel === "rules" ? (
-                  <ShieldCheck className="size-4 text-muted-foreground" />
-                ) : (
-                  <Info className="size-4 text-muted-foreground" />
-                )}
-                {search.panel === "rules"
-                  ? "Keep & exclude rules"
-                  : "Scan details"}
-              </DialogTitle>
-              <DialogDescription>
-                {search.panel === "rules"
-                  ? "Keep protects folders from cleanup. Exclude skips scanning a folder and hides its contents after a rescan."
-                  : "This inventory stays on your computer."}
-              </DialogDescription>
-            </DialogHeader>
-            {search.panel === "rules" ? (
-              <div>
-                {(["keep", "exclude"] as const).map((kind) => (
-                  <section key={kind} className="mb-5">
-                    <h3 className="mb-2 text-sm font-medium capitalize">
-                      {kind}
-                    </h3>
-                    {s.policy[kind].length === 0 && (
-                      <p className="text-sm text-muted-foreground">
-                        No rules yet. Select a folder in the explorer to add
-                        one.
-                      </p>
-                    )}
-                    {s.policy[kind].map((path) => (
-                      <div
-                        key={path}
-                        className="flex items-center gap-3 border-b py-2"
-                      >
-                        <span className="min-w-0 flex-1 break-all text-xs">
-                          {path}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={busy}
-                          onClick={() =>
-                            void run(() =>
-                              api("policy", { path, action: "clear" })
-                            )
-                          }
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                    ))}
-                  </section>
-                ))}
-                <p className="break-all text-xs text-muted-foreground">
-                  Saved in {s.policyFile}
-                </p>
-              </div>
-            ) : (
-              <dl className="space-y-4 text-sm">
-                {Object.entries({
-                  Root: s.root,
-                  Status: s.status,
-                  Files: s.files.toLocaleString(),
-                  Folders: s.directories.toLocaleString(),
-                  Snapshot: s.savedPath ?? "Not saved",
-                  Configuration: s.policyFile,
-                  Cleanup: s.cleanup.reason ?? "Native macOS Trash available",
-                }).map(([key, value]) => (
-                  <div key={key}>
-                    <dt className="text-muted-foreground">{key}</dt>
-                    <dd className="break-all">{value}</dd>
-                  </div>
-                ))}
-              </dl>
-            )}
-          </DialogContent>
-        </Dialog>
         <AlertDialog
           open={!!plan}
           onOpenChange={(open) => {
@@ -1522,13 +1469,13 @@ export function Explorer() {
             <AlertDialogHeader>
               <AlertDialogTitle>
                 {plan?.mode === "demo"
-                  ? "Preview cleanup"
+                  ? "Simulate moving to Trash?"
                   : "Move this item to Trash?"}
               </AlertDialogTitle>
               <AlertDialogDescription>
                 {plan?.mode === "demo"
-                  ? "This is a demo. No files will be changed."
-                  : "macOS will move this item to Trash. You can restore it in Finder."}
+                  ? "Cleanup is simulated, so files stay in place."
+                  : "Restore it from Trash in Finder."}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <p className="break-all text-sm">{plan?.path}</p>
@@ -1537,6 +1484,18 @@ export function Explorer() {
               seconds
             </p>
             <AlertDialogFooter>
+              {plan?.mode === "demo" && (
+                <Button
+                  variant="link"
+                  className="mr-auto px-0"
+                  onClick={() => {
+                    setPlan(null)
+                    url({ settings: "general" })
+                  }}
+                >
+                  Cleanup settings
+                </Button>
+              )}
               <Button variant="outline" onClick={() => setPlan(null)}>
                 Cancel
               </Button>
@@ -1553,34 +1512,7 @@ export function Explorer() {
                   })
                 }
               >
-                {plan?.mode === "demo" ? "Run demo" : "Move to Trash"}
-              </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-        <AlertDialog open={enable} onOpenChange={setEnable}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Enable real Trash moves?</AlertDialogTitle>
-              <AlertDialogDescription>
-                {s.cleanup.reason ??
-                  "Cleanup will move selected items to macOS Trash after a preview. Every new session starts in demo mode."}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <Button variant="outline" onClick={() => setEnable(false)}>
-                Keep demo mode
-              </Button>
-              <Button
-                disabled={!s.cleanup.enabled || busy}
-                onClick={() =>
-                  void run(async () => {
-                    await api("cleanup-mode", { mode: "trash" })
-                    setEnable(false)
-                  })
-                }
-              >
-                Enable Trash
+                {plan?.mode === "demo" ? "Simulate" : "Move to Trash"}
               </Button>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -1595,8 +1527,8 @@ export function Explorer() {
             <AlertDialogHeader>
               <AlertDialogTitle>Exclude this folder?</AlertDialogTitle>
               <AlertDialogDescription>
-                Future scans will skip this folder and its contents. Nothing
-                will be moved or deleted.
+                Skip this folder and its contents in future scans. Files stay
+                unchanged.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <p className="break-all text-sm">{exclude?.path}</p>

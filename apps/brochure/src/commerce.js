@@ -134,7 +134,7 @@ export async function showInstallers() {
         return link
       })
     )
-    status.textContent = `Version ${release.version}. Already installed? You don’t need to download it again.`
+    status.textContent = `Version ${release.version}`
   } catch {
     status.replaceChildren(
       document.createTextNode("Get the installer from the "),

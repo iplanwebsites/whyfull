@@ -9,6 +9,7 @@ import { defaultScanWorkers, scanFilesystem } from "./filesystem"
 import {
   defaultPolicyPath,
   loadDiskPolicy,
+  loadViewerPreferences,
   normalizePolicyPath,
 } from "./disk-policy"
 import { saveDiskSnapshot, startViewer } from "./viewer-server"
@@ -181,6 +182,7 @@ export async function runDiskCli(argv: string[]): Promise<void> {
       engine,
       scanner: scanner as "node" | "rust" | undefined,
       inventoryDirectory: inventoryWorkingDirectory(policyFileForCache),
+      includePrivate: loadViewerPreferences(policyFile).scanPrivateFolders,
       policy: {
         keep: policy.keep,
         exclude: [...policy.exclude, ...excludes.map(normalizePolicyPath)],

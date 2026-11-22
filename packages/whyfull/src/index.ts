@@ -114,3 +114,4 @@ export {
   CLI_LICENSE_NOTICE,
 } from "./license"
 export type { LicensePayload, LicenseView } from "./license"
+export { privacyPromptPaths, privacyExclusions } from "./privacy"

@@ -13,7 +13,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@workspace/ui/components/dialog"
 import { toast } from "@/lib/notifications"
 import { api, formatSize } from "@/lib/api"
@@ -85,7 +84,7 @@ export function CleanupShortlist({
     try {
       await api("shortlist", { path: entry.path, action })
       if (action === "clear") await client.invalidateQueries()
-      else toast.success("Sent to Finder")
+      else toast.success("Shown in Finder")
     } catch (error) {
       toast.error(error instanceof Error ? error.message : String(error))
     } finally {
@@ -94,43 +93,74 @@ export function CleanupShortlist({
   }
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] overflow-auto sm:max-w-2xl">
+      <DialogContent
+        aria-describedby={undefined}
+        className="max-h-[85vh] overflow-auto sm:max-w-2xl"
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Trash2 className="size-4 text-muted-foreground" />
             Trash shortlist
           </DialogTitle>
-          <DialogDescription>
-            Saved marks across scans. Nothing moves until you review a Trash
-            action. Sizes can overlap.
-          </DialogDescription>
         </DialogHeader>
-        <InputGroup>
-          <InputGroupAddon>
-            <Search />
-          </InputGroupAddon>
-          <InputGroupInput
-            type="search"
-            aria-label="Search shortlist"
-            placeholder="Search…"
-            value={query}
-            onChange={(event) => {
-              setQuery(event.target.value)
-              setLimit(100)
-            }}
-          />
-        </InputGroup>
-        <div className="text-xs text-muted-foreground">
-          {result.data
-            ? `${result.data.length} marked ${result.data.length === 1 ? "folder" : "folders"}`
-            : "Loading…"}
-        </div>
-        {result.data && !entries.length && (
-          <p className="py-6 text-center text-sm text-muted-foreground">
-            {query
-              ? "No matching folders."
-              : "No marks yet. Right-click a folder to mark it for Trash or as useless."}
+        {result.error && (
+          <div role="alert" className="space-y-2 text-sm">
+            <p>Couldn’t load the shortlist. {result.error.message}</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void result.refetch()}
+            >
+              Try again
+            </Button>
+          </div>
+        )}
+        {!!result.data?.length && (
+          <InputGroup>
+            <InputGroupAddon>
+              <Search />
+            </InputGroupAddon>
+            <InputGroupInput
+              type="search"
+              aria-label="Search shortlist"
+              placeholder="Search…"
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value)
+                setLimit(100)
+              }}
+            />
+          </InputGroup>
+        )}
+        {!result.data && !result.error && (
+          <p role="status" className="text-xs text-muted-foreground">
+            Loading…
           </p>
+        )}
+        {!!result.data?.length && (
+          <div className="text-xs text-muted-foreground">
+            {result.data.length} marked{" "}
+            {result.data.length === 1 ? "folder" : "folders"}
+          </div>
+        )}
+        {result.data && !entries.length && (
+          <div className="py-6 text-center text-sm text-muted-foreground">
+            {query ? (
+              <>
+                <p>No matching folders</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-3"
+                  onClick={() => setQuery("")}
+                >
+                  Clear search
+                </Button>
+              </>
+            ) : (
+              <p>Nothing marked. Mark folders for Trash from their menu.</p>
+            )}
+          </div>
         )}
         <div className="divide-y">
           {entries.slice(0, limit).map((entry) => (

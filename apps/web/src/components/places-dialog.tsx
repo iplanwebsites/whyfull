@@ -3,14 +3,11 @@ import { tierLabel } from "@/lib/tiers"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   ArrowLeft,
-  ArrowUpRight,
-  BookOpen,
   Check,
   Copy,
   FolderOpen,
   GitPullRequest,
   LoaderCircle,
-  MapPin,
   Monitor,
   Pencil,
   Plus,
@@ -21,15 +18,7 @@ import {
 import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
 import { Textarea } from "@workspace/ui/components/textarea"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@workspace/ui/components/dialog"
 import { api, hasToken } from "@/lib/api"
-import type { ViewerStatus } from "@/lib/api"
 import type {
   KnowledgeScope,
   KnowledgeView,
@@ -55,20 +44,15 @@ type Editing = {
   location?: SavedLocation
 }
 
-export function PlacesDialog({
-  open,
-  onOpenChange,
+export function KnowledgeSettings({
+  section,
   currentPath,
-  onChanged,
 }: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
+  section: "places" | "instructions" | "advanced"
   currentPath: string
-  onChanged: (status: ViewerStatus) => Promise<void>
 }) {
   const query = useKnowledge()
   const client = useQueryClient()
-  const [tab, setTab] = useState<"places" | "instructions">("places")
   const [filter, setFilter] = useState("")
   const [editing, setEditing] = useState<Editing | null>(null)
   const [proposal, setProposal] = useState<SavedLocation | null>(null)
@@ -112,344 +96,281 @@ export function PlacesDialog({
       )
     : []
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-3xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <MapPin className="size-4 text-muted-foreground" />
-            Places & instructions
-          </DialogTitle>
-          <DialogDescription>
-            Teach Whyfull where you work and what to keep in mind. Saved locally
-            for you and your agents.
-          </DialogDescription>
-        </DialogHeader>
-        {!knowledge ? (
-          <div role="status" className="py-8 text-sm text-muted-foreground">
-            {query.error ? (
-              <>
-                <p>{query.error.message}</p>
-                <Button variant="outline" onClick={() => void query.refetch()}>
-                  Try again
-                </Button>
-              </>
-            ) : (
-              "Loading your places…"
-            )}
-          </div>
-        ) : (
-          <>
-            {!editing && !proposal && (
-              <div
-                className="flex gap-1 rounded-xl bg-muted p-1"
-                aria-label="Personalization sections"
-              >
-                <Button
-                  className="flex-1"
-                  variant={tab === "places" ? "secondary" : "ghost"}
-                  aria-pressed={tab === "places"}
-                  disabled={busy}
-                  onClick={() => {
-                    setTab("places")
-                    setError(null)
-                  }}
-                >
-                  <MapPin />
-                  Saved places{" "}
-                  <span className="text-muted-foreground">
-                    {knowledge.locations.length}
-                  </span>
-                </Button>
-                <Button
-                  className="flex-1"
-                  variant={tab === "instructions" ? "secondary" : "ghost"}
-                  aria-pressed={tab === "instructions"}
-                  disabled={busy}
-                  onClick={() => {
-                    setTab("instructions")
-                    setError(null)
-                  }}
-                >
-                  <BookOpen />
-                  Instructions
-                </Button>
-              </div>
-            )}
-            {error && (
-              <div
-                role="alert"
-                className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
-              >
-                {error}
-                {error.includes("changed elsewhere") && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-2 block"
-                    disabled={busy}
-                    onClick={() =>
-                      void run(async () => {
-                        await query.refetch({ throwOnError: true })
-                        setEditing(null)
-                        setProposal(null)
-                        setDraftVersion((version) => version + 1)
-                      })
-                    }
-                  >
-                    Discard draft & reload saved version
-                  </Button>
-                )}
-              </div>
-            )}
-            {editing ? (
-              <LocationEditor
-                key={`${editing.scope}:${editing.location?.id ?? "new"}`}
-                editing={editing}
-                currentPath={currentPath}
-                busy={busy}
-                onCancel={() => {
-                  setEditing(null)
-                  setError(null)
-                }}
-                onSave={(scope, location) =>
-                  void run(async () => {
-                    await save({
-                      action: "save-location",
-                      scope,
-                      location,
-                      createOnly: !editing.location,
-                      revision: editing.revision,
-                    })
-                    setEditing(null)
-                    toast.success(
-                      "Place saved. Future scans will include its guidance."
-                    )
-                  })
-                }
-              />
-            ) : proposal ? (
-              <ProposalEditor
-                location={proposal}
-                busy={busy}
-                onBack={() => {
-                  setProposal(null)
-                  setError(null)
-                }}
-                onRun={run}
-              />
-            ) : tab === "instructions" ? (
-              <InstructionsEditor
-                key={draftVersion}
-                knowledge={knowledge}
-                busy={busy}
-                save={save}
-                run={run}
-              />
-            ) : (
-              <>
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="relative min-w-40 flex-1">
-                    <Search className="pointer-events-none absolute left-2.5 top-2 size-4 text-muted-foreground" />
-                    <Input
-                      aria-label="Search saved places"
-                      placeholder="Find a place…"
-                      value={filter}
-                      onChange={(e) => setFilter(e.target.value)}
-                      className="pl-8"
-                    />
-                  </div>
-                  <Button
-                    disabled={busy}
-                    onClick={() => {
-                      setEditing({
-                        scope: "computer",
-                        revision: knowledge.revision,
-                      })
-                      setError(null)
-                    }}
-                  >
-                    <Plus />
-                    Add place
-                  </Button>
-                </div>
-                {entries.length === 0 ? (
-                  <div className="rounded-xl border border-dashed px-6 py-10 text-center">
-                    <FolderOpen className="mx-auto mb-3 size-7 text-muted-foreground" />
-                    <h3 className="font-medium">
-                      {filter
-                        ? "No places match your search"
-                        : "Your regular places, one click away"}
-                    </h3>
-                    <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
-                      {filter
-                        ? "Try a folder name or path."
-                        : "Save a project folder, model library, or cache. Add context once, then use it in the app, terminal, and your agent’s reports."}
-                    </p>
-                    {!filter && (
-                      <Button
-                        variant="outline"
-                        className="mt-5"
-                        onClick={() =>
-                          setEditing({
-                            scope: "computer",
-                            revision: knowledge.revision,
-                          })
-                        }
-                      >
-                        <Plus />
-                        Save current folder
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {entries.map(({ location, scope }) => {
-                      const effective = knowledge.locations.find(
-                        (item) => item.id === location.id
-                      )
-                      const overridden = effective?.scope !== scope
-                      return (
-                        <article
-                          key={`${scope}:${location.id}`}
-                          className="rounded-xl border p-4"
-                        >
-                          <div className="flex items-start gap-3">
-                            <div className="mt-0.5 rounded-lg bg-muted p-2">
-                              <FolderOpen className="size-4 text-muted-foreground" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <h3 className="font-medium">{location.name}</h3>
-                              <p className="mt-1 break-all font-mono text-xs text-muted-foreground">
-                                {location.path}
-                              </p>
-                            </div>
-                            <Button
-                              size="icon-sm"
-                              variant="ghost"
-                              aria-label={`Edit ${location.name}`}
-                              disabled={busy}
-                              onClick={() => {
-                                setEditing({
-                                  location,
-                                  scope,
-                                  revision: knowledge.revision,
-                                })
-                                setError(null)
-                              }}
-                            >
-                              <Pencil />
-                            </Button>
-                          </div>
-                          {location.instructions && (
-                            <p className="mt-3 line-clamp-2 whitespace-pre-wrap text-sm text-muted-foreground">
-                              {location.instructions}
-                            </p>
-                          )}
-                          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground">
-                            <span className="inline-flex items-center gap-1">
-                              {scope === "computer" ? (
-                                <Monitor className="size-3" />
-                              ) : (
-                                <User className="size-3" />
-                              )}
-                              {scopeName(scope)}
-                            </span>
-                            <span className="capitalize">{location.kind}</span>
-                            <span>{location.tier}</span>
-                            {location.source === "agent" && (
-                              <span>Added by agent</span>
-                            )}
-                            {(!location.enabled || overridden) && (
-                              <span>
-                                {overridden
-                                  ? "Overridden or for another OS"
-                                  : "Paused"}
-                              </span>
-                            )}
-                            <div className="ml-auto flex gap-1">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                disabled={busy || overridden}
-                                onClick={() => {
-                                  setProposal(location)
-                                  setError(null)
-                                }}
-                                title="Prepare a public contribution"
-                              >
-                                <GitPullRequest />
-                                Contribute
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                disabled={
-                                  busy || !location.enabled || overridden
-                                }
-                                onClick={() =>
-                                  void run(async () => {
-                                    const status = await api<ViewerStatus>(
-                                      "scan-root",
-                                      { root: effective!.resolvedPath }
-                                    )
-                                    await onChanged(status)
-                                    onOpenChange(false)
-                                  })
-                                }
-                              >
-                                {busy ? (
-                                  <LoaderCircle className="animate-spin" />
-                                ) : (
-                                  <ArrowUpRight />
-                                )}
-                                Open / scan
-                              </Button>
-                            </div>
-                          </div>
-                        </article>
-                      )
-                    })}
-                  </div>
-                )}
-                <div className="rounded-xl bg-muted/50 p-4 text-xs leading-relaxed text-muted-foreground">
-                  <span className="font-medium text-foreground">
-                    Agents can add to this too.
-                  </span>{" "}
-                  Use <code>whyfull locations --help</code> for stable IDs,
-                  source labels, and JSON output. Computer entries take priority
-                  over user entries with the same ID.
-                </div>
-              </>
-            )}
-            {editing?.location && (
+    <div className="space-y-4">
+      {!knowledge ? (
+        <div role="status" className="py-8 text-sm text-muted-foreground">
+          {query.error ? (
+            <>
+              <p>Couldn’t load places. {query.error.message}</p>
               <Button
-                variant="ghost"
-                className="mr-auto text-destructive"
-                disabled={busy}
-                onClick={() =>
-                  void run(async () => {
-                    await save({
-                      action: "remove-location",
-                      scope: editing.scope,
-                      id: editing.location!.id,
-                      revision: editing.revision,
-                    })
-                    setEditing(null)
-                    toast.success("Place removed. Its files are unchanged.")
-                  })
-                }
+                variant="outline"
+                className="mt-3"
+                onClick={() => void query.refetch()}
               >
-                <X />
-                Remove saved place
+                Try again
               </Button>
-            )}
-            <p className="break-all text-[11px] text-muted-foreground">
-              {knowledge.computer} · {knowledge.file}
-            </p>
-          </>
-        )}
-      </DialogContent>
-    </Dialog>
+            </>
+          ) : (
+            "Loading settings…"
+          )}
+        </div>
+      ) : (
+        <>
+          {error && (
+            <div
+              role="alert"
+              className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
+            >
+              {error}
+              {error.includes("changed elsewhere") && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 block"
+                  disabled={busy}
+                  onClick={() =>
+                    void run(async () => {
+                      await query.refetch({ throwOnError: true })
+                      setEditing(null)
+                      setProposal(null)
+                      setDraftVersion((version) => version + 1)
+                    })
+                  }
+                >
+                  Discard draft and reload
+                </Button>
+              )}
+            </div>
+          )}
+          {section === "advanced" ? (
+            <div className="space-y-5 text-sm">
+              <code className="block rounded-lg border bg-muted/40 p-3">
+                whyfull locations --help
+              </code>
+              <dl className="space-y-4">
+                <div>
+                  <dt className="text-muted-foreground">Computer</dt>
+                  <dd className="mt-1 break-all">{knowledge.computer}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Config file</dt>
+                  <dd className="mt-1 break-all font-mono text-xs">
+                    {knowledge.file}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          ) : editing ? (
+            <LocationEditor
+              key={`${editing.scope}:${editing.location?.id ?? "new"}`}
+              editing={editing}
+              currentPath={currentPath}
+              busy={busy}
+              onContribute={
+                editing.location &&
+                knowledge.locations.some(
+                  (item) =>
+                    item.id === editing.location!.id &&
+                    item.scope === editing.scope
+                )
+                  ? () => {
+                      setProposal(editing.location!)
+                      setEditing(null)
+                      setError(null)
+                    }
+                  : undefined
+              }
+              onCancel={() => {
+                setEditing(null)
+                setError(null)
+              }}
+              onSave={(scope, location) =>
+                void run(async () => {
+                  await save({
+                    action: "save-location",
+                    scope,
+                    location,
+                    createOnly: !editing.location,
+                    revision: editing.revision,
+                  })
+                  setEditing(null)
+                  toast.success("Place saved")
+                })
+              }
+            />
+          ) : proposal ? (
+            <ProposalEditor
+              location={proposal}
+              busy={busy}
+              onBack={() => {
+                setProposal(null)
+                setError(null)
+              }}
+              onRun={run}
+            />
+          ) : section === "instructions" ? (
+            <InstructionsEditor
+              key={draftVersion}
+              knowledge={knowledge}
+              busy={busy}
+              save={save}
+              run={run}
+            />
+          ) : (
+            <>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative min-w-40 flex-1">
+                  <Search className="pointer-events-none absolute left-2.5 top-2 size-4 text-muted-foreground" />
+                  <Input
+                    aria-label="Search saved places"
+                    placeholder="Find a place…"
+                    value={filter}
+                    onChange={(e) => setFilter(e.target.value)}
+                    className="pl-8"
+                  />
+                </div>
+                <Button
+                  disabled={busy}
+                  onClick={() => {
+                    setEditing({
+                      scope: "computer",
+                      revision: knowledge.revision,
+                    })
+                    setError(null)
+                  }}
+                >
+                  <Plus />
+                  Add place
+                </Button>
+              </div>
+              {entries.length === 0 ? (
+                <div className="rounded-xl border border-dashed px-6 py-10 text-center">
+                  <FolderOpen className="mx-auto mb-3 size-7 text-muted-foreground" />
+                  <h3 className="font-medium">
+                    {filter ? "No matching places" : "No saved places"}
+                  </h3>
+                  {filter ? (
+                    <Button
+                      variant="outline"
+                      className="mt-5"
+                      onClick={() => setFilter("")}
+                    >
+                      Clear search
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      className="mt-5"
+                      onClick={() =>
+                        setEditing({
+                          scope: "computer",
+                          revision: knowledge.revision,
+                        })
+                      }
+                    >
+                      <Plus />
+                      Save current folder
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {entries.map(({ location, scope }) => {
+                    const effective = knowledge.locations.find(
+                      (item) => item.id === location.id
+                    )
+                    const overridden = effective?.scope !== scope
+                    return (
+                      <article
+                        key={`${scope}:${location.id}`}
+                        className="rounded-xl border p-4"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="mt-0.5 rounded-lg bg-muted p-2">
+                            <FolderOpen className="size-4 text-muted-foreground" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <h3 className="font-medium">{location.name}</h3>
+                            <p className="mt-1 break-all font-mono text-xs text-muted-foreground">
+                              {location.path}
+                            </p>
+                          </div>
+                          <Button
+                            size="icon-sm"
+                            variant="ghost"
+                            aria-label={`Edit ${location.name}`}
+                            disabled={busy}
+                            onClick={() => {
+                              setEditing({
+                                location,
+                                scope,
+                                revision: knowledge.revision,
+                              })
+                              setError(null)
+                            }}
+                          >
+                            <Pencil />
+                          </Button>
+                        </div>
+                        {location.instructions && (
+                          <p className="mt-3 line-clamp-2 whitespace-pre-wrap text-sm text-muted-foreground">
+                            {location.instructions}
+                          </p>
+                        )}
+                        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground">
+                          <span className="inline-flex items-center gap-1">
+                            {scope === "computer" ? (
+                              <Monitor className="size-3" />
+                            ) : (
+                              <User className="size-3" />
+                            )}
+                            {scopeName(scope)}
+                          </span>
+                          <span className="capitalize">{location.kind}</span>
+                          <span>{tierLabel(location.tier)}</span>
+                          {location.source === "agent" && (
+                            <span>Added by agent</span>
+                          )}
+                          {(!location.enabled || overridden) && (
+                            <span>
+                              {overridden
+                                ? "Overridden or for another OS"
+                                : "Paused"}
+                            </span>
+                          )}
+                        </div>
+                      </article>
+                    )
+                  })}
+                </div>
+              )}
+            </>
+          )}
+          {editing?.location && (
+            <Button
+              variant="ghost"
+              className="mr-auto text-destructive"
+              disabled={busy}
+              onClick={() =>
+                void run(async () => {
+                  await save({
+                    action: "remove-location",
+                    scope: editing.scope,
+                    id: editing.location!.id,
+                    revision: editing.revision,
+                  })
+                  setEditing(null)
+                  toast.success("Place removed. Its files are unchanged.")
+                })
+              }
+            >
+              <X />
+              Remove saved place
+            </Button>
+          )}
+        </>
+      )}
+    </div>
   )
 }
 
@@ -458,12 +379,14 @@ function LocationEditor({
   currentPath,
   busy,
   onCancel,
+  onContribute,
   onSave,
 }: {
   editing: Editing
   currentPath: string
   busy: boolean
   onCancel: () => void
+  onContribute?: () => void
   onSave: (scope: KnowledgeScope, value: Record<string, unknown>) => void
 }) {
   const initial = editing.location
@@ -584,34 +507,44 @@ function LocationEditor({
         </label>
       </div>
       <label className="block space-y-1.5 text-sm font-medium">
-        Instructions for this place
+        Instructions
         <Textarea
           rows={4}
           maxLength={12000}
           value={instructions}
           onChange={(e) => setInstructions(e.target.value)}
-          placeholder="Keep active models. Check the owning app before removing downloads."
+          placeholder="Keep active models."
         />
       </label>
-      <p className="text-xs text-muted-foreground">
-        Guidance appears in scan suggestions. To protect files from cleanup or
-        skip scanning them, use Keep & exclude rules.
-      </p>
-      <label className="block space-y-1.5 text-sm font-medium">
-        Stable ID
-        <Input
-          required
-          pattern="[a-z0-9][a-z0-9-]*"
-          maxLength={80}
-          disabled={!!initial}
-          value={id}
-          onChange={(e) => setId(e.target.value)}
-          placeholder="model-library"
-        />
-        <span className="text-xs font-normal text-muted-foreground">
-          Agents use this ID to update the same place.
-        </span>
-      </label>
+      <details className="rounded-lg border p-3">
+        <summary className="cursor-pointer text-sm font-medium">
+          Advanced
+        </summary>
+        <label className="mt-3 block space-y-1.5 text-sm font-medium">
+          Stable ID
+          <Input
+            required
+            pattern="[a-z0-9][a-z0-9-]*"
+            maxLength={80}
+            disabled={!!initial}
+            value={id}
+            onChange={(e) => setId(e.target.value)}
+            placeholder="model-library"
+          />
+        </label>
+        {onContribute && (
+          <Button
+            className="mt-3"
+            type="button"
+            variant="outline"
+            disabled={busy}
+            onClick={onContribute}
+          >
+            <GitPullRequest />
+            Contribute publicly…
+          </Button>
+        )}
+      </details>
       <label className="flex items-center gap-2 text-sm">
         <input
           type="checkbox"
@@ -673,7 +606,7 @@ function InstructionsEditor({
       }}
     >
       <label className="block space-y-1.5 text-sm font-medium">
-        Instructions for
+        Apply to
         <select
           className={selectClass}
           value={scope}
@@ -684,7 +617,7 @@ function InstructionsEditor({
         </select>
       </label>
       <label className="block space-y-2 text-sm font-medium">
-        What should Whyfull and your agent know?
+        Instructions
         <Textarea
           rows={7}
           maxLength={24000}
@@ -692,21 +625,12 @@ function InstructionsEditor({
           onChange={(e) => setDrafts({ ...drafts, [scope]: e.target.value })}
           placeholder={
             scope === "computer"
-              ? "This is my work laptop. Keep models needed offline. Check for active builds before clearing project caches."
-              : "Prefer the owning app’s cleanup commands. Explain download and rebuild costs before suggesting cleanup."
+              ? "Keep models needed offline."
+              : "Explain rebuild costs before cleanup."
           }
         />
       </label>
-      <p className="text-sm leading-relaxed text-muted-foreground">
-        Both scopes are included in local opportunity reports. Use computer
-        instructions for exceptions to your general preferences. These notes
-        guide review; they do not execute commands or change Keep & exclude
-        rules.
-      </p>
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-xs text-muted-foreground">
-          Private by default · never included in contribution drafts
-        </span>
+      <div className="flex justify-end">
         <Button disabled={busy}>
           {busy ? <LoaderCircle className="animate-spin" /> : <Check />}Save
           instructions
@@ -739,11 +663,10 @@ function ProposalEditor({
         Saved places
       </Button>
       <div>
-        <h3 className="font-medium">Share a useful location</h3>
+        <h3 className="font-medium">Public contribution</h3>
         <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-          Prepare a draft for a public pull request. Enter general guidance and
-          a portable path. Review the ID and every public field before sharing;
-          names within a ~/ path can still be personal.
+          Everything here becomes public. Remove personal details, including
+          from paths.
         </p>
       </div>
       <form
@@ -774,7 +697,7 @@ function ProposalEditor({
             maxLength={80}
           />
           <span className="text-xs font-normal text-muted-foreground">
-            Choose a general name. Your saved place’s ID stays private.
+            Your saved ID stays private.
           </span>
         </label>
         <label className="block space-y-1.5 text-sm font-medium">
@@ -806,7 +729,7 @@ function ProposalEditor({
             value={hint}
             onChange={(e) => setHint(e.target.value)}
             maxLength={4000}
-            placeholder="Explain what creates this data, how to inspect it, and the cost of rebuilding it."
+            placeholder="What creates this data? What does rebuilding cost?"
           />
         </label>
         <Button disabled={busy}>
@@ -817,8 +740,7 @@ function ProposalEditor({
       {preview && (
         <div className="space-y-3 rounded-xl border bg-muted/30 p-4">
           <p className="text-xs text-muted-foreground">
-            Draft only · {location.platform} · starts at “Needs judgment” · no
-            private instructions
+            Draft · {location.platform} · Needs judgment
           </p>
           <pre className="max-h-56 overflow-auto whitespace-pre-wrap break-all text-xs">
             {preview}
@@ -846,8 +768,8 @@ function ProposalEditor({
             </a>
           </div>
           <p className="text-xs text-muted-foreground">
-            Add the target to packages/whyfull/src/community-locations.json in
-            your fork, then open a pull request.
+            Next: add it to community-locations.json in your fork and open a
+            pull request.
           </p>
         </div>
       )}

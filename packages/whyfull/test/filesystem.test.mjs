@@ -320,13 +320,22 @@ test("loopback viewer authenticates requests, preserves measured data, and suppo
         view: "sunburst",
         sort: "name",
         lastPath: viewer.snapshot.root,
+        scanPrivateFolders: true,
       }),
     })
     assert.equal(preferences.status, 200)
+    const invalid = await fetch(`${base}/api/preferences`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({ scanPrivateFolders: "yes" }),
+    })
+    assert.ok(invalid.status >= 400)
     const updated = await (
       await fetch(`${base}/api/status`, { headers })
     ).json()
     assert.equal(updated.viewer.view, "sunburst")
+    assert.equal(updated.viewer.scanPrivateFolders, true)
+    assert.ok(Array.isArray(updated.privateFolders))
     assert.equal(updated.cleanup.mode, "demo")
     const snapshot = await (
       await fetch(`${base}/api/export`, { headers })

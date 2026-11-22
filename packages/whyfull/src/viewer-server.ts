@@ -46,6 +46,7 @@ import {
   saveViewerPreferences,
 } from "./disk-policy"
 import { forPlatform, TIERS } from "./targets"
+import { privacyPromptPaths } from "./privacy"
 import { volume } from "./size"
 import type {
   DiskDirectory,
@@ -115,6 +116,7 @@ export async function startViewer(options: ViewerOptions) {
     selectedScanner === "rust"
       ? new RustScanner({
           ...scanOptions,
+          includePrivate: viewerPreferences.scanPrivateFolders,
           scanner: "rust",
           inventoryDirectory:
             options.inventoryDirectory ??
@@ -123,6 +125,7 @@ export async function startViewer(options: ViewerOptions) {
         })
       : new DiskScanner({
           ...scanOptions,
+          includePrivate: viewerPreferences.scanPrivateFolders,
           scanner: "node",
           inventoryDirectory:
             options.inventoryDirectory ??
@@ -160,6 +163,7 @@ export async function startViewer(options: ViewerOptions) {
         ...options,
         scanner: selectedScanner,
         policy: scanner.snapshot.policy,
+        includePrivate: viewerPreferences.scanPrivateFolders,
       })
     : null
   let snapshot =
@@ -767,6 +771,10 @@ export async function startViewer(options: ViewerOptions) {
                   estimateBasis: progress.estimateBasis,
                   elapsedMs: progress.elapsedMs,
                   files: progress.files,
+                  bytes: progress.bytes,
+                  usedBytes: volume(session.root)?.used ?? null,
+                  phase: progress.phase,
+                  remainingMs: progress.remainingMs,
                 }
               })()
             : null,
@@ -785,6 +793,7 @@ export async function startViewer(options: ViewerOptions) {
     return {
       ...rest,
       awaitingScan,
+      desktop: !!options.license,
       directories:
         sqliteInventory(snapshot)?.directoryCount ?? directories.length,
       bytes: directories[0].bytes,
@@ -848,6 +857,7 @@ export async function startViewer(options: ViewerOptions) {
           reason: rustAvailability.reason,
         },
       },
+      privateFolders: privacyPromptPaths(),
     }
   }
   const json = (res: ServerResponse, value: unknown, status = 200) => {
@@ -1857,6 +1867,7 @@ export async function startViewer(options: ViewerOptions) {
           ...options,
           scanner: selectedScanner,
           policy: next.snapshot.policy,
+          includePrivate: viewerPreferences.scanPrivateFolders,
         }
       )
       scanner = next

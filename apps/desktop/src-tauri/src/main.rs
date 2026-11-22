@@ -9,9 +9,9 @@ use std::{
     process::{Child, Command, Stdio},
     sync::{
         atomic::{AtomicBool, Ordering},
-        mpsc, Mutex,
+        mpsc, Arc, Mutex,
     },
-    time::Duration,
+    time::{Duration, Instant},
 };
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem, Submenu},
@@ -108,6 +108,57 @@ fn start_engine(runtime: PathBuf) -> Result<(Engine, url::Url), Box<dyn std::err
         return Err("Invalid engine readiness message".into());
     }
     Ok((engine, url))
+}
+
+/// Restarts the engine if it exits while the app is open, and reopens the
+/// same view on the new server. Stops after repeated crashes.
+fn watch_engine(app: tauri::AppHandle, runtime: PathBuf, allowed: Arc<Mutex<url::Origin>>) {
+    std::thread::spawn(move || {
+        let mut restarts: Vec<Instant> = Vec::new();
+        loop {
+            std::thread::sleep(Duration::from_secs(1));
+            let engine = app.state::<Engine>();
+            let exited = match engine.0.lock().unwrap().as_mut() {
+                None => return, // Quitting.
+                Some(child) => child.try_wait().ok().flatten().is_some(),
+            };
+            if !exited {
+                continue;
+            }
+            restarts.retain(|at| at.elapsed() < Duration::from_secs(120));
+            if restarts.len() >= 3 {
+                *engine.0.lock().unwrap() = None;
+                app.dialog()
+                    .message("The Whyfull engine stopped repeatedly. Quit and reopen Whyfull.")
+                    .show(|_| {});
+                return;
+            }
+            restarts.push(Instant::now());
+            let (next, url) = match start_engine(runtime.clone()) {
+                Ok(started) => started,
+                Err(error) => {
+                    eprintln!("whyfull: could not restart engine: {error}");
+                    continue;
+                }
+            };
+            {
+                let mut slot = engine.0.lock().unwrap();
+                if slot.is_none() {
+                    return; // Quit while restarting; `next` stops on drop.
+                }
+                *slot = next.0.lock().unwrap().take();
+            }
+            if let Some(window) = app.get_webview_window("main") {
+                let mut target = url.clone();
+                if let Ok(current) = window.url() {
+                    target.set_path(current.path());
+                    target.set_query(current.query());
+                }
+                *allowed.lock().unwrap() = url.origin();
+                let _ = window.navigate(target);
+            }
+        }
+    });
 }
 
 static CHECKING: AtomicBool = AtomicBool::new(false);
@@ -241,13 +292,15 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(move |app| {
-            let (engine, url) = start_engine(runtime)?;
+            let (engine, url) = start_engine(runtime.clone())?;
             app.manage(engine);
-            let origin = url.origin();
+            let allowed = Arc::new(Mutex::new(url.origin()));
+            let navigation = allowed.clone();
             WebviewWindowBuilder::new(app, "main", WebviewUrl::External(url))
                 .title("Whyfull").inner_size(1280.0, 860.0).min_inner_size(800.0, 600.0)
-                .on_navigation(move |url| url.origin() == origin)
+                .on_navigation(move |url| url.origin() == *navigation.lock().unwrap())
                 .build()?;
+            watch_engine(app.handle().clone(), runtime.clone(), allowed);
             let install = MenuItem::with_id(app, "install-cli", "Install command-line tool…", true, None::<&str>)?;
             let update = MenuItem::with_id(app, "check-updates", "Check for updates…", true, None::<&str>)?;
             let tools = Submenu::with_items(app, "Whyfull", true, &[

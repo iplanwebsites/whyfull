@@ -71,6 +71,8 @@ export interface DiskScanOptions {
   rustDirectory?: string
   policy?: DiskPolicy
   topFiles?: number
+  /** macOS: read Photos, Music and other folders that trigger permission dialogs. */
+  includePrivate?: boolean
   signal?: AbortSignal
   onProgress?: (snapshot: DiskSnapshot) => void
 }

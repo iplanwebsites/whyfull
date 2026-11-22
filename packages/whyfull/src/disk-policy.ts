@@ -133,6 +133,8 @@ export interface ViewerPreferences {
   lastPath: string | null
   sidebarOpen: boolean
   minFileBytes: number
+  /** macOS: also scan folders that make the OS ask for permission. */
+  scanPrivateFolders: boolean
 }
 
 export function loadViewerPreferences(
@@ -168,6 +170,7 @@ export function loadViewerPreferences(
       value.minFileBytes <= 1024 ** 4
         ? value.minFileBytes
         : 1024 ** 2,
+    scanPrivateFolders: value.scanPrivateFolders === true,
   }
 }
 
@@ -216,6 +219,11 @@ export function saveViewerPreferences(
     )
       throw new Error("Invalid saved folder")
     next.lastPath = patch.lastPath as string | null
+  }
+  if (patch.scanPrivateFolders !== undefined) {
+    if (typeof patch.scanPrivateFolders !== "boolean")
+      throw new Error("Invalid private folder setting")
+    next.scanPrivateFolders = patch.scanPrivateFolders
   }
   if (patch.sidebarOpen !== undefined) {
     if (typeof patch.sidebarOpen !== "boolean")

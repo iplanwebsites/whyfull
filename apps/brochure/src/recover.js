@@ -19,19 +19,18 @@ form.addEventListener("submit", async (event) => {
     const data = await response.json().catch(() => ({}))
     if (data.status === "sent") {
       status.textContent =
-        "If a license exists for that address, we’ve emailed it. Check your inbox (and spam folder) in a few minutes."
+        "If a license matches, we’ve emailed it. Check your inbox and spam folder."
       form.reset()
     } else if (data.status === "rate-limited") {
-      status.textContent =
-        "That’s a lot of requests. Please wait an hour and try again."
+      status.textContent = "Too many requests. Try again in an hour."
     } else if (data.status === "invalid") {
-      status.textContent = "Please enter a valid email address."
+      status.textContent = "Enter a valid email address."
     } else if (data.status === "unavailable") {
       status.textContent = "Email recovery isn’t available right now. "
       showSupport(data.support)
     } else throw new Error("Unexpected response")
   } catch {
-    status.textContent = "Something went wrong. Please try again in a moment."
+    status.textContent = "Couldn’t send. Try again."
   } finally {
     button.disabled = false
   }

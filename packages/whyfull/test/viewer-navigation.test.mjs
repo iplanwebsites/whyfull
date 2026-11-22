@@ -148,6 +148,10 @@ test("switching and opening reports keep ongoing scans alive, including completi
   assert.equal(initialDrive.scan.documentId, original.documentId)
   assert.ok(initialDrive.scan.progress.elapsedMs >= 0)
   assert.ok(initialDrive.scan.progress.files >= 0)
+  assert.ok(initialDrive.scan.progress.bytes >= 0)
+  assert.ok(initialDrive.scan.progress.usedBytes > 0)
+  assert.equal(typeof initialDrive.scan.progress.phase, "string")
+  assert.ok("remainingMs" in initialDrive.scan.progress)
   await request("scan-root", { root: b })
   const backgroundDrive = (await request("drives")).find(
     (drive) => drive.id === a

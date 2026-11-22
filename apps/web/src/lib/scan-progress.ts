@@ -38,8 +38,8 @@ export function remainingLabel(range: { min: number; max: number }): string {
   const step = unit === 1000 ? 5 : 1
   const lower = Math.max(step, Math.floor(range.min / unit / step) * step)
   const upper = Math.max(lower, Math.ceil(range.max / unit / step) * step)
-  const suffix = unit === 1000 ? "sec" : unit === 60000 ? "min" : "hr"
-  return `About ${lower === upper ? lower : `${lower}–${upper}`} ${suffix} left`
+  const suffix = unit === 1000 ? "s" : unit === 60000 ? "m" : "h"
+  return `≈ ${lower === upper ? lower : `${lower}–${upper}`}${suffix} left`
 }
 
 function durationWords(

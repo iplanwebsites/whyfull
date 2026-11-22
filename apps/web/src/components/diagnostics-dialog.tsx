@@ -44,7 +44,7 @@ export function SystemChecks({ enabled }: { enabled: boolean }) {
       const key = `${run.id}:${run.startedAt}`
       if (run.status === "failed" && !notified.current.has(key)) {
         notified.current.add(key)
-        toast.error("System check failed. See its output for details.")
+        toast.error("System check failed. Open its output for details.")
       }
     }
   }, [data])
@@ -82,19 +82,28 @@ export function SystemChecks({ enabled }: { enabled: boolean }) {
       )
       toast.success("Output copied")
     } catch {
-      toast.error("Could not copy. Check clipboard permissions and try again.")
+      toast.error("Could not copy. Check clipboard permissions.")
     }
   }
   if (!data)
-    return (
-      <p className="text-xs text-muted-foreground">
-        {result.error ? result.error.message : "Loading system checks…"}
-      </p>
+    return result.error ? (
+      <div role="alert" className="space-y-2 text-xs">
+        <p>Couldn’t load system checks. {result.error.message}</p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => void result.refetch()}
+        >
+          Try again
+        </Button>
+      </div>
+    ) : (
+      <p className="text-xs text-muted-foreground">Loading system checks…</p>
     )
   if (!commands.length)
     return (
       <p className="text-xs text-muted-foreground">
-        No system checks are available on this computer.
+        No system checks available.
       </p>
     )
   return (
@@ -165,7 +174,7 @@ export function SystemChecks({ enabled }: { enabled: boolean }) {
               onClick={() => void copy()}
             >
               <Copy />
-              Copy output
+              Copy
             </Button>
           </div>
           <Textarea
