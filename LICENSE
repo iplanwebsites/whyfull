@@ -4,7 +4,7 @@ Version 1.0
 Copyright (c) 2026 Felix Menard. All rights reserved.
 
 NOTE: This license is a draft and must be reviewed by a qualified lawyer
-before the commercial launch. Placeholders in [BRACKETS] still need values.
+before the commercial launch.
 
 -------------------------------------------------------------------------------
 Summary (not part of the license)
@@ -20,8 +20,8 @@ Agreement in EULA.md, not by this file.
 1. Definitions
 -------------------------------------------------------------------------------
 
-"Licensor" means Felix Menard, [LEGAL ENTITY / ADDRESS], the sole author and
-copyright holder of Whyfull.
+"Licensor" means Felix Menard, an individual doing business in Montreal,
+Quebec, Canada, the sole author and copyright holder of Whyfull.
 
 "Materials" means everything in this repository and in any package, archive or
 installer built from it, including source code, object code, build scripts,
@@ -171,12 +171,13 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 11. General
 -------------------------------------------------------------------------------
 
-This license is governed by the laws of [GOVERNING LAW], without regard to
-conflict-of-laws rules. The courts of [VENUE] have exclusive jurisdiction over
-any dispute arising from it, except that the Licensor may seek injunctive
-relief in any competent court. If any provision is held unenforceable, it will
+This license is governed by the laws of the Province of Quebec and the federal
+laws of Canada applicable there, without regard to conflict-of-laws rules. The
+courts of the judicial district of Montreal, Quebec, have exclusive
+jurisdiction over any dispute arising from it, except that the Licensor may
+seek injunctive relief in any competent court. If any provision is held unenforceable, it will
 be enforced to the maximum extent permitted and the rest of this license
 remains in effect. A failure to enforce any provision is not a waiver.
 
 For permissions beyond this license (for example redistribution, reuse of the
-location catalog or a commercial agreement), contact [CONTACT EMAIL].
+location catalog or a commercial agreement), contact support@whyfull.app.

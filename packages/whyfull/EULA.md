@@ -3,11 +3,31 @@
 Version 1.0 · Effective [EFFECTIVE DATE]
 
 > **Draft: needs lawyer review before launch.** This agreement has not yet been
-> reviewed by a lawyer. Before the commercial launch, a qualified lawyer must
-> review it and fill in these placeholders: `[LEGAL ENTITY / ADDRESS]`,
-> `[GOVERNING LAW]`, `[VENUE]`, `[CONTACT EMAIL]`, `[EFFECTIVE DATE]`. Some
-> consumer-protection rules (for example in the EU, the UK and Australia)
-> cannot be waived by contract and may require changes to Sections 9 to 11.
+> reviewed by a lawyer. `[EFFECTIVE DATE]` stays empty on purpose until a
+> lawyer approves it. Points to review:
+>
+> 1. **Merchant's address (Quebec).** The Consumer Protection Act requires a
+>    merchant to disclose its address before a distance contract is made. Only
+>    "Montreal, Quebec, Canada" is given; a mailing address may need adding to
+>    Sections 1 and 21, unless Stripe's disclosures as merchant of record are
+>    enough.
+> 2. **Merchant of record.** Confirm the wording of Section 5 (Stripe as
+>    reseller and merchant of record, Felix Menard as licensor) against
+>    Stripe's Managed Payments terms, including the name of the Stripe entity
+>    and who answers for refunds, the legal warranty and disputes.
+> 3. **French version (Quebec).** Under the Charter of the French language, a
+>    standard-form contract must be given to Quebec consumers in French first.
+>    Confirm the language clause (Section 20) and the rule that the French
+>    version prevails in Quebec, and check that the checkout, the website and
+>    the desktop app show the French version first to Quebec customers.
+> 4. **Quebec consumer law.** Check Sections 9 to 11 and 17 against the
+>    Consumer Protection Act (legal warranty, exclusion of liability,
+>    indemnities, unilateral changes) and the notice that precedes clauses that
+>    do not apply in Quebec.
+> 5. **Other countries.** Consumer rules in the EU, the UK and Australia (for
+>    example the right of withdrawal for digital content and the liability
+>    limits) cannot be waived by contract and may require changes to
+>    Sections 5 and 9 to 11.
 
 ## Plain-English summary (not legally binding)
 
@@ -23,6 +43,9 @@ differ, the numbered sections below apply.
 - **Nothing gets locked.** The app keeps working after the trial and shows a
   reminder at most once a day. That's on purpose, but it isn't permission: the
   agreement still asks you to buy a license to keep using the app.
+- **Stripe sells, we license.** Stripe handles checkout as the merchant of
+  record: payment, sales tax, receipts and refunds. The license itself comes
+  from us.
 - **Refunds within 30 days**, no questions asked.
 - **Whyfull sends nothing about you anywhere.** No telemetry, no license
   checks over the network.
@@ -34,9 +57,10 @@ differ, the numbered sections below apply.
 ## 1. Who this agreement is between
 
 This End User License Agreement (the "Agreement") is between you and Felix
-Menard, [LEGAL ENTITY / ADDRESS] ("we", "us", "the Licensor"). "You" means the
-individual using Whyfull, or, if you accept on behalf of a company or other
-organization, both you and that organization. If you accept for an
+Menard, an individual doing business in Montreal, Quebec, Canada ("we", "us",
+"the Licensor"). "You" means the individual using Whyfull, or, if you accept
+on behalf of a company or other organization, both you and that
+organization. If you accept for an
 organization, you confirm that you have authority to bind it.
 
 By installing, copying, opening or otherwise using Whyfull, you agree to this
@@ -120,8 +144,8 @@ An organization needs one license for each person who uses the Desktop App.
 A license bought by an organization may be assigned to one person at a time
 and reassigned when that person no longer uses the Desktop App (for example
 when they leave the team), but not used to cover people on a rotating or
-shared basis. For volume licensing, invoices or other terms, contact
-[CONTACT EMAIL].
+shared basis. For volume purchases or other terms, contact
+support@whyfull.app.
 
 ### 4.5 Honor system and reminders
 
@@ -149,18 +173,38 @@ We will not audit your computers or ask you to report usage. We rely on you
 to buy the licenses you need. This does not limit our remedies if we learn
 of a breach.
 
-## 5. Payment and refunds
+## 5. Purchase, price, taxes and refunds
 
-Purchases are processed by our payment provider (currently Stripe), which
-acts as a payment processor; its own terms apply to your payment. You
-authorize the charge shown at checkout, including any applicable taxes.
+### 5.1 Who sells and who licenses
 
-**Refunds:** if Whyfull isn't right for you, you may ask for a full refund
-within 30 days of purchase, for any reason, by writing to [CONTACT EMAIL] or
-using the link in your receipt. When a purchase is refunded, its license and
+Desktop App licenses are sold through Stripe Managed Payments. For the
+purchase transaction, Stripe (the Stripe company named at checkout and on
+your receipt) acts as reseller and merchant of record: it sells you the
+license, collects your payment, calculates, collects and remits any sales
+tax, VAT or GST, issues your receipt or invoice, and processes refunds,
+chargebacks and payment disputes, under its own terms presented at checkout.
+
+We are the licensor. The right to use the Desktop App is granted by us under
+this Agreement, and we remain responsible for the Software, License Keys and
+support. Stripe's terms govern the purchase transaction; this Agreement
+governs your use of Whyfull.
+
+### 5.2 Price and taxes
+
+A Desktop App license costs $19 USD. Stripe shows the applicable taxes for
+your location, and the total you will pay, at checkout before you confirm
+the purchase. You authorize the total shown at checkout. Your bank or card
+issuer may charge its own currency-conversion fees.
+
+### 5.3 Refunds
+
+If Whyfull isn't right for you, you may ask for a full refund within 30 days
+of purchase, for any reason, by writing to support@whyfull.app or by using
+the contact details in your receipt. Refunds are processed through Stripe to
+your original payment method. When a purchase is refunded, its license and
 License Key end, and you must stop using the Desktop App beyond the
 Evaluation Period. This does not limit any statutory rights you have to a
-refund or withdrawal.
+refund, cancellation or withdrawal.
 
 ## 6. Source code and the source-available license
 
@@ -225,6 +269,11 @@ You should understand these facts before using Whyfull:
 
 ## 9. No warranty
 
+_Consumers in Quebec: this section does not apply to you to the extent that
+the Consumer Protection Act or the Civil Code of Québec prohibits it,
+including the legal warranties of quality and of conformity, which this
+Agreement does not exclude._
+
 TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, WHYFULL IS PROVIDED "AS IS"
 AND "AS AVAILABLE", WITH ALL FAULTS AND WITHOUT WARRANTY OF ANY KIND. WE
 DISCLAIM ALL WARRANTIES, EXPRESS, IMPLIED OR STATUTORY, INCLUDING ANY
@@ -235,6 +284,11 @@ WITH YOUR SYSTEM, OR THAT ITS SIZES, CLASSIFICATIONS OR CLEANUP SUGGESTIONS
 WILL BE CORRECT OR COMPLETE. YOU USE WHYFULL AT YOUR OWN RISK.
 
 ## 10. Limitation of liability
+
+_Consumers in Quebec: this section does not apply to you to the extent that
+the Consumer Protection Act or the Civil Code of Québec prohibits it,
+including where it would exclude or limit our liability for our own acts or
+those of our representatives._
 
 TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW:
 
@@ -264,7 +318,7 @@ injury caused by negligence, or for fraud).
 To the extent permitted by law, you will indemnify us against third-party
 claims arising from your breach of this Agreement or your use of Whyfull in
 breach of law. This section does not apply to consumers where the law does
-not allow it.
+not allow it, including consumers in Quebec.
 
 ## 12. Privacy
 
@@ -273,7 +327,8 @@ reports, scan results or file paths to us or anyone else, and License Keys
 are verified offline on your computer. The Desktop App may check for and
 download updates from GitHub, which works like downloading any file from
 the internet. Our handling of purchase data is described in the Privacy
-Notice (`PRIVACY.md`, also at https://whyfull.app/legal/#privacy).
+Notice (`PRIVACY.md`, also at https://whyfull.app/legal/#privacy; in French,
+`PRIVACY.fr.md` and https://whyfull.app/legal/fr/#confidentialite).
 
 ## 13. Termination
 
@@ -283,7 +338,7 @@ Agreement end automatically, without notice, if you materially breach it
 (including by using the Desktop App beyond the Evaluation Period without a
 license and not purchasing one within a reasonable time after we notify you).
 On termination you must stop using Whyfull and delete it. Termination does
-not entitle you to a refund except as stated in Section 5 or required by
+not entitle you to a refund except as stated in Section 5.3 or required by
 law. Sections 6 to 11 and 13 to 20 survive termination.
 
 ## 14. Export and sanctions
@@ -326,12 +381,19 @@ honors existing licenses.
 
 ## 19. Governing law and disputes
 
-This Agreement is governed by the laws of [GOVERNING LAW], without regard to
-conflict-of-laws rules. The United Nations Convention on Contracts for the
-International Sale of Goods does not apply. The courts of [VENUE] have
-exclusive jurisdiction, except that either party may seek injunctive relief
-in any competent court, and consumers keep any right to bring proceedings in
-the courts of their place of residence that applicable law gives them.
+This Agreement is governed by the laws of the Province of Quebec and the
+federal laws of Canada applicable there, without regard to conflict-of-laws
+rules. The United Nations Convention on Contracts for the International Sale
+of Goods does not apply. The courts of the judicial district of Montreal,
+Quebec, have exclusive jurisdiction, except that either party may seek
+injunctive relief in any competent court.
+
+If you are a consumer, nothing in this section deprives you of the
+protection of the mandatory rules of the law of the place where you live, or
+of any right that law gives you to bring proceedings in the courts of your
+place of residence. For example, consumers in Quebec keep the rights given
+by section 22.1 of the Consumer Protection Act, and consumers in the European
+Union and the United Kingdom keep the protections of their consumer law.
 
 ## 20. General
 
@@ -348,13 +410,19 @@ the courts of their place of residence that applicable law gives them.
   License 2.0 before these terms took effect (npm `whyfull` 0.0.1 and 0.0.2
   and Desktop App 0.0.1) remain available under that license as they were
   published. This Agreement applies to later versions.
-- **Language.** This Agreement is written in English; any translation is for
-  convenience only.
+- **Language.** This Agreement is available in French (`EULA.fr.md`, also at
+  https://whyfull.app/legal/fr/) and in English. The French version is made
+  available to consumers in Quebec first, before the English version, and
+  you may choose to be bound by the English version only after the French
+  version has been made available to you. Both versions have the same legal effect. If they
+  differ, the French version prevails for consumers in Quebec, and the
+  English version prevails for everyone else.
 - **Notices.** We may send notices to the email address associated with your
-  purchase. You may send notices to [CONTACT EMAIL].
+  purchase. You may send notices to support@whyfull.app.
 
 ## 21. Contact
 
-Felix Menard, [LEGAL ENTITY / ADDRESS]
-Email: [CONTACT EMAIL]
-Web: https://whyfull.app/legal/
+Felix Menard, Montreal, Quebec, Canada
+Email: support@whyfull.app (legal questions, privacy, support, security and
+volume purchases)
+Web: https://whyfull.app/legal/ (in French: https://whyfull.app/legal/fr/)

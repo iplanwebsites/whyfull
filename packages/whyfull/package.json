@@ -50,7 +50,9 @@
     "LICENSE",
     "NOTICE",
     "EULA.md",
+    "EULA.fr.md",
     "PRIVACY.md",
+    "PRIVACY.fr.md",
     "TRADEMARKS.md"
   ],
   "engines": {

@@ -10,6 +10,8 @@ Licensing
 - Use of the software (CLI and desktop app): Whyfull End User License
   Agreement (EULA.md, also at https://whyfull.app/legal/).
 - Privacy: PRIVACY.md. Trademarks: TRADEMARKS.md. Contributions: CONTRIBUTING.md.
+- French versions of the EULA and the privacy notice: EULA.fr.md and
+  PRIVACY.fr.md (also at https://whyfull.app/legal/fr/).
 - Releases published before the relicensing (npm "whyfull" 0.0.1 and 0.0.2,
   the desktop app 0.0.1 and the git history before the relicensing commit)
   remain available under the Apache License, Version 2.0, as published.

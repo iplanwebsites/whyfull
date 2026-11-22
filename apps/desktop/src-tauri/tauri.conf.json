@@ -23,6 +23,8 @@
       "runtime/NOTICE": "runtime/NOTICE",
       "runtime/EULA.md": "runtime/EULA.md",
       "runtime/PRIVACY.md": "runtime/PRIVACY.md",
+      "runtime/EULA.fr.md": "runtime/EULA.fr.md",
+      "runtime/PRIVACY.fr.md": "runtime/PRIVACY.fr.md",
       "runtime/NODE-LICENSE": "runtime/NODE-LICENSE",
       "runtime/ENGINE-THIRD-PARTY.txt": "runtime/ENGINE-THIRD-PARTY.txt",
       "runtime/version.json": "runtime/version.json"

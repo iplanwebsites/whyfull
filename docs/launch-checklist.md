@@ -8,15 +8,38 @@ $19 after a 30-day trial. Run these steps in order. Details live in
 
 ## 1. Legal (blocking)
 
-- [ ] Fill in the placeholders in `EULA.md`, `PRIVACY.md`, `TRADEMARKS.md`,
-      `CONTRIBUTING.md`, `LICENSE` and `apps/brochure/legal/index.html`:
-      `[LEGAL ENTITY / ADDRESS]`, `[GOVERNING LAW]`, `[VENUE]`,
-      `[CONTACT EMAIL]`, `[EFFECTIVE DATE]`, `[EMAIL PROVIDER]`,
-      `[RETENTION PERIOD]`.
-- [ ] Have a lawyer review it. Open points:
+- [x] Fill in the placeholders in `EULA.md`, `PRIVACY.md`, `TRADEMARKS.md`,
+      `CONTRIBUTING.md` and `LICENSE`: Felix Menard, Montreal, Quebec,
+      Canada; Quebec law and the courts of Montreal (consumers keep their own
+      law and courts); support@whyfull.app; Resend; retention taken from the
+      code. Only `[EFFECTIVE DATE]` is left, on purpose: set it once the
+      lawyer approves, and the "Draft" banner goes away.
+- [x] French versions for Quebec: `EULA.fr.md` and `PRIVACY.fr.md`, published
+      at whyfull.app/legal/fr/.
+- [ ] Have a lawyer review it. The full list is at the top of `EULA.md`.
+      Open points:
+  - **Merchant's address.** Quebec's Consumer Protection Act requires the
+    merchant's address in a distance contract. Only "Montreal, Quebec,
+    Canada" is given; add a mailing address if the lawyer says Stripe's
+    disclosures as merchant of record are not enough.
+  - **Merchant of record.** Confirm the EULA (Section 5) and privacy wording
+    against Stripe's Managed Payments terms: Stripe as reseller and merchant
+    of record, Felix Menard as licensor, Stripe as an independent controller
+    for payment data, and who answers for refunds and the legal warranty.
+  - **French first (Quebec).** The Charter of the French language requires
+    standard-form consumer contracts in French, given before any English
+    version. Confirm the language clauses (the French version prevails in
+    Quebec), and make the checkout, the website and the desktop app show the
+    French version first to Quebec customers. Today the npm package and the
+    desktop app bundle only the English `EULA.md` and `PRIVACY.md`, and
+    `LICENSE`, `TRADEMARKS.md` and `CONTRIBUTING.md` exist in English only.
+  - **Quebec consumer and privacy law.** The notices before Sections 9 and 10
+    of the EULA, the legal warranty, the indemnity and changes to the terms;
+    for Law 25, whether communicating data outside Quebec (Cloudflare,
+    Resend, Stripe) needs a written assessment.
   - **Refund and liability wording in other countries.** "No questions asked"
-    refunds and the liability limits may clash with EU, UK and Australian
-    consumer law.
+    refunds, the EU/UK withdrawal right for digital content and the liability
+    limits may clash with EU, UK and Australian consumer law.
   - **The contributor agreement.** It assigns copyright, and some countries
     don't allow assignment or waiving moral rights. Agreeing by a statement in
     a pull request may also be weak evidence.
@@ -24,14 +47,16 @@ $19 after a 30-day trial. Run these steps in order. Details live in
     paying is treated as a breach, with no technical enforcement.
   - **Source-license limits.** Whether "review only" use of the source and the
     ban on AI training can be enforced.
-- [ ] The legal page (`apps/brochure/legal/index.html`) is now generated
-      from the Markdown files by `apps/brochure/scripts/build-legal.mjs` on
-      every brochure build. After changing the Markdown, run
+- [ ] The legal pages (`apps/brochure/legal/index.html` and, in French,
+      `apps/brochure/legal/fr/index.html`) are generated from the Markdown
+      files by `apps/brochure/scripts/build-legal.mjs` on every brochure
+      build. Add `legal/fr/index.html` to the Vite inputs in
+      `apps/brochure/vite.config.ts`. After changing the Markdown, run
       `pnpm --filter @whyfull/brochure legal` and commit the page; the
-      brochure typecheck fails while it is stale. The "Draft" banner disappears
-      once no `[PLACEHOLDER]` is left.
+      brochure typecheck fails while either page is stale. The "Draft"
+      banner disappears once no `[PLACEHOLDER]` is left.
 - [ ] Confirm that whyfull.app has Cloudflare Web Analytics switched off, or
-      update `PRIVACY.md` to say it's on.
+      update `PRIVACY.md` and `PRIVACY.fr.md` to say it's on.
 
 ## 2. Keys and secrets
 
@@ -42,9 +67,9 @@ $19 after a 30-day trial. Run these steps in order. Details live in
       for `checkout.session.completed`,
       `checkout.session.async_payment_succeeded` and `charge.refunded`, and
       turn on receipt emails for successful payments.
-- [ ] Decide how to handle sales tax: Stripe Tax (you register and file
-      yourself) or a merchant of record that handles it for you (see
-      commerce.md).
+- [ ] Sales tax: decided, Stripe Managed Payments as merchant of record.
+      Activate Managed Payments in the Stripe dashboard (eligibility review),
+      then set `STRIPE_MANAGED_PAYMENTS` to `"true"` in `wrangler.jsonc`.
 - [ ] Database: run `wrangler d1 create whyfull-licenses`, paste the real
       `database_id` into `apps/brochure/wrangler.jsonc` (deploys fail until
       you do), then apply the migrations.

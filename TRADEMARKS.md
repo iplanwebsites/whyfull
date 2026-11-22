@@ -1,7 +1,6 @@
 # Whyfull Trademark Policy
 
-> **Draft: needs lawyer review before launch.** Placeholders to fill in:
-> `[CONTACT EMAIL]`.
+> **Draft: needs lawyer review before launch.**
 
 "Whyfull", the Whyfull logo and the Whyfull app icon (the "Marks") are
 trademarks of Felix Menard. Whether or not they are registered, they identify
@@ -42,4 +41,4 @@ Without our prior written permission, you may not:
 
 ## Questions and permission
 
-To ask for permission or report misuse, contact [CONTACT EMAIL].
+To ask for permission or report misuse, contact support@whyfull.app.

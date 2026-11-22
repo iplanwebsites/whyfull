@@ -107,6 +107,8 @@ await cp(join(root, "LICENSE"), join(runtime, "LICENSE"))
 await cp(join(root, "NOTICE"), join(runtime, "NOTICE"))
 await cp(join(root, "EULA.md"), join(runtime, "EULA.md"))
 await cp(join(root, "PRIVACY.md"), join(runtime, "PRIVACY.md"))
+await cp(join(root, "EULA.fr.md"), join(runtime, "EULA.fr.md"))
+await cp(join(root, "PRIVACY.fr.md"), join(runtime, "PRIVACY.fr.md"))
 // Installers (the NSIS license page) need plain text: strip Markdown markup,
 // keep ASCII so no code page can garble it, and use CRLF line endings.
 const eula = await readFile(join(root, "EULA.md"), "utf8")

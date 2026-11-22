@@ -16,7 +16,7 @@ if you are comfortable sharing it, the relevant part of `whyfull --json`.
 Reports can contain private paths: remove anything you'd rather not share.
 
 For security problems, please do not open a public issue; write to
-[CONTACT EMAIL] instead.
+support@whyfull.app instead.
 
 ## Pull requests
 
@@ -30,8 +30,7 @@ For security problems, please do not open a public issue; write to
 
 ## Contributor License Agreement
 
-> **Draft: needs lawyer review before launch.** Placeholders to fill in:
-> `[CONTACT EMAIL]`, `[GOVERNING LAW]`, `[VENUE]`.
+> **Draft: needs lawyer review before launch.**
 
 This Contributor License Agreement ("CLA") applies to every Contribution You
 submit to Felix Menard ("the Owner") for Whyfull.
@@ -96,11 +95,13 @@ notes or the git history, but is not obliged to.
 wrote independently of Whyfull, as long as You do not use Whyfull's
 materials beyond what the Source-Available License allows.
 
-**10. General.** This CLA is governed by the laws of [GOVERNING LAW], and the
-courts of [VENUE] have jurisdiction. If any provision is unenforceable, the
-rest remains in effect. This CLA applies to all Contributions You submit
-after accepting it, until You notify [CONTACT EMAIL] in writing that it no
-longer applies to future Contributions.
+**10. General.** This CLA is governed by the laws of the Province of Quebec
+and the federal laws of Canada applicable there, and the courts of the
+judicial district of Montreal, Quebec, have jurisdiction. If any provision is
+unenforceable, the rest remains in effect. This CLA applies to all
+Contributions You submit after accepting it, until You notify
+support@whyfull.app in writing that it no longer applies to future
+Contributions.
 
 ### How to sign
 

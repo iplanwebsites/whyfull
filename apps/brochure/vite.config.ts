@@ -44,6 +44,9 @@ export default defineConfig({
           new URL("./recover/index.html", import.meta.url)
         ),
         legal: fileURLToPath(new URL("./legal/index.html", import.meta.url)),
+        legalFr: fileURLToPath(
+          new URL("./legal/fr/index.html", import.meta.url)
+        ),
       },
     },
   },
