@@ -13,7 +13,9 @@
     "deploy": "pnpm build && wrangler deploy",
     "deploy:dry-run": "pnpm build && wrangler deploy --dry-run",
     "test": "node --experimental-strip-types --test test/*.test.mjs",
-    "secret:license": "node scripts/put-license-key.mjs"
+    "secret:license": "node scripts/put-license-key.mjs",
+    "deploy:staging": "pnpm build && wrangler deploy --env staging",
+    "stripe:setup": "node scripts/stripe-setup.mjs"
   },
   "devDependencies": {
     "vite": "^8",

@@ -29,6 +29,33 @@
     // for the account; Stripe then handles tax and receipts.
     "STRIPE_MANAGED_PAYMENTS": "false",
   },
+  // Staging: Stripe test mode on whyfull-brochure-staging.<account>.workers.dev.
+  // It signs with its own key (.signing/whyfull-license-staging.pem), so a
+  // test-card purchase never yields a key the real app accepts.
+  // Deploy: pnpm deploy:staging. Stripe setup: pnpm stripe:setup --env staging
+  "env": {
+    "staging": {
+      "name": "whyfull-brochure-staging",
+      "workers_dev": true,
+      "routes": [],
+      "r2_buckets": [
+        { "binding": "DOWNLOADS", "bucket_name": "whyfull-downloads" },
+      ],
+      "d1_databases": [
+        {
+          "binding": "LICENSES",
+          "database_name": "whyfull-licenses-staging",
+          "database_id": "a7a180b0-dd6e-46b4-8221-78c8ec237409",
+          "migrations_dir": "migrations",
+        },
+      ],
+      "vars": {
+        "STRIPE_AUTOMATIC_TAX": "false",
+        "STRIPE_MANAGED_PAYMENTS": "false",
+        "LICENSE_PUBLIC_KEY": "MCowBQYDK2VwAyEAKQ9gtBg3YzbcTBq4Cq+4S/nB48s08yinko6/dIl1AK4=",
+      },
+    },
+  },
   "assets": {
     // Vite generates the complete brochure here; no SSR is needed.
     "directory": "./dist",
