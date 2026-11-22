@@ -1124,3 +1124,71 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* Pricing: free CLI beside the one-time desktop license. */
+.wf-home-plans {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  max-width: 900px;
+  margin-top: 36px;
+}
+.wf-home-plan {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 28px;
+  border: 1px solid var(--wf-home-line);
+  border-radius: 12px;
+}
+.wf-home-plan-featured {
+  border-color: transparent;
+  background: #efefe4;
+}
+.wf-home .wf-home-price {
+  font-family:
+    "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, Georgia,
+    serif;
+  font-size: 44px;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.wf-home-price span {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  letter-spacing: 0;
+  color: var(--wf-home-muted);
+}
+.wf-home-plan ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 15px;
+  color: var(--wf-home-muted);
+  flex: 1;
+}
+.wf-home-plan li + li {
+  margin-top: 6px;
+}
+.wf-home-plan-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
+}
+.wf-home-section > p.wf-home-plan-note {
+  margin-top: 20px;
+  font-size: 13px;
+}
+.wf-home-faq {
+  row-gap: 36px;
+}
+@media (max-width: 680px) {
+  .wf-home-plans {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .wf-home-plan {
+    padding: 24px 20px;
+  }
+}

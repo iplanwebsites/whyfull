@@ -10,6 +10,9 @@ const documents = [
   "README.md",
   "LICENSE",
   "NOTICE",
+  "EULA.md",
+  "PRIVACY.md",
+  "TRADEMARKS.md",
   "docs/viewer.md",
   "docs/personalization.md",
 ]

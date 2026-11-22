@@ -136,6 +136,9 @@ absolute resolved paths, source, or timestamps. Public paths must start with
    Include evidence in the PR. Use an app-managed cleanup command where possible.
 4. Run `pnpm build` and `pnpm --filter whyfull test`, then open a pull request.
    Registry tests check IDs, required fields, safety tiers, and portable paths.
+   Contributions are accepted under the contributor agreement in
+   `CONTRIBUTING.md`; the registry stays part of Whyfull's source-available
+   code and isn't licensed for reuse in other products.
 
 The registry is bundled into the CLI and app. No public definitions are fetched
 at runtime, and drafts are never submitted automatically. Built-in locations in

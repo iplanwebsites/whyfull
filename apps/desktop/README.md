@@ -13,6 +13,19 @@ external binary; the portable CLI carries a platform-matched copy under
 `engine/native`. `app-engine` is the JS-only resource copy used by Tauri, so a
 second unsigned helper is not embedded in the app's Resources directory.
 
+## License and trial
+
+The desktop app is a paid product with an honor-system trial: free for 30 days
+of use (days the app is opened), then **$19 one-time** per person for all of
+their computers, updates included. After the trial the app keeps working and
+shows a reminder at most once a day after a scan; the EULA still requires a
+license for continued use. **Support Whyfull** in the app accepts a key or the
+purchase-email link, and links to buying (`/buy/`), key recovery (`/recover/`)
+and the terms (`/legal/`) on whyfull.app. Keys are verified offline; the app
+sends nothing anywhere. The bundled CLI (`whyfull --cli` and the installed
+launcher) is free and never checks a license. See
+[`docs/viewer.md`](../../docs/viewer.md#desktop-license) for the mechanics.
+
 ## Build and run
 
 Prerequisites: Node 22.23.2, pnpm 9.12, Rust stable (at least 1.90), and the

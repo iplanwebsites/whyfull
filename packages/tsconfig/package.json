@@ -2,7 +2,7 @@
   "name": "@whyfull/tsconfig",
   "version": "0.0.0",
   "private": true,
-  "license": "MIT",
+  "license": "UNLICENSED",
   "files": [
     "*.json"
   ]

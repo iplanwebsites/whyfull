@@ -21,6 +21,8 @@
       "runtime/desktop.mjs": "runtime/desktop.mjs",
       "runtime/LICENSE": "runtime/LICENSE",
       "runtime/NOTICE": "runtime/NOTICE",
+      "runtime/EULA.md": "runtime/EULA.md",
+      "runtime/PRIVACY.md": "runtime/PRIVACY.md",
       "runtime/NODE-LICENSE": "runtime/NODE-LICENSE",
       "runtime/ENGINE-THIRD-PARTY.txt": "runtime/ENGINE-THIRD-PARTY.txt",
       "runtime/version.json": "runtime/version.json"
@@ -28,6 +30,8 @@
     "category": "Utility",
     "shortDescription": "Find where your disk space went",
     "copyright": "Copyright Felix Menard",
+    "license": "LicenseRef-Whyfull-EULA",
+    "licenseFile": "runtime/EULA.txt",
     "macOS": {
       "minimumSystemVersion": "11.0",
       "entitlements": "Entitlements.plist"

@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "description": "Work-in-progress native build of whyfull compiled with scriptc. Not published to npm — distributed through a separate channel. See README.",
+  "license": "UNLICENSED",
   "type": "module",
   "scripts": {
     "coverage": "scriptc coverage ../whyfull/src/cli.ts",

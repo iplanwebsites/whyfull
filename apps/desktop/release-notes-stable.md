@@ -10,3 +10,5 @@ To install the desktop app’s CLI, open Whyfull → Install command-line tool�
 Desktop apps check for signed updates on launch and from Whyfull → Check for updates…. You choose when to install and restart. The installed desktop CLI follows those updates. CLI archives update by directory replacement; npm installations update separately with `npm install -g whyfull@latest`.
 
 `SHA256SUMS.txt` lists checksums for every user-facing download.
+
+The command line is free. The desktop app is free for 30 days of use, then a $19 one-time license (per person, all your computers, updates included, 30-day refund): https://whyfull.app/buy/ · Terms: https://whyfull.app/legal/

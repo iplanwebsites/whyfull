@@ -160,6 +160,24 @@
   gap: 24px;
   flex-wrap: wrap;
 }
+.wf-download-pricing {
+  max-width: 720px;
+  margin-top: 28px;
+  padding: 22px 24px;
+  border-radius: 12px;
+  background: #efefe4;
+}
+.wf-download-pricing > p:first-child {
+  margin: 0;
+  font-size: 15px;
+}
+.wf-download-pricing .wf-home-small {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 24px;
+  margin-top: 12px;
+}
 .wf-download-cli,
 .wf-download-npm {
   border-top: 1px solid var(--wf-home-line);

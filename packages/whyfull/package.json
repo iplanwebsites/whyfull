@@ -2,7 +2,7 @@
   "name": "whyfull",
   "version": "0.0.3",
   "private": false,
-  "description": "Find where disk space went on a dev machine (AI caches, package stores, build output), ranked by how safe each is to delete. Local disk explorer with demo-first macOS Trash cleanup.",
+  "description": "Find where disk space went on a dev machine: AI models (Hugging Face, Ollama, LM Studio), caches, package stores, Docker, build output and agent worktrees, ranked by how safe each is to delete. Free CLI with JSON reports for coding agents, a local browser explorer and demo-first macOS Trash cleanup. Source available.",
   "author": "Felix Menard",
   "homepage": "https://github.com/iplanwebsites/whyfull#readme",
   "bugs": {
@@ -23,9 +23,13 @@
     "lmstudio",
     "docker",
     "node_modules",
-    "devtools"
+    "devtools",
+    "disk-usage",
+    "ai-models",
+    "git-worktree",
+    "cli"
   ],
-  "license": "Apache-2.0",
+  "license": "SEE LICENSE IN LICENSE",
   "type": "module",
   "bin": {
     "whyfull": "dist/cli.mjs"
@@ -44,7 +48,10 @@
     "docs/viewer.md",
     "docs/personalization.md",
     "LICENSE",
-    "NOTICE"
+    "NOTICE",
+    "EULA.md",
+    "PRIVACY.md",
+    "TRADEMARKS.md"
   ],
   "engines": {
     "node": ">=22.18"

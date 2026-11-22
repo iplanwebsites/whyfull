@@ -12,3 +12,5 @@ For an unsigned Mac preview, first try opening Whyfull, then open System Setting
 Preview builds and standalone CLI archives update manually. Download a newer release and replace your installed copy. They do not follow the stable automatic-update channel.
 
 `SHA256SUMS.txt` lists checksums for every user-facing download. npm is available separately with `npx whyfull@latest --json`; npm latest may differ from this preview.
+
+The command line is free. The desktop app is free for 30 days of use, then a $19 one-time license (per person, all your computers, updates included, 30-day refund): https://whyfull.app/buy/ · Terms: https://whyfull.app/legal/

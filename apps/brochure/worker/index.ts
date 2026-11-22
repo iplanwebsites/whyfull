@@ -1,3 +1,4 @@
+import { handleCommerce, protectKeyPage, type CommerceEnv } from "./commerce.ts"
 import { loadDownloads } from "./downloads.ts"
 import {
   firstRelease,
@@ -5,7 +6,7 @@ import {
   firstReleaseFiles,
 } from "./first-release.ts"
 
-interface Env {
+interface Env extends CommerceEnv {
   ASSETS: { fetch(request: Request): Promise<Response> }
   DOWNLOADS: {
     head(key: string): Promise<{ size: number } | null>
@@ -24,6 +25,9 @@ export default {
     context: { waitUntil(promise: Promise<unknown>): void }
   ): Promise<Response> {
     const url = new URL(request.url)
+    // /buy/, Stripe webhook, license lookup and recovery. See docs/commerce.md.
+    const commerce = await handleCommerce(request, env, url, context)
+    if (commerce) return commerce
     if (url.pathname.startsWith("/downloads/v0.0.1/")) {
       if (request.method !== "GET" && request.method !== "HEAD")
         return new Response(null, {
@@ -116,6 +120,6 @@ export default {
       }
       return request.method === "HEAD" ? new Response(null, response) : response
     }
-    return env.ASSETS.fetch(request)
+    return protectKeyPage(url.pathname, await env.ASSETS.fetch(request))
   },
 }

@@ -4,7 +4,30 @@
   "main": "worker/index.ts",
   "compatibility_date": "2026-10-19",
   "routes": [{ "pattern": "whyfull.app", "custom_domain": true }],
-  "r2_buckets": [{ "binding": "DOWNLOADS", "bucket_name": "whyfull-downloads" }],
+  "r2_buckets": [
+    { "binding": "DOWNLOADS", "bucket_name": "whyfull-downloads" },
+  ],
+  // Issued licenses and recovery rate limits. See docs/commerce.md.
+  "d1_databases": [
+    {
+      "binding": "LICENSES",
+      "database_name": "whyfull-licenses",
+      // PLACEHOLDER: replace with the id printed by
+      // `wrangler d1 create whyfull-licenses` before deploying.
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations",
+    },
+  ],
+  // Non-secret settings. Until STRIPE_PRICE_ID is set, /buy/ redirects to
+  // /download/ as before. Also set, when ready:
+  //   "STRIPE_PRICE_ID": "price_…"   the one-time $19 Price
+  //   "EMAIL_FROM": "Whyfull <licenses@whyfull.app>"   a Resend-verified sender
+  //   "SUPPORT_EMAIL": "support@whyfull.app"   reply-to and contact address
+  // Secrets (never here; `wrangler secret put <NAME>`): STRIPE_SECRET_KEY,
+  // STRIPE_WEBHOOK_SECRET, LICENSE_PRIVATE_KEY, RESEND_API_KEY.
+  "vars": {
+    "STRIPE_AUTOMATIC_TAX": "false",
+  },
   "assets": {
     // Vite generates the complete brochure here; no SSR is needed.
     "directory": "./dist",

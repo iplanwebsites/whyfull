@@ -6,6 +6,8 @@ const viewer = await startViewer({
   root: latestRoot ?? homedir(),
   scanOnStart: true,
   open: false,
+  // Honor-system reminder after the trial. npx and the CLI never enable it.
+  license: {},
 })
 process.stdout.write(JSON.stringify({ url: viewer.url }) + "\n")
 let closing = false

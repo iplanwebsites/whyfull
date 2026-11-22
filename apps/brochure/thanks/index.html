@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#faf9f2" />
+    <meta name="robots" content="noindex" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Thank you — Your Whyfull license</title>
+    <meta
+      name="description"
+      content="Your Whyfull desktop license key and how to activate it."
+    />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="stylesheet" href="/src/style.css" />
+    <link rel="stylesheet" href="/src/download.css" />
+    <link rel="stylesheet" href="/src/commerce.css" />
+  </head>
+  <body>
+    <div class="wf-home wf-download">
+      <a class="wf-home-skip" href="#main">Skip to content</a>
+      <header class="wf-home-nav">
+        <a class="wf-home-wordmark" href="/" aria-label="Whyfull home"
+          >whyfull<span class="wf-home-dot">.</span></a
+        >
+        <nav aria-label="Main navigation">
+          <a href="https://github.com/iplanwebsites/whyfull">Source</a
+          ><a href="https://github.com/iplanwebsites/whyfull#readme">Docs</a
+          ><a href="/download/">Download</a>
+        </nav>
+      </header>
+      <main id="main">
+        <section class="wf-commerce" aria-labelledby="thanks-title">
+          <p class="wf-download-eyebrow">Purchase complete</p>
+          <h1 id="thanks-title">Thank you.<br /><em>You keep it going.</em></h1>
+          <p
+            class="wf-commerce-status"
+            id="wf-license-status"
+            role="status"
+            aria-live="polite"
+          >
+            Getting your license…
+          </p>
+          <noscript
+            ><p class="wf-commerce-status">
+              Your license key has been emailed to you. Turn on JavaScript to
+              see it here.
+            </p></noscript
+          >
+          <p class="wf-home-small" id="wf-license-help" hidden>
+            Paid already? Your key is emailed to you, or
+            <a href="/recover/">request it again</a>.
+          </p>
+          <div class="wf-commerce-key" id="wf-license" hidden>
+            <p class="wf-commerce-key-label">Your license key</p>
+            <code id="wf-license-key"></code>
+            <p class="wf-home-small" id="wf-license-holder" hidden></p>
+            <div class="wf-commerce-actions">
+              <button type="button" class="wf-home-button" id="wf-license-copy">
+                Copy key</button
+              ><button
+                type="button"
+                class="wf-commerce-secondary"
+                id="wf-license-file"
+              >
+                Download license file
+              </button>
+            </div>
+            <p
+              class="wf-home-small"
+              id="wf-license-copy-status"
+              role="status"
+              aria-live="polite"
+            ></p>
+          </div>
+          <div class="wf-commerce-steps" id="wf-license-steps" hidden>
+            <h3>Activate in Whyfull</h3>
+            <ol>
+              <li>Open Whyfull on your computer.</li>
+              <li>Choose <strong>Whyfull menu → Support Whyfull…</strong></li>
+              <li>
+                Paste the key (or the whole link from your email) and choose
+                <strong>Activate</strong>.
+              </li>
+            </ol>
+            <p class="wf-home-small">
+              One license covers every computer you use. The key is checked
+              offline; Whyfull never phones home.
+            </p>
+          </div>
+          <section
+            class="wf-commerce-section"
+            aria-labelledby="installers-title"
+          >
+            <h2 id="installers-title">Need the app?</h2>
+            <p id="wf-installers-status" role="status">
+              Checking for downloads…
+            </p>
+            <div class="wf-commerce-installers" id="wf-installers"></div>
+          </section>
+          <section class="wf-commerce-section" aria-labelledby="recover-title">
+            <h2 id="recover-title">Keep it somewhere safe.</h2>
+            <p>
+              Your key is also in your purchase email. If you ever lose it,
+              <a href="/recover/">we’ll email it to you again</a>. Questions or
+              a refund within 30 days? Just reply to that email.
+            </p>
+          </section>
+        </section>
+      </main>
+      <footer class="wf-home-footer">
+        <a class="wf-home-wordmark" href="/">whyfull.</a>
+        <p>Source available · Make room for what’s next.</p>
+        <nav aria-label="Footer navigation">
+          <a href="/legal/">Terms &amp; privacy</a
+          ><a href="/recover/">Find my license</a>
+        </nav>
+      </footer>
+    </div>
+    <script type="module" src="/src/thanks.js"></script>
+  </body>
+</html>

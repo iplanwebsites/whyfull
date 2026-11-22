@@ -7,7 +7,7 @@
     <title>Whyfull — Disk space analyzer for developers and AI agents</title>
     <meta
       name="description"
-      content="Find the worktrees, Docker caches, and AI models filling your disk. Give your coding agent a measured report with cleanup guidance. Free, open source, and local."
+      content="Find the worktrees, Docker caches, and AI models filling your disk. Give your coding agent a measured report with cleanup guidance. Free command-line tool, runs locally."
     />
     <link rel="canonical" href="https://whyfull.app/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -43,7 +43,7 @@
     />
     <meta
       name="twitter:description"
-      content="Find the worktrees, Docker caches, and AI models filling your disk. Give your coding agent a measured report with cleanup guidance. Free, open source, and local."
+      content="Find the worktrees, Docker caches, and AI models filling your disk. Give your coding agent a measured report with cleanup guidance. Free command-line tool, runs locally."
     />
     <meta
       name="twitter:image"
@@ -62,7 +62,7 @@
             "@id": "https://whyfull.app/#page",
             "url": "https://whyfull.app/",
             "name": "Whyfull \u2014 Disk space analyzer for developers and AI agents",
-            "description": "Find the worktrees, Docker caches, and AI models filling your disk. Give your coding agent a measured report with cleanup guidance. Free, open source, and local.",
+            "description": "Find the worktrees, Docker caches, and AI models filling your disk. Give your coding agent a measured report with cleanup guidance. Free command-line tool, runs locally.",
             "isPartOf": {
               "@id": "https://whyfull.app/#website"
             },
@@ -81,17 +81,27 @@
             "@id": "https://whyfull.app/#software",
             "name": "Whyfull",
             "url": "https://whyfull.app/",
-            "description": "Find the worktrees, Docker caches, and AI models filling your disk. Give your coding agent a measured report with cleanup guidance. Free, open source, and local.",
+            "description": "Find the worktrees, Docker caches, and AI models filling your disk. Give your coding agent a measured report with cleanup guidance. Free command-line tool, runs locally.",
             "applicationCategory": "DeveloperApplication",
             "operatingSystem": "macOS, Windows, Linux",
-            "license": "https://github.com/iplanwebsites/whyfull/blob/main/LICENSE",
+            "license": "https://whyfull.app/legal/",
             "downloadUrl": "https://whyfull.app/download/",
             "image": "https://whyfull.app/images/disk-donut.png",
-            "offers": {
-              "@type": "Offer",
-              "price": "0",
-              "priceCurrency": "USD"
-            }
+            "offers": [
+              {
+                "@type": "Offer",
+                "name": "Whyfull command-line tool",
+                "price": "0",
+                "priceCurrency": "USD"
+              },
+              {
+                "@type": "Offer",
+                "name": "Whyfull desktop app license (one-time, per person)",
+                "price": "19",
+                "priceCurrency": "USD",
+                "url": "https://whyfull.app/buy/"
+              }
+            ]
           }
         ]
       }
@@ -107,6 +117,7 @@
         <nav aria-label="Main navigation">
           <a href="https://github.com/iplanwebsites/whyfull">Source</a>
           <a href="https://github.com/iplanwebsites/whyfull#readme">Docs</a>
+          <a href="#pricing">Pricing</a>
           <a href="/download/">Download</a>
           <span class="wf-home-github-star"
             ><a
@@ -166,7 +177,7 @@
               </div>
             </div>
             <p class="wf-home-copy-status">
-              Free &amp; open source. Runs locally. No automatic deletion.
+              Free command-line tool. Runs locally. No automatic deletion.
             </p>
           </div>
           <figure class="wf-home-disk-art">
@@ -520,6 +531,115 @@ Find the biggest useful cleanup opportunities, explain what I’d be removing, a
           </div>
         </section>
         <section
+          id="pricing"
+          class="wf-home-section wf-home-pricing"
+          aria-labelledby="pricing-title"
+        >
+          <h2 id="pricing-title">Simple pricing.</h2>
+          <p>
+            The command line is free. The desktop app is yours to try for 30
+            days, then a one-time $19.
+          </p>
+          <div class="wf-home-plans">
+            <article class="wf-home-plan">
+              <h3>Command line</h3>
+              <p class="wf-home-price">Free <span>forever</span></p>
+              <ul>
+                <li>
+                  <code>npx whyfull</code>, the standalone CLI, and the CLI
+                  inside the app
+                </li>
+                <li>
+                  Interactive picker, terminal report, and
+                  <code>--ui</code> browser viewer
+                </li>
+                <li>JSON reports and the agent skill</li>
+                <li>Personal and commercial use, no key needed</li>
+              </ul>
+              <a class="wf-home-text-link" href="#how-it-works"
+                >Try <code>npx whyfull</code>
+                <span aria-hidden="true">↑</span></a
+              >
+            </article>
+            <article class="wf-home-plan wf-home-plan-featured">
+              <h3>Desktop app</h3>
+              <p class="wf-home-price">$19 <span>one-time</span></p>
+              <ul>
+                <li>Free 30-day trial: counted in days you open the app</li>
+                <li>One license per person, on all your computers</li>
+                <li>Updates included</li>
+                <li>30-day refund, no questions asked</li>
+              </ul>
+              <div class="wf-home-plan-actions">
+                <a class="wf-home-button" href="/buy/">Buy Whyfull · $19</a>
+                <a class="wf-home-text-link" href="/download/"
+                  >Start the free trial</a
+                >
+              </div>
+            </article>
+          </div>
+          <p class="wf-home-small wf-home-plan-note">
+            Prices in USD. Already bought it?
+            <a href="/recover/">Lost your key?</a> ·
+            <a href="/legal/">Terms, license, and privacy</a>
+          </p>
+        </section>
+        <section id="faq" class="wf-home-section" aria-labelledby="faq-title">
+          <h2 id="faq-title">Fair questions.</h2>
+          <div class="wf-home-features wf-home-faq">
+            <article>
+              <h3>Why source available, not open source?</h3>
+              <p>
+                Whyfull’s source is public so you can see exactly what it does
+                with your disk, and audit it for security and privacy. It isn’t
+                open source: you may read and review it, not copy or reuse it.
+                Earlier releases stay under Apache-2.0, as published.
+              </p>
+            </article>
+            <article>
+              <h3>Can’t I just build it without the reminder?</h3>
+              <p>
+                You could. The app never locks features; after the trial it
+                shows a reminder at most once a day. The terms still ask for a
+                license to keep using the desktop app. If it saves you space,
+                $19 keeps it going.
+              </p>
+            </article>
+            <article>
+              <h3>Does it phone home?</h3>
+              <p>
+                No. The app and CLI send nothing anywhere: no telemetry, no
+                license check-ins. Keys are verified offline. Buying stores only
+                your email, an optional name, and order details.
+              </p>
+            </article>
+            <article>
+              <h3>Buying for a team or company?</h3>
+              <p>
+                Buy one license per person who uses the desktop app; each covers
+                all of that person’s computers. The CLI is free for everyone,
+                including at work. For volume pricing, use the contact on the
+                <a href="/legal/">terms page</a>.
+              </p>
+            </article>
+            <article>
+              <h3>What if it isn’t for me?</h3>
+              <p>
+                Ask for a refund within 30 days, no questions asked. And if the
+                command line is all you need, it stays free.
+              </p>
+            </article>
+            <article>
+              <h3>What about future versions?</h3>
+              <p>
+                Updates are included. If a future major version is ever a paid
+                upgrade, we’ll say so in advance, and your license keeps working
+                with the versions it covers.
+              </p>
+            </article>
+          </div>
+        </section>
+        <section
           id="explore"
           class="wf-home-section wf-home-explore"
           aria-labelledby="explore-title"
@@ -609,7 +729,10 @@ Find the biggest useful cleanup opportunities, explain what I’d be removing, a
                 Start with a prompt, install the skill for future runs, or
                 explore visually in the app. The desktop app includes the CLI.
               </p>
-              <p class="wf-home-small">Free. Private. Open source.</p>
+              <p class="wf-home-small">
+                Free CLI. 30-day trial for the app. Private and source
+                available.
+              </p>
             </div>
             <div class="wf-home-actions wf-home-primary-actions">
               <button
@@ -640,10 +763,11 @@ Find the biggest useful cleanup opportunities, explain what I’d be removing, a
       </main>
       <footer class="wf-home-footer">
         <a class="wf-home-wordmark" href="/">whyfull.</a>
-        <p>Open source · Apache 2.0 · Make room for what’s next.</p>
+        <p>Source available · Make room for what’s next.</p>
         <nav aria-label="Footer navigation">
-          <a href="/download/">Download</a
-          ><a href="https://github.com/iplanwebsites/whyfull">GitHub ↗</a
+          <a href="/download/">Download</a><a href="/#pricing">Pricing</a
+          ><a href="/legal/">Terms</a
+          ><a href="https://github.com/iplanwebsites/whyfull">Source ↗</a
           ><a href="https://www.npmjs.com/package/whyfull">npm ↗</a>
         </nav>
       </footer>

@@ -485,6 +485,19 @@ stored in tab-local session storage to survive reloads. APIs require a bearer
 token and validate Host and Origin; no CORS access is enabled. Static assets are
 allowlisted. A restrictive content policy blocks external assets and framing.
 
+### Desktop license
+
+Only viewers started by the desktop app enable `/api/license`; `npx whyfull --ui`
+and other CLI viewers report `{ "enabled": false }` and never show license UI.
+The desktop app counts distinct days it is opened (30 trial days), then shows a
+reminder at most once a day after a completed scan. Nothing is disabled; the
+terms still require a license for continued desktop use. Keys are Ed25519-signed
+and verified offline from `license.json` beside `config.json`; no request
+leaves the machine. Because the webview cannot navigate off-origin, the
+`open` action (`{ "action": "open", "page": "buy" }`) asks the server to open a
+fixed allowlist of whyfull.app pages (`buy`, `recover`, `legal`) in the default
+browser; `checkout` remains an alias for `buy`.
+
 ### Local API security
 
 The server listens only on IPv4 loopback (`127.0.0.1`) at an OS-assigned port.

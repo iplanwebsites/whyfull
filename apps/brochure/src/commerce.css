@@ -1,0 +1,125 @@
+/* /thanks/, /activate/ and /recover/. Builds on style.css and download.css. */
+.wf-commerce {
+  max-width: 760px;
+  padding: 80px 0 40px;
+}
+.wf-commerce h1 {
+  font-size: clamp(44px, 5.4vw, 72px);
+}
+.wf-commerce-status {
+  margin-top: 24px !important;
+  font-size: 17px;
+}
+.wf-commerce-key {
+  margin-top: 28px;
+  padding: 22px 24px;
+  border: 2px solid var(--wf-home-ink);
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 6px 6px 0 var(--wf-home-pink);
+}
+.wf-commerce-key-label {
+  font-size: 12px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--wf-home-muted);
+}
+.wf-commerce-key code {
+  display: block;
+  margin-top: 10px;
+  font-size: 13px;
+  line-height: 1.55;
+  word-break: break-all;
+  user-select: all;
+}
+.wf-commerce-key .wf-home-small {
+  margin-top: 12px;
+}
+.wf-commerce-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 20px;
+}
+.wf-commerce-secondary {
+  border: 1px solid var(--wf-home-line);
+  border-radius: 3px;
+  background: transparent;
+  padding: 12px 18px;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.wf-commerce-secondary:hover {
+  border-color: var(--wf-home-accent);
+}
+.wf-commerce-steps {
+  margin-top: 36px;
+}
+.wf-commerce-steps ol {
+  padding-left: 22px;
+  margin: 14px 0 0;
+}
+.wf-commerce-steps li + li {
+  margin-top: 6px;
+}
+.wf-commerce-section {
+  margin-top: 44px;
+  padding-top: 28px;
+  border-top: 1px solid var(--wf-home-line);
+}
+.wf-commerce-section h2 {
+  font-size: clamp(26px, 3vw, 34px);
+}
+.wf-commerce-section > p {
+  margin-top: 14px !important;
+  color: var(--wf-home-muted);
+}
+.wf-commerce-installers {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+.wf-commerce-installers [data-primary] {
+  border-color: var(--wf-home-ink);
+}
+.wf-commerce-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+}
+.wf-commerce-form label {
+  flex-basis: 100%;
+  font-size: 14px;
+  font-weight: 500;
+}
+.wf-commerce-form input {
+  flex: 1 1 260px;
+  min-width: 0;
+  padding: 11px 14px;
+  border: 1px solid var(--wf-home-line);
+  border-radius: 3px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+}
+.wf-commerce-form input:focus-visible {
+  outline: 2px solid var(--wf-home-accent);
+  outline-offset: 2px;
+}
+.wf-commerce-form button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+@media (max-width: 640px) {
+  .wf-commerce {
+    padding-top: 48px;
+  }
+  .wf-commerce-key {
+    padding: 18px 16px;
+  }
+}

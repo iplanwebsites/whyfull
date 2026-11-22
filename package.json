@@ -1,7 +1,7 @@
 {
   "name": "whyfull-monorepo",
   "private": true,
-  "license": "Apache-2.0",
+  "license": "UNLICENSED",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/iplanwebsites/whyfull.git"

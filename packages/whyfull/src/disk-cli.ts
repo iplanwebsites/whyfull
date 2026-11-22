@@ -13,6 +13,7 @@ import {
 } from "./disk-policy"
 import { saveDiskSnapshot, startViewer } from "./viewer-server"
 import { human } from "./size"
+import { CLI_LICENSE_NOTICE } from "./license"
 import type { DiskScanOptions, DiskSnapshot } from "./filesystem-types"
 import { diskSnapshotChunks } from "./disk-snapshot"
 import { once } from "node:events"
@@ -98,7 +99,9 @@ export async function runDiskCli(argv: string[]): Promise<void> {
       throw new Error(`Unexpected argument ${unknown || raw._[0]}`)
     if (raw.help) {
       process.stdout.write(
-        "npx whyfull --ui [--root <directory>] [--no-open] [--no-scan] [--workers 1..32] [--engine sync|async] [--scanner node|rust]\nnpx whyfull --scan --root <directory> --json-file <new-file>\nnpx whyfull --ui --report <file> [--no-open] (disk snapshots or CLI JSON reports)\naliases for --ui: --view, ui, app\nwhyfull --directory [path] [--ui | --tui | --scan | --json | --json-file <new-file>]\n--dir [path] is an alias for --directory [path].\n--directory defaults to cwd, opens the UI by default, and caches scans in <path>/.whyfull/inventories/.\nBoth scanners use SQLite and require Node 22.18+. Rust is experimental and requires a bundled helper. Node remains the default.\nCompleted --scan inventories share the UI cache; --ui opens the latest scanned root.\n--no-cache skips loading and saving persistent scan caches; explicit JSON exports still work.\n--allow-trash enables native macOS Trash for live viewers; demo is always the default.\n--exclude <directory> may be repeated. --config <file> selects saved Keep/Exclude rules.\n"
+        "npx whyfull --ui [--root <directory>] [--no-open] [--no-scan] [--workers 1..32] [--engine sync|async] [--scanner node|rust]\nnpx whyfull --scan --root <directory> --json-file <new-file>\nnpx whyfull --ui --report <file> [--no-open] (disk snapshots or CLI JSON reports)\naliases for --ui: --view, ui, app\nwhyfull --directory [path] [--ui | --tui | --scan | --json | --json-file <new-file>]\n--dir [path] is an alias for --directory [path].\n--directory defaults to cwd, opens the UI by default, and caches scans in <path>/.whyfull/inventories/.\nBoth scanners use SQLite and require Node 22.18+. Rust is experimental and requires a bundled helper. Node remains the default.\nCompleted --scan inventories share the UI cache; --ui opens the latest scanned root.\n--no-cache skips loading and saving persistent scan caches; explicit JSON exports still work.\n--allow-trash enables native macOS Trash for live viewers; demo is always the default.\n--exclude <directory> may be repeated. --config <file> selects saved Keep/Exclude rules.\n\n" +
+          CLI_LICENSE_NOTICE +
+          "\n"
       )
       return
     }

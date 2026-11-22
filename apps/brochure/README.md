@@ -119,6 +119,17 @@ points the hero download button at the visitor's platform from `/api/downloads`
 `public/images/app-screenshot.png` (2880×1800) exists. The actual disk viewer
 remains in `apps/web` and is opened with `npx whyfull --ui`.
 
+## Pricing and terms copy
+
+The home page has a `#pricing` section (free CLI; desktop app with a 30-day
+trial, then $19 one-time) and a `#faq` section on source availability, the
+honor-system reminder, privacy, company purchases, and refunds. The download
+page repeats a short pricing note. Buttons link to `/buy/`, `/recover/`, and
+`/legal/`, which the Worker serves. Keep this copy in step with the EULA and
+the in-app Support dialog (`apps/web/src/components/license.tsx`). Whyfull is
+source available, not open source; don't reintroduce "open source" claims in
+copy, meta tags, or JSON-LD.
+
 ## Template source
 
 Adapted at the owner's request from `iplanwebsites/slidepig`, specifically

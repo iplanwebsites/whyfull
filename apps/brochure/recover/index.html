@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#faf9f2" />
+    <meta name="robots" content="noindex" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Find your Whyfull license</title>
+    <meta
+      name="description"
+      content="Get your Whyfull desktop license key emailed to you again."
+    />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="stylesheet" href="/src/style.css" />
+    <link rel="stylesheet" href="/src/download.css" />
+    <link rel="stylesheet" href="/src/commerce.css" />
+  </head>
+  <body>
+    <div class="wf-home wf-download">
+      <a class="wf-home-skip" href="#main">Skip to content</a>
+      <header class="wf-home-nav">
+        <a class="wf-home-wordmark" href="/" aria-label="Whyfull home"
+          >whyfull<span class="wf-home-dot">.</span></a
+        >
+        <nav aria-label="Main navigation">
+          <a href="https://github.com/iplanwebsites/whyfull">Source</a
+          ><a href="https://github.com/iplanwebsites/whyfull#readme">Docs</a
+          ><a href="/download/">Download</a>
+        </nav>
+      </header>
+      <main id="main">
+        <section class="wf-commerce" aria-labelledby="recover-page-title">
+          <p class="wf-download-eyebrow">Lost your key?</p>
+          <h1 id="recover-page-title">Find your<br /><em>license.</em></h1>
+          <p class="wf-commerce-status">
+            Enter the email address you used at checkout. We’ll email every
+            license key bought with it. Keys are never shown on this page.
+          </p>
+          <form
+            class="wf-commerce-form"
+            id="wf-recover-form"
+            action="/api/recover"
+            method="post"
+          >
+            <label for="wf-recover-email">Email address</label>
+            <input
+              id="wf-recover-email"
+              name="email"
+              type="email"
+              autocomplete="email"
+              required
+              maxlength="254"
+            />
+            <button type="submit" class="wf-home-button">
+              Email my license
+            </button>
+          </form>
+          <p
+            class="wf-home-small wf-commerce-status"
+            id="wf-recover-status"
+            role="status"
+            aria-live="polite"
+          ></p>
+          <section
+            class="wf-commerce-section"
+            aria-labelledby="recover-help-title"
+          >
+            <h2 id="recover-help-title">Nothing arrived?</h2>
+            <p>
+              Check your spam folder and any other address you might have used.
+              Bought it as a gift or through your company? The key went to the
+              email entered at checkout. Still stuck? Reply to your Stripe
+              receipt and we’ll sort it out.
+            </p>
+          </section>
+        </section>
+      </main>
+      <footer class="wf-home-footer">
+        <a class="wf-home-wordmark" href="/">whyfull.</a>
+        <p>Source available · Make room for what’s next.</p>
+        <nav aria-label="Footer navigation">
+          <a href="/legal/">Terms &amp; privacy</a
+          ><a href="/recover/">Find my license</a>
+        </nav>
+      </footer>
+    </div>
+    <script type="module" src="/src/recover.js"></script>
+  </body>
+</html>

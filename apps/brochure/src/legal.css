@@ -1,0 +1,112 @@
+.wf-legal-hero {
+  padding: 88px 0 40px;
+  max-width: 820px;
+}
+.wf-legal-eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--wf-home-muted);
+  margin-bottom: 20px !important;
+}
+.wf-legal-eyebrow code {
+  text-transform: none;
+}
+.wf-legal-callout {
+  margin-top: 28px !important;
+  max-width: 760px;
+  border-left: 3px solid var(--wf-home-accent);
+  background: #f1f0e3;
+  padding: 14px 18px;
+  font-size: 14px;
+}
+.wf-legal-toc {
+  margin-top: 36px;
+  flex-wrap: wrap;
+}
+.wf-home .wf-legal-toc a {
+  text-decoration: underline;
+}
+.wf-legal-doc {
+  border-top: 1px solid var(--wf-home-line);
+  max-width: 820px;
+}
+.wf-legal-doc h2 {
+  margin-bottom: 12px;
+}
+.wf-legal-doc h3 {
+  margin-top: 40px;
+  font-size: 21px;
+  scroll-margin-top: 24px;
+}
+.wf-legal-doc h4 {
+  margin-top: 28px;
+  font-size: 16px;
+  font-weight: 600;
+}
+.wf-legal-doc p,
+.wf-legal-doc ul,
+.wf-legal-doc ol,
+.wf-legal-doc table {
+  margin-top: 14px;
+  font-size: 15px;
+}
+.wf-legal-doc ul,
+.wf-legal-doc ol {
+  padding-left: 22px;
+}
+.wf-legal-doc li + li {
+  margin-top: 8px;
+}
+.wf-legal-doc a {
+  overflow-wrap: anywhere;
+}
+.wf-legal-doc table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.wf-legal-doc th,
+.wf-legal-doc td {
+  text-align: left;
+  vertical-align: top;
+  padding: 10px 12px 10px 0;
+  border-bottom: 1px solid var(--wf-home-line);
+}
+.wf-legal-full {
+  margin-top: 28px;
+  border-top: 1px solid var(--wf-home-line);
+  padding-top: 20px;
+}
+.wf-legal-full summary {
+  cursor: pointer;
+  font-weight: 500;
+}
+.wf-legal-code {
+  margin-top: 18px;
+  background: #f1f0e3;
+  border-radius: 4px;
+  padding: 20px;
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 680px) {
+  .wf-legal-hero {
+    padding: 56px 0 24px;
+  }
+  .wf-legal-doc th,
+  .wf-legal-doc td {
+    display: block;
+    padding: 4px 0;
+    border: 0;
+  }
+  .wf-legal-doc tr {
+    display: block;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--wf-home-line);
+  }
+  .wf-legal-doc thead {
+    display: none;
+  }
+}

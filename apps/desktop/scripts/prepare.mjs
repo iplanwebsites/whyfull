@@ -105,6 +105,25 @@ await cp(
 )
 await cp(join(root, "LICENSE"), join(runtime, "LICENSE"))
 await cp(join(root, "NOTICE"), join(runtime, "NOTICE"))
+await cp(join(root, "EULA.md"), join(runtime, "EULA.md"))
+await cp(join(root, "PRIVACY.md"), join(runtime, "PRIVACY.md"))
+// Installers (the NSIS license page) need plain text: strip Markdown markup,
+// keep ASCII so no code page can garble it, and use CRLF line endings.
+const eula = await readFile(join(root, "EULA.md"), "utf8")
+await writeFile(
+  join(runtime, "EULA.txt"),
+  eula
+    .replace(/^#+\s*/gm, "")
+    .replace(/^>\s?/gm, "")
+    .replace(/\*\*|`/g, "")
+    .replace(/(^|[\s(])_([^_\n]+)_/g, "$1$2")
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[–—]/g, "-")
+    .replace(/·/g, "-")
+    .replace(/[^\x00-\x7f]/g, "")
+    .replace(/\r?\n/g, "\r\n")
+)
 const notices = []
 for (const name of Object.keys(pkg.dependencies)) {
   const directory = join(root, "packages/whyfull/node_modules", name)

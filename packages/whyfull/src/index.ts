@@ -99,3 +99,18 @@ export type {
   SavedLocation,
   LocalContext,
 } from "./knowledge-types"
+
+export {
+  DesktopLicense,
+  verifyLicenseKey,
+  extractLicenseKey,
+  encodeLicensePayload,
+  licensePath,
+  LICENSE_PUBLIC_KEY,
+  LICENSE_PRODUCT,
+  TRIAL_DAYS,
+  LICENSE_PAGES,
+  licensePageUrl,
+  CLI_LICENSE_NOTICE,
+} from "./license"
+export type { LicensePayload, LicenseView } from "./license"

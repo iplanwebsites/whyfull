@@ -2,6 +2,7 @@
   "name": "@whyfull/desktop",
   "version": "0.0.1",
   "private": true,
+  "license": "UNLICENSED",
   "type": "module",
   "scripts": {
     "desktop:build": "node scripts/tauri.mjs build",

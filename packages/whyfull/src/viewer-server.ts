@@ -62,6 +62,7 @@ export { loadDiskSnapshot, saveDiskSnapshot } from "./disk-snapshot"
 import { TrashController } from "./trash"
 import { ScanCompletionEstimate } from "./scan-progress"
 import { ScanCache } from "./scan-cache"
+import { DesktopLicense, licensePageUrl } from "./license"
 import {
   loadKnowledge,
   updateKnowledge,
@@ -85,6 +86,8 @@ export interface ViewerOptions extends DiskScanOptions {
   saveTo?: string
   finder?: (path: string) => Promise<void>
   allowTrash?: boolean
+  /** Desktop app only: enable the honor-system license reminder. */
+  license?: { publicKey?: string; openUrl?: (url: string) => Promise<void> }
 }
 
 export async function startViewer(options: ViewerOptions) {
@@ -95,6 +98,13 @@ export async function startViewer(options: ViewerOptions) {
   const policyFile = options.policyFile ?? defaultPolicyPath()
   const policy = loadDiskPolicy(policyFile)
   let viewerPreferences = loadViewerPreferences(policyFile)
+  const license = options.license
+    ? new DesktopLicense({
+        policyFile,
+        publicKey: options.license.publicKey,
+      })
+    : null
+  license?.recordUse()
   const rustAvailability = rustScannerAvailability(options.rustBinary)
   let selectedScanner =
     options.scanner ??
@@ -674,6 +684,21 @@ export async function startViewer(options: ViewerOptions) {
     shortlistCache.count = snapshot.directories.length
     return shortlistCache.indexed
   }
+  /** Opens a fixed https URL from this module in the default browser. */
+  async function openUrl(target: string) {
+    if (!/^https:\/\/[\w./-]+$/.test(target)) throw new Error("Invalid URL")
+    const [command, args] =
+      process.platform === "darwin"
+        ? ["/usr/bin/open", [target]]
+        : process.platform === "win32"
+          ? ["rundll32.exe", ["url.dll,FileProtocolHandler", target]]
+          : ["xdg-open", [target]]
+    await new Promise<void>((resolve, reject) =>
+      execFile(command, args, { timeout: 15000 }, (error) =>
+        error ? reject(new Error("Could not open your browser")) : resolve()
+      )
+    )
+  }
   async function openFinder(path: string) {
     if (!options.finder && process.platform !== "darwin")
       throw new Error("Finder is available on macOS only")
@@ -923,6 +948,10 @@ export async function startViewer(options: ViewerOptions) {
         return
       }
       refreshKnowledge()
+      if (req.method === "GET" && url.pathname === "/api/license") {
+        json(res, license ? license.status() : { enabled: false })
+        return
+      }
       if (req.method === "GET" && url.pathname === "/api/knowledge") {
         json(res, knowledge)
         return
@@ -1403,6 +1432,27 @@ export async function startViewer(options: ViewerOptions) {
         if (input.scanner !== undefined)
           selectedScanner = viewerPreferences.scanner
         json(res, viewerPreferences)
+        return
+      }
+      if (req.method === "POST" && url.pathname === "/api/license") {
+        if (!license) {
+          json(res, { error: "Licenses apply to the desktop app only" }, 404)
+          return
+        }
+        const input = await body(req)
+        if (input.action === "activate")
+          json(res, license.activate(String(input.key ?? "")))
+        else if (input.action === "deactivate") json(res, license.deactivate())
+        else if (input.action === "reminded") json(res, license.reminded())
+        else if (input.action === "checkout" || input.action === "open") {
+          // Only fixed whyfull.app pages; `checkout` is kept as an alias for buy.
+          const target = licensePageUrl(
+            input.action === "checkout" ? "buy" : input.page
+          )
+          if (!target) throw new Error("Unknown page")
+          await (options.license!.openUrl ?? openUrl)(target)
+          json(res, { opened: true })
+        } else throw new Error("Unknown license action")
         return
       }
       if (req.method === "POST" && url.pathname === "/api/knowledge") {

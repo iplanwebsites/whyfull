@@ -354,6 +354,21 @@ Made (2026-11):
   OV/EV certificate on a cloud HSM. Signing also requires updating `windowsSigning` in
   `release-manifest.mjs` and in the brochure validation, which hard-codes
   `unsigned`.
+- **Revisit before Windows joins stable (2026-11).** The desktop app now asks
+  for a $19 license after its trial ([business model](business-model.md)).
+  "Unknown publisher" on every version undercuts a paid app: it appears at the
+  moment someone decides whether to trust us. Azure Artifact Signing (formerly
+  Trusted Signing) Basic is listed at $9.99/month. Check whether a solo
+  developer passes its identity validation before planning around it. If it
+  doesn't, an OV certificate on a cloud HSM is the fallback. Proposed order:
+  1. Enroll and pass identity validation (manual, outside CI).
+  2. Add `windows_signing: auto | signed | unsigned` to the release inputs.
+     Pass the Azure credentials only to the Windows job, and set
+     `bundle.windows.signCommand` from `configure.mjs` when signing is on.
+  3. Let `windowsSigning` be `signed` in `release-manifest.mjs` and the
+     brochure validation, and verify with `Get-AuthenticodeSignature` in the
+     build job.
+  4. Meet the platform entry criteria with a signed build-only run.
 - **Linux**: the AppImage is primary with in-app updates. The `.deb` also updates
   in-app through the official `pkexec dpkg -i` path. Linux joins after the entry
   criteria (Ubuntu 24.04 + Fedora).

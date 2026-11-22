@@ -1,9 +1,43 @@
-whyfull
-Copyright 2026 Felix Menard
+Whyfull
+Copyright (c) 2026 Felix Menard. All rights reserved.
 
 This product includes software developed by Felix Menard.
 
-If you use this software, please credit the project:
-  - Name: whyfull
+Licensing
+---------
+- Source code and other materials: Whyfull Source-Available License (LICENSE).
+  The source is public for transparency and auditing; it is not open source.
+- Use of the software (CLI and desktop app): Whyfull End User License
+  Agreement (EULA.md, also at https://whyfull.app/legal/).
+- Privacy: PRIVACY.md. Trademarks: TRADEMARKS.md. Contributions: CONTRIBUTING.md.
+- Releases published before the relicensing (npm "whyfull" 0.0.1 and 0.0.2,
+  the desktop app 0.0.1 and the git history before the relicensing commit)
+  remain available under the Apache License, Version 2.0, as published.
+
+"Whyfull", its logo and icon are trademarks of Felix Menard.
+
+Third-party components
+----------------------
+Whyfull includes or is distributed with third-party software that is licensed
+under its own terms, which continue to apply to those components:
+
+- npm dependencies of the "whyfull" package, installed by npm under their own
+  licenses. Desktop and standalone builds include their license and notice
+  files in ENGINE-THIRD-PARTY.txt.
+- Components bundled into the browser viewer, listed with their licenses in
+  viewer/THIRD_PARTY.txt.
+- The Node.js runtime, shipped with desktop and standalone builds, under the
+  license in NODE-LICENSE.
+- The desktop app is built with Tauri and Rust crates under their own licenses.
+- Viewer UI components in packages/ui are adapted from shadcn/ui
+  (https://ui.shadcn.com), Copyright (c) 2023 shadcn, MIT License.
+
+The whyfull.app website styles are adapted from Slidepig's brochure template,
+(c) 2026 Felix Menard, under the terms in apps/brochure/LICENSE.slidepig.txt.
+
+Credit
+------
+  - Name: Whyfull
   - Author: Felix Menard
+  - Website: https://whyfull.app
   - Repository: https://github.com/iplanwebsites/whyfull

@@ -13,7 +13,7 @@ import { tmpdir } from "node:os"
 import { join, delimiter } from "node:path"
 import { stripVTControlCharacters } from "node:util"
 import { pathToFileURL } from "node:url"
-import { ScanCache, startViewer } from "../dist/index.mjs"
+import { CLI_LICENSE_NOTICE, ScanCache, startViewer } from "../dist/index.mjs"
 
 const cli = new URL("../dist/cli.mjs", import.meta.url)
 
@@ -162,6 +162,7 @@ test("bare noninteractive command prints actionable help without scanning", () =
     assert.ok(out.includes(flag), flag)
   assert.match(out, /Examples for scripts and agents/)
   assert.doesNotMatch(out, /Scanned |Choose \[/)
+  assert.ok(out.includes(CLI_LICENSE_NOTICE), "help names the license terms")
 })
 
 test("keyboard selector updates command hints and runs help with Enter", async (t) => {
@@ -169,6 +170,7 @@ test("keyboard selector updates command hints and runs help with Enter", async (
   await prompt.waitFor(/npx whyfull --ui/)
   assert.match(prompt.output(), /Disk (?:\d{1,3}% full|usage unavailable)/)
   assert.match(prompt.output(), /↑\/↓ to move · Enter to select/)
+  assert.ok(prompt.output().includes(CLI_LICENSE_NOTICE), "picker notice")
   assert.doesNotMatch(prompt.output(), /1\. |Choose \[/)
   assert.doesNotMatch(prompt.output(), /npx whyfull --ui --no-scan/)
   prompt.send("\x1b[B")
@@ -310,7 +312,9 @@ test(
 
 test("UI aliases accept help and reject incompatible formats before starting a server", () => {
   for (const args of [["--ui"], ["--view"], ["ui"], ["app"]]) {
-    assert.match(run([...args, "--help"]), /--no-scan/)
+    const help = run([...args, "--help"])
+    assert.match(help, /--no-scan/)
+    assert.ok(help.includes(CLI_LICENSE_NOTICE), "viewer help notice")
     for (const format of ["--tui", "--json"]) {
       assert.throws(
         () => run([...args, format]),
@@ -337,14 +341,20 @@ test("terminal summary and opportunity JSON saves work without prompting", () =>
     const text = run(["--tui", ...flags, "--json-file", path], options)
     assert.match(text, /Scanned /)
     assert.doesNotMatch(text, /Choose \[/)
-    assert.equal(
-      JSON.parse(readFileSync(path, "utf8")).format,
-      "whyfull-report"
-    )
-    assert.equal(
-      JSON.parse(run(["--json", ...flags], options)).format,
-      "whyfull-report"
-    )
+    assert.ok(text.includes(CLI_LICENSE_NOTICE), "terminal report footer")
+    const saved = readFileSync(path, "utf8")
+    assert.equal(JSON.parse(saved).format, "whyfull-report")
+    // Machine output never carries the human-facing license notice.
+    const stdout = run(["--json", ...flags], options)
+    assert.equal(JSON.parse(stdout).format, "whyfull-report")
+    for (const machine of [saved, stdout]) {
+      assert.ok(!machine.includes(CLI_LICENSE_NOTICE))
+      assert.doesNotMatch(
+        machine,
+        /Free for command-line use|whyfull\.app\/legal/
+      )
+    }
+    assert.ok(stdout.startsWith("{") && stdout.endsWith("}\n"))
     assert.throws(
       () => run(["--tui", ...flags, "--json-file", path], options),
       /refusing to overwrite/
@@ -370,6 +380,7 @@ test("full filesystem scans still save machine-readable snapshots", () => {
       path,
     ])
     const snapshot = JSON.parse(output)
+    assert.ok(!output.includes(CLI_LICENSE_NOTICE), "no notice in --json")
     assert.equal(snapshot.format, "whyfull-disk")
     assert.equal(snapshot.status, "complete")
     assert.deepEqual(JSON.parse(readFileSync(path, "utf8")), snapshot)

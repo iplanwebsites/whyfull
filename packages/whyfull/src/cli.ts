@@ -19,6 +19,7 @@ import { runDiskCli } from "./disk-cli"
 import { runKnowledgeCli } from "./knowledge-cli"
 import { loadKnowledge } from "./knowledge"
 import { resolve } from "node:path"
+import { CLI_LICENSE_NOTICE } from "./license"
 
 const HELP = `
   whyfull — where did my disk go?
@@ -81,6 +82,8 @@ const HELP = `
   --allow-trash permits confirmed native Trash moves. No permanent deletion.
 
   Add custom targets in ~/.config/whyfull/targets.json — see README for schema.
+
+  ${CLI_LICENSE_NOTICE}
 `
 
 interface CliOptions {
@@ -406,6 +409,7 @@ async function main() {
       )
       if (savedPath)
         process.stdout.write(`  ${dim(`Saved JSON to ${savedPath}`)}\n`)
+      process.stdout.write(`  ${dim(CLI_LICENSE_NOTICE)}\n`)
       process.stdout.write("\n")
     }
   }

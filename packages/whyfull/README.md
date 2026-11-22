@@ -18,7 +18,8 @@ you or your coding agent.
 **[Download the app](https://whyfull.app/download/)** ·
 [Visit the website](https://whyfull.app/) · [Give it to your agent](#bring-your-coding-agent)
 
-Free and open source. Scans run locally. No automatic deletion.
+The command line is free. The desktop app is free for 30 days, then $19 once
+([pricing](#pricing)). Scans run locally. No automatic deletion.
 
 ## Find out where it went
 
@@ -339,6 +340,27 @@ Build locally with `pnpm desktop:build`, or `pnpm cli:archive` for a portable CL
 with its runtime. See the [desktop build and release guide](https://github.com/iplanwebsites/whyfull/blob/main/apps/desktop/README.md)
 for prerequisites, signing setup, release artifacts, and update behavior.
 
+## Pricing
+
+- **Command line: free.** `npx whyfull`, the npm package, standalone CLI
+  archives, and the CLI bundled in the desktop app (including `--ui`) are free
+  for personal and commercial use. No key, no account.
+- **Desktop app: 30-day free trial, then $19 one-time.** The trial counts days
+  you open the app, not calendar days. One license is per person and covers
+  every computer you use. Updates are included, and refunds are available for
+  30 days, no questions asked.
+  [Buy a license](https://whyfull.app/buy/) ·
+  [Lost your key?](https://whyfull.app/recover/)
+
+The app never locks features. After the trial it shows a gentle reminder at
+most once a day after a scan; the [terms](https://whyfull.app/legal/) still ask
+for a license to keep using the desktop app. Keys are verified offline, and
+neither the app nor the CLI sends anything anywhere: no telemetry, no license
+check-ins.
+
+Buying for a company? Get one license per person who uses the desktop app. The
+CLI stays free for everyone.
+
 ## Demo-first cleanup
 
 The report and scanner read metadata. Viewer cleanup starts in **demo mode** every
@@ -493,7 +515,8 @@ pnpm check
 ```
 
 Small corrections are just as welcome as new targets. Paths and cleanup advice
-change over time, so a verified fix is valuable.
+change over time, so a verified fix is valuable. Contributions are accepted
+under the [contributor agreement](https://github.com/iplanwebsites/whyfull/blob/main/CONTRIBUTING.md).
 
 ## Development
 
@@ -555,5 +578,19 @@ Node CLI remains the supported package.
 
 ## License
 
-[Apache-2.0](https://github.com/iplanwebsites/whyfull/blob/main/LICENSE) © Felix
-Menard.
+Whyfull is **source available**, not open source. © Felix Menard. All rights
+reserved.
+
+The source is public so you can see exactly what Whyfull does with your disk:
+read it, review it for security and privacy, reference it in bug reports, and
+contribute under the contributor agreement. The [source license](https://github.com/iplanwebsites/whyfull/blob/main/LICENSE)
+grants no right to copy, modify, redistribute, or reuse the code, the location
+catalog, or the docs in other products. Using Whyfull is covered by the
+[end-user license agreement](https://whyfull.app/legal/): the CLI is free, and
+the desktop app needs a license after its trial. The EULA, source license, and
+privacy note are all on [whyfull.app/legal](https://whyfull.app/legal/).
+
+Releases published before this change (npm `whyfull` 0.0.1–0.0.2, desktop
+0.0.1, and the git history before the relicensing commit) remain available
+under Apache-2.0, as they were published. Third-party components keep their own
+licenses. "Whyfull" and its logo are trademarks of Felix Menard.

@@ -36,6 +36,14 @@ export default defineConfig({
         download: fileURLToPath(
           new URL("./download/index.html", import.meta.url)
         ),
+        thanks: fileURLToPath(new URL("./thanks/index.html", import.meta.url)),
+        activate: fileURLToPath(
+          new URL("./activate/index.html", import.meta.url)
+        ),
+        recover: fileURLToPath(
+          new URL("./recover/index.html", import.meta.url)
+        ),
+        legal: fileURLToPath(new URL("./legal/index.html", import.meta.url)),
       },
     },
   },

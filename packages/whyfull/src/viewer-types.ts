@@ -103,3 +103,20 @@ export interface ShortlistEntry {
 export type { DiagnosticsStatus } from "./diagnostics"
 
 export type { FileDistribution } from "./file-distribution"
+
+/** Desktop-only honor-system license state. `enabled` is false for npx/CLI viewers. */
+export type LicenseView =
+  | { enabled: false }
+  | {
+      enabled: true
+      licensed: boolean
+      holder: string | null
+      licenseId: string | null
+      trialDays: number
+      usageDays: number
+      trialRemaining: number
+      /** Unlicensed, trial used up, and no reminder shown today. */
+      reminderDue: boolean
+      price: string
+      checkoutUrl: string
+    }

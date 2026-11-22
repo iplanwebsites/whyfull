@@ -24,6 +24,12 @@ import { reportFindings } from "@/lib/report-actions"
 import { ReportViewer } from "./report-viewer"
 import { ScanState } from "./scan-state"
 import { ScanTiming } from "./scan-timing"
+import {
+  LicenseDialog,
+  SupportReminder,
+  trialLabel,
+  useLicense,
+} from "./license"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import {
@@ -50,6 +56,7 @@ import {
   Copy,
   Flag,
   X,
+  Heart,
 } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
 import {
@@ -140,6 +147,7 @@ export function Explorer() {
     client = useQueryClient()
   const [page, setPage] = useState(0),
     [shortlist, setShortlist] = useState(false),
+    [licenseOpen, setLicenseOpen] = useState(false),
     [selected, setSelected] = useState<ViewEntry | null>(null),
     [hover, setHover] = useState<ViewEntry | null>(null),
     [changing, setChanging] = useState(false),
@@ -164,6 +172,7 @@ export function Explorer() {
     enabled: hasToken(),
   })
   const drives = useDrives()
+  const license = useLicense().data
   const s = status.data
   const analysis = useSuggestions(s)
   const suggestionCount = useMemo(
@@ -578,12 +587,28 @@ export function Explorer() {
       />
     )
   const suggestions = (
-    <ReportDialog
-      open={search.page === "report"}
-      onOpenChange={showSuggestions}
-      status={s}
-      onChanged={documentChanged}
-    />
+    <>
+      <ReportDialog
+        open={search.page === "report"}
+        onOpenChange={showSuggestions}
+        status={s}
+        onChanged={documentChanged}
+      />
+      {license?.enabled && (
+        <>
+          <LicenseDialog
+            open={licenseOpen}
+            onOpenChange={setLicenseOpen}
+            license={license}
+          />
+          <SupportReminder
+            status={s}
+            analysis={analysis.data}
+            onEnterKey={() => setLicenseOpen(true)}
+          />
+        </>
+      )}
+    </>
   )
   if (s.source.kind === "report")
     return (
@@ -887,8 +912,17 @@ export function Explorer() {
                 Export snapshot
               </DropdownMenuItem>
               <DropdownMenuSeparator />
+              {license?.enabled && (
+                <DropdownMenuItem onClick={() => setLicenseOpen(true)}>
+                  <Heart />
+                  {license.licensed ? trialLabel(license) : "Support Whyfull…"}
+                </DropdownMenuItem>
+              )}
               <div className="px-2 py-1 text-[11px] text-muted-foreground tabular-nums">
                 whyfull {__WHYFULL_VERSION__}
+                {license?.enabled &&
+                  !license.licensed &&
+                  ` · ${trialLabel(license)}`}
               </div>
             </DropdownMenuContent>
           </DropdownMenu>

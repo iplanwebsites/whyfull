@@ -1,6 +1,6 @@
 # Business model options
 
-Working recommendation, 22 November 2026. Builds on
+Decided 22 November 2026: free CLI, $19 desktop app, source-available code. Builds on
 [comparable products](comparable-products.md). Competitor prices come from
 public listings and have not been checked against their checkout pages.
 
@@ -27,11 +27,12 @@ What this means for Whyfull:
   skill, and catalog pages are how people find the tool. Charging for any of
   them would cut off growth.
 
-## Recommendation: open core, paid desktop Pro, teams later
+## Decision: free CLI, paid desktop app, teams later
 
-### 1. Free forever (Apache 2.0)
+### 1. Free forever: the CLI
 
-CLI, opportunity report, JSON for agents, the skill, the target catalog, and
+CLI (npm, `npx`, standalone archives, and the CLI bundled in the app,
+including `--ui`), opportunity report, JSON for agents, the skill, the target catalog, and
 the read-only visual explorer. Publish the catalog as indexable pages (see the
 first slice in [comparable products](comparable-products.md)) as the main
 acquisition channel. Add GitHub Sponsors as a small extra.
@@ -42,10 +43,32 @@ acquisition channel. Add GitHub Sponsors as a small extra.
 trial, then shows a friendly reminder, like WinRAR. `npx whyfull` and the CLI
 never show the reminder.
 
-Because nothing is enforced, all the code stays Apache 2.0. There's no private
-module, no license change, and no DRM. Anyone could reset the trial by deleting
-a local file, and that's fine. The reminder only needs to nudge people who
-already find the app useful.
+Enforcement is honor-system: there's no private module and no DRM. Anyone
+could reset the trial by deleting a local file or build the app without the
+reminder. The reminder only needs to nudge people who already find the app
+useful; the terms still require a license for continued desktop use, and the
+missing lock is not permission.
+
+The license is **$19 USD one-time, perpetual, per person**, on every computer
+that person uses, with updates included and a 30-day no-questions refund.
+Companies buy one license per person who uses the app; volume by contact. A
+future major version may be a paid upgrade, announced in advance; existing
+licenses keep working with the versions they cover.
+
+#### Source available, not open source
+
+Going forward the code is **source available, all rights reserved**. It stays
+public so people can audit what a disk tool does on their machine, but the
+source license grants no right to copy, modify, redistribute, or reuse the
+code, the location catalog, or the docs. Use is governed by the EULA. This
+replaces Apache-2.0 for everything after the relicensing commit; releases
+published before it (npm `whyfull` 0.0.1–0.0.2, desktop 0.0.1, and the earlier
+git history) remain under Apache-2.0 as published. The license never converts
+to open source.
+
+Why: Apache-2.0 let anyone ship the app, the catalog, or a rebranded copy
+without the reminder, which removes the reason to pay. Source availability
+keeps the trust benefit (anyone can read it) without that.
 
 #### Reminder design
 
@@ -80,8 +103,11 @@ Start with the reminder and history. Add watch mode next: it's the feature
 most likely to make people want the app, because it brings them back without a
 manual scan.
 
-The README can still say "Free and open source". Add "The desktop app is
-$19 if you keep using it" next to the download link.
+Copy says "source available", never "open source". The README, website,
+and app say plainly: the CLI is free; the desktop app is free for 30 days,
+then $19 once. A good line: "Whyfull's source is public so you can see exactly
+what it does. You could build it without the reminder; if it saves you space,
+$19 keeps it going."
 
 ### 3. Teams, once Pro has traction
 
@@ -108,9 +134,9 @@ building anything.
    the "found 48 GB" moment happen, and the reminder depends on it.
 2. Add the trial counter, the value-based reminder, and offline license keys
    to the desktop app.
-3. Set up checkout with a merchant of record that handles taxes (Lemon
-   Squeezy, Paddle, or similar). Measure conversion from checkout only, never
-   from the app.
+3. Checkout runs on Stripe Checkout through the whyfull.app Worker (`/buy/`,
+   `/thanks/`, `/activate`, `/recover/`, `/legal/`). Measure conversion from
+   checkout only, never from the app.
 4. Build history and trends, then watch mode, as license extras.
 
 ## Sources

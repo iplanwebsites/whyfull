@@ -1,8 +1,17 @@
-import { cancel, intro, isCancel, outro, select, text } from "@clack/prompts"
+import {
+  cancel,
+  intro,
+  isCancel,
+  log,
+  outro,
+  select,
+  text,
+} from "@clack/prompts"
 import pc from "picocolors"
 import { homedir } from "node:os"
 import { volume } from "./size"
 import { basename } from "node:path"
+import { CLI_LICENSE_NOTICE } from "./license"
 
 const choices = [
   { label: "Open web UI & latest scan", args: ["--ui"] },
@@ -39,6 +48,7 @@ export async function selectCommand(): Promise<string[] | null> {
       ? `Disk ${Math.round(Math.max(0, Math.min(1, disk.used / disk.total)) * 100)}% full`
       : "Disk usage unavailable"
   intro(`${pc.bgCyan(pc.black(" whyfull "))} ${pc.dim(usage)}`)
+  log.message(pc.dim(CLI_LICENSE_NOTICE))
   const selected = await select({
     message: "Choose an action · ↑/↓ to move · Enter to select",
     initialValue: 0,

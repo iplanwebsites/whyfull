@@ -1,191 +1,182 @@
-                                 Apache License
-                           Version 2.0, January 2004
-                        http://www.apache.org/licenses/
+Whyfull Source-Available License
+Version 1.0
 
-   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+Copyright (c) 2026 Felix Menard. All rights reserved.
 
-   1. Definitions.
+NOTE: This license is a draft and must be reviewed by a qualified lawyer
+before the commercial launch. Placeholders in [BRACKETS] still need values.
 
-      "License" shall mean the terms and conditions for use, reproduction,
-      and distribution as defined by Sections 1 through 9 of this document.
+-------------------------------------------------------------------------------
+Summary (not part of the license)
+-------------------------------------------------------------------------------
 
-      "Licensor" shall mean the copyright owner or entity authorized by
-      the copyright owner that is granting the License.
+Whyfull's source is public so you can see exactly what it does. You may read
+it, audit it, point to it in bug reports and send contributions. You may not
+copy, modify, redistribute or reuse it. This is not an open source license and
+it will not turn into one. Running Whyfull is covered by the End User License
+Agreement in EULA.md, not by this file.
 
-      "Legal Entity" shall mean the union of the acting entity and all
-      other entities that control, are controlled by, or are under common
-      control with that entity. For the purposes of this definition,
-      "control" means (i) the power, direct or indirect, to cause the
-      direction or management of such entity, whether by contract or
-      otherwise, or (ii) ownership of fifty percent (50%) or more of the
-      outstanding shares, or (iii) beneficial ownership of such entity.
+-------------------------------------------------------------------------------
+1. Definitions
+-------------------------------------------------------------------------------
 
-      "You" (or "Your") shall mean an individual or Legal Entity
-      exercising permissions granted by this License.
+"Licensor" means Felix Menard, [LEGAL ENTITY / ADDRESS], the sole author and
+copyright holder of Whyfull.
 
-      "Source" form shall mean the preferred form for making modifications,
-      including but not limited to software source code, documentation
-      source, and configuration files.
+"Materials" means everything in this repository and in any package, archive or
+installer built from it, including source code, object code, build scripts,
+tests, the location catalog (including packages/whyfull/src/targets-data.ts,
+packages/whyfull/src/community-locations.json and any data derived from them),
+documentation, website content, images, icons and other assets, except
+Third-Party Components.
 
-      "Object" form shall mean any form resulting from mechanical
-      transformation or translation of a Source form, including but
-      not limited to compiled object code, generated documentation,
-      and conversions to other media types.
+"Third-Party Components" means software and other works owned by others that
+are included in or distributed with the Materials, such as the Node.js runtime
+and npm dependencies. They are governed by their own licenses (see NOTICE and
+the third-party notice files shipped with each build).
 
-      "Work" shall mean the work of authorship, whether in Source or
-      Object form, made available under the License, as indicated by a
-      copyright notice that is included in or attached to the work
-      (an example is provided in the Appendix below).
+"You" means the person or legal entity exercising the permissions below.
 
-      "Derivative Works" shall mean any work, whether in Source or Object
-      form, that is based on (or derived from) the Work and for which the
-      editorial revisions, annotations, elaborations, or other modifications
-      represent, as a whole, an original work of authorship. For the purposes
-      of this License, Derivative Works shall not include works that remain
-      separable from, or merely link (or bind by name) to the interfaces of,
-      the Work and Derivative Works thereof.
+-------------------------------------------------------------------------------
+2. Ownership
+-------------------------------------------------------------------------------
 
-      "Contribution" shall mean any work of authorship, including
-      the original version of the Work and any modifications or additions
-      to that Work or Derivative Works thereof, that is intentionally
-      submitted to the Licensor for inclusion in the Work by the copyright
-      owner or by an individual or Legal Entity authorized to submit on
-      behalf of the copyright owner. For the purposes of this definition,
-      "submitted" means any form of electronic, verbal, or written
-      communication sent to the Licensor or its representatives, including
-      but not limited to communication on electronic mailing lists, source
-      code control systems, and issue tracking systems that are managed by,
-      or on behalf of, the Licensor for the purpose of discussing and
-      improving the Work, but excluding communication that is conspicuously
-      marked or otherwise designated in writing by the copyright owner as
-      "Not a Contribution."
+The Materials are protected by copyright and other intellectual property laws
+and are owned by the Licensor. Making the Materials publicly visible does not
+place them in the public domain and does not grant any license except the
+limited permissions in Section 3. All rights not expressly granted are
+reserved.
 
-      "Contributor" shall mean Licensor and any individual or Legal Entity
-      on behalf of whom a Contribution has been received by Licensor and
-      subsequently incorporated within the Work.
+-------------------------------------------------------------------------------
+3. What you may do
+-------------------------------------------------------------------------------
 
-   2. Grant of Copyright License. Subject to the terms and conditions of
-      this License, each Contributor hereby grants to You a perpetual,
-      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
-      copyright license to reproduce, prepare Derivative Works of,
-      publicly display, publicly perform, sublicense, and distribute the
-      Work and such Derivative Works in Source or Object form.
+Subject to this license, the Licensor grants you a personal, non-exclusive,
+non-transferable, non-sublicensable, revocable, royalty-free permission to:
 
-   3. Grant of Patent License. Subject to the terms and conditions of
-      this License, each Contributor hereby grants to You a perpetual,
-      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
-      (except as stated in this section) patent license to make, have made,
-      use, offer to sell, sell, import, and otherwise transfer the Work,
-      where such license applies only to those patent claims licensable
-      by such Contributor that are necessarily infringed by their
-      Contribution(s) alone or by combination of their Contribution(s)
-      with the Work to which such Contribution(s) was submitted. If You
-      institute patent litigation against any entity (including a
-      cross-claim or counterclaim in a lawsuit) alleging that the Work
-      or a Contribution incorporated within the Work constitutes direct
-      or contributory patent infringement, then any patent licenses
-      granted to You under this License for that Work shall terminate
-      as of the date such litigation is filed.
+  (a) View and read the Materials, including on GitHub, npm or any other place
+      where the Licensor publishes them, and make the transient copies a
+      computer or browser makes while you do so;
 
-   4. Redistribution. You may reproduce and distribute copies of the
-      Work or Derivative Works thereof in any medium, with or without
-      modifications, and in Source or Object form, provided that You
-      meet the following conditions:
+  (b) Review, inspect and audit the Materials for security, privacy,
+      correctness and compatibility, including building and running them
+      locally solely for that review;
 
-      (a) You must give any other recipients of the Work or
-          Derivative Works a copy of this License; and
+  (c) Quote reasonably short excerpts of the Materials in bug reports, security
+      reports, issues, pull requests and discussions about Whyfull, addressed
+      to the Licensor or in the Licensor's public project spaces; and
 
-      (b) You must cause any modified files to carry prominent notices
-          stating that You changed the files; and
+  (d) Prepare and submit contributions to the Licensor under the Contributor
+      License Agreement in CONTRIBUTING.md, including keeping a fork or
+      working copy of the repository for as long as is needed to prepare and
+      submit such a contribution.
 
-      (c) You must retain, in the Source form of any Derivative Works
-          that You distribute, all copyright, patent, trademark, and
-          attribution notices from the Source form of the Work,
-          excluding those notices that do not pertain to any part of
-          the Derivative Works; and
+Using Whyfull (installing it, running it, and using its CLI or desktop app)
+is governed by the Whyfull End User License Agreement (EULA.md), not by this
+section. A local build made under Section 3(b) is for review only; it is not
+a license to use the desktop app beyond what the EULA allows.
 
-      (d) If the Work includes a "NOTICE" text file as part of its
-          distribution, then any Derivative Works that You distribute must
-          include a readable copy of the attribution notices contained
-          within such NOTICE file, excluding those notices that do not
-          pertain to any part of the Derivative Works, in at least one
-          of the following places: within a NOTICE text file distributed
-          as part of the Derivative Works; within the Source form or
-          documentation, if provided along with the Derivative Works; or,
-          within a display generated by the Derivative Works, if and
-          wherever such third-party notices normally appear. The contents
-          of the NOTICE file are for informational purposes only and
-          do not modify the License. You may add Your own attribution
-          notices within Derivative Works that You distribute, alongside
-          or as an addendum to the NOTICE text from the Work, provided
-          that such additional attribution notices cannot be construed
-          as modifying the License.
+-------------------------------------------------------------------------------
+4. What you may not do
+-------------------------------------------------------------------------------
 
-      You may add Your own copyright statement to Your modifications and
-      may provide additional or different license terms and conditions
-      for use, reproduction, or distribution of Your modifications, or
-      for any such Derivative Works as a whole, provided Your use,
-      reproduction, and distribution of the Work otherwise complies with
-      the conditions stated in this License.
+Except as expressly permitted in Section 3 or in a separate written agreement
+signed by the Licensor, you may not, and may not allow anyone else to:
 
-   5. Submission of Contributions. Unless You explicitly state otherwise,
-      any Contribution intentionally submitted for inclusion in the Work
-      by You to the Licensor shall be under the terms and conditions of
-      this License, without any additional terms or conditions.
-      Notwithstanding the above, nothing herein shall supersede or modify
-      the terms of any separate license agreement you may have executed
-      with Licensor regarding such Contributions.
+  (a) Copy, reproduce or mirror the Materials, in whole or in part;
 
-   6. Trademarks. This License does not grant permission to use the trade
-      names, trademarks, service marks, or product names of the Licensor,
-      except as required for reasonable and customary use in describing the
-      origin of the Work and reproducing the content of the NOTICE file.
+  (b) Modify, translate, adapt or create derivative works of the Materials;
 
-   7. Disclaimer of Warranty. Unless required by applicable law or
-      agreed to in writing, Licensor provides the Work (and each
-      Contributor provides its Contributions) on an "AS IS" BASIS,
-      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
-      implied, including, without limitation, any warranties or conditions
-      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
-      PARTICULAR PURPOSE. You are solely responsible for determining the
-      appropriateness of using or redistributing the Work and assume any
-      risks associated with Your exercise of permissions under this License.
+  (c) Distribute, publish, sell, rent, lease, lend, sublicense, host or
+      otherwise make the Materials or any derivative work available to anyone;
 
-   8. Limitation of Liability. In no event and under no legal theory,
-      whether in tort (including negligence), contract, or otherwise,
-      unless required by applicable law (such as deliberate and grossly
-      negligent acts) or agreed to in writing, shall any Contributor be
-      liable to You for damages, including any direct, indirect, special,
-      incidental, or consequential damages of any character arising as a
-      result of this License or out of the use or inability to use the
-      Work (including but not limited to damages for loss of goodwill,
-      work stoppage, computer failure or malfunction, or any and all
-      other commercial damages or losses), even if such Contributor
-      has been advised of the possibility of such damages.
+  (d) Reuse any part of the Materials, including code, the location catalog,
+      its rules, descriptions or data, or the documentation, in any other
+      software, product, service, dataset, model or publication, whether
+      commercial or not;
 
-   9. Accepting Warranty or Additional Liability. While redistributing
-      the Work or Derivative Works thereof, You may choose to offer,
-      and charge a fee for, acceptance of support, warranty, indemnity,
-      or other liability obligations and/or rights consistent with this
-      License. However, in accepting such obligations, You may act only
-      on Your own behalf and on Your sole responsibility, not on behalf
-      of any other Contributor, and only if You agree to indemnify,
-      defend, and hold each Contributor harmless for any liability
-      incurred by, or claims asserted against, such Contributor by reason
-      of your accepting any such warranty or additional liability.
+  (e) Use the Materials, or any part of them, to build, train, fine-tune,
+      evaluate or benchmark a product or service that competes with Whyfull,
+      or as training data for machine learning models;
 
-   END OF TERMS AND CONDITIONS
+  (f) Remove, alter or hide any copyright, trademark, license or other notice
+      in the Materials; or
 
-   Copyright 2026 Felix Menard
+  (g) Distribute or make available a build of the desktop app with its
+      evaluation or license reminders removed or disabled.
 
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
+-------------------------------------------------------------------------------
+5. No open source grant, now or later
+-------------------------------------------------------------------------------
 
-       http://www.apache.org/licenses/LICENSE-2.0
+This license is not an open source license. It does not convert to an open
+source license, or to any other license, after any period of time or upon any
+event. Any future change can only be made by the Licensor publishing new
+terms, and applies only to the versions those terms name.
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
+-------------------------------------------------------------------------------
+6. Earlier releases under Apache-2.0
+-------------------------------------------------------------------------------
+
+Versions published before this license took effect were released under the
+Apache License, Version 2.0, and remain available under that license as they
+were published. These are:
+
+  - the npm package "whyfull", versions 0.0.1 and 0.0.2;
+  - the Whyfull desktop app, version 0.0.1; and
+  - the git history of this repository before the commit that introduced
+    this license.
+
+Those copies keep their Apache-2.0 terms. This license applies to every
+change, file and release made after that commit. Nothing in the Apache-2.0
+grant for earlier versions extends to later versions.
+
+-------------------------------------------------------------------------------
+7. Contributions
+-------------------------------------------------------------------------------
+
+Contributions are accepted only under the Contributor License Agreement in
+CONTRIBUTING.md. Submitting a contribution does not give you any additional
+rights in the Materials.
+
+-------------------------------------------------------------------------------
+8. Trademarks
+-------------------------------------------------------------------------------
+
+This license grants no rights in the name "Whyfull", its logo or its icon.
+See TRADEMARKS.md.
+
+-------------------------------------------------------------------------------
+9. Termination
+-------------------------------------------------------------------------------
+
+Your permissions under this license end automatically if you breach it. On
+termination you must stop exercising them and delete any copies of the
+Materials you hold, except copies you are required to keep by law. Sections
+2, 4, 5, 6, 9, 10 and 11 survive termination.
+
+-------------------------------------------------------------------------------
+10. No warranty and limitation of liability
+-------------------------------------------------------------------------------
+
+THE MATERIALS ARE PROVIDED "AS IS" AND "AS AVAILABLE", WITHOUT WARRANTY OF ANY
+KIND, EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY WARRANTY OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE OR NON-INFRINGEMENT.
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE LICENSOR WILL NOT BE LIABLE FOR
+ANY DAMAGES OR LOSSES OF ANY KIND ARISING OUT OF OR IN CONNECTION WITH THE
+MATERIALS OR THIS LICENSE, WHETHER IN CONTRACT, TORT OR OTHERWISE, EVEN IF
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
+-------------------------------------------------------------------------------
+11. General
+-------------------------------------------------------------------------------
+
+This license is governed by the laws of [GOVERNING LAW], without regard to
+conflict-of-laws rules. The courts of [VENUE] have exclusive jurisdiction over
+any dispute arising from it, except that the Licensor may seek injunctive
+relief in any competent court. If any provision is held unenforceable, it will
+be enforced to the maximum extent permitted and the rest of this license
+remains in effect. A failure to enforce any provision is not a waiver.
+
+For permissions beyond this license (for example redistribution, reuse of the
+location catalog or a commercial agreement), contact [CONTACT EMAIL].
