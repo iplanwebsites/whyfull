@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import {
   BookOpen,
   Code,
+  KeyRound,
   MapPin,
   Settings,
   ShieldCheck,
@@ -29,6 +30,7 @@ import { viewerIsOffline } from "@/lib/viewer-connection"
 import type { SettingsSection } from "@/lib/settings-navigation"
 import { KnowledgeSettings } from "./places-dialog"
 import { CleanupModeSetting } from "./cleanup-mode-setting"
+import { LicenseSettings, useLicense } from "./license"
 
 const sections = [
   {
@@ -56,6 +58,11 @@ const sections = [
     label: "Advanced",
     icon: Code,
   },
+  {
+    id: "license",
+    label: "License",
+    icon: KeyRound,
+  },
 ] as const
 const selectClass =
   "h-9 w-full rounded-lg border border-input bg-background px-2 text-sm focus-visible:outline-ring"
@@ -80,6 +87,13 @@ export function SettingsDialog({
   const [error, setError] = useState<string | null>(null)
   const client = useQueryClient()
   const { theme } = useTheme()
+  // Desktop only: npx and CLI viewers have no License section.
+  const license = useLicense().data
+  const visible = sections.filter(
+    ({ id }) => id !== "license" || license?.enabled
+  )
+  const current =
+    section === "license" && license?.enabled === false ? "general" : section
   async function update(path: string, patch: Record<string, unknown>) {
     setBusy(true)
     setError(null)
@@ -106,7 +120,7 @@ export function SettingsDialog({
         </DialogHeader>
         <Tabs
           orientation={isMobile ? "horizontal" : "vertical"}
-          value={section}
+          value={current}
           onValueChange={(value) => {
             onSectionChange(value as SettingsSection)
             setError(null)
@@ -117,7 +131,7 @@ export function SettingsDialog({
             aria-label="Settings sections"
             className="w-full shrink-0 flex-row! justify-start! gap-1 overflow-x-auto rounded-none border-b bg-muted/30 p-2 md:h-full! md:w-48 md:flex-col! md:border-r md:border-b-0 md:p-3"
           >
-            {sections.map(({ id, label, icon: Icon }) => (
+            {visible.map(({ id, label, icon: Icon }) => (
               <TabsTrigger
                 key={id}
                 value={id}
@@ -138,7 +152,7 @@ export function SettingsDialog({
                 {error}
               </p>
             )}
-            {sections.map(({ id }) => (
+            {visible.map(({ id }) => (
               <TabsContent
                 key={id}
                 value={id}
@@ -274,6 +288,8 @@ export function SettingsDialog({
                       Rescan to apply exclusion changes.
                     </p>
                   </div>
+                ) : id === "license" ? (
+                  license?.enabled && <LicenseSettings license={license} />
                 ) : (
                   <KnowledgeSettings section={id} currentPath={currentPath} />
                 )}

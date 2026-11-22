@@ -1,10 +1,4 @@
-export const viewerPanels = [
-  "rules",
-  "scan",
-  "shortlist",
-  "files",
-  "license",
-] as const
+export const viewerPanels = ["rules", "scan", "shortlist", "files"] as const
 export type ViewerPanel = (typeof viewerPanels)[number]
 export const reportSections = [
   "targets",

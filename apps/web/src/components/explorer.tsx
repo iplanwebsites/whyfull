@@ -26,11 +26,12 @@ import { ReportViewer } from "./report-viewer"
 import { ScanState } from "./scan-state"
 import { ScanActivity } from "./scan-activity"
 import {
-  LicenseDialog,
   SupportReminder,
   trialLabel,
   useLicense,
+  useLicenseLinks,
 } from "./license"
+import { listenForSettings } from "@/lib/settings-events"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import {
@@ -54,7 +55,7 @@ import {
   Copy,
   Flag,
   X,
-  Heart,
+  KeyRound,
 } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
 import {
@@ -147,12 +148,10 @@ export function Explorer() {
     [plan, setPlan] = useState<TrashPlan | null>(null),
     [exclude, setExclude] = useState<ViewEntry | null>(null)
   const shortlist = search.panel === "shortlist"
-  const licenseOpen = search.panel === "license"
   const fileDetails = search.panel === "files"
   const setShortlist = (open: boolean) =>
     url({ panel: open ? "shortlist" : undefined })
-  const setLicenseOpen = (open: boolean) =>
-    url({ panel: open ? "license" : undefined })
+  const openLicense = () => url({ settings: "license" })
   const setFileDetails = (open: boolean) =>
     url({ panel: open ? "files" : undefined })
   const [Sunburst, setSunburst] = useState<SunburstComponent | null>(null)
@@ -170,6 +169,20 @@ export function Explorer() {
     enabled: hasToken(),
   })
   const license = useLicense().data
+  useLicenseLinks({
+    showing: search.settings === "license",
+    onView: openLicense,
+  })
+  // The desktop menu's "License…" opens Settings without leaving this page.
+  const openSettings = useRef(url)
+  openSettings.current = url
+  useEffect(
+    () =>
+      listenForSettings(window, (settings) =>
+        openSettings.current({ settings })
+      ),
+    []
+  )
   const s = status.data
   const analysis = useSuggestions(s)
   const suggestionCount = useMemo(
@@ -663,18 +676,11 @@ export function Explorer() {
         onChanged={documentChanged}
       />
       {license?.enabled && (
-        <>
-          <LicenseDialog
-            open={licenseOpen}
-            onOpenChange={setLicenseOpen}
-            license={license}
-          />
-          <SupportReminder
-            status={s}
-            analysis={analysis.data}
-            onEnterKey={() => setLicenseOpen(true)}
-          />
-        </>
+        <SupportReminder
+          status={s}
+          analysis={analysis.data}
+          onEnterKey={openLicense}
+        />
       )}
     </>
   )
@@ -932,17 +938,24 @@ export function Explorer() {
                 Settings
               </DropdownMenuItem>
               {license?.enabled && (
-                <DropdownMenuItem onClick={() => setLicenseOpen(true)}>
-                  <Heart />
-                  {license.licensed ? trialLabel(license) : "Support Whyfull…"}
+                <DropdownMenuItem onClick={openLicense}>
+                  <KeyRound />
+                  License
                 </DropdownMenuItem>
               )}
-              <div className="px-2 py-1 text-[11px] text-muted-foreground tabular-nums">
-                whyfull {__WHYFULL_VERSION__}
-                {license?.enabled &&
-                  !license.licensed &&
-                  ` · ${trialLabel(license)}`}
-              </div>
+              {license?.enabled ? (
+                <DropdownMenuItem
+                  className="py-1 text-[11px] text-muted-foreground tabular-nums"
+                  onClick={openLicense}
+                >
+                  whyfull {__WHYFULL_VERSION__}
+                  {!license.licensed && ` · ${trialLabel(license)}`}
+                </DropdownMenuItem>
+              ) : (
+                <div className="px-2 py-1 text-[11px] text-muted-foreground tabular-nums">
+                  whyfull {__WHYFULL_VERSION__}
+                </div>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </header>

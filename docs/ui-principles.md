@@ -38,8 +38,8 @@ shell, public site, dialogs, forms, empty states, and feedback.
 - Keep transient confirmations, unsaved form values, and execution state local.
   Do not put secrets or destructive actions in URLs.
 
-Viewer links use `?settings=general|places|instructions|rules|advanced`,
-`?page=report` for suggestions, and `?panel=scan|shortlist|files|license` for
+Viewer links use `?settings=general|places|instructions|rules|advanced|license`,
+`?page=report` for suggestions, and `?panel=scan|shortlist|files` for
 persistent panels. Imported reports use `?reportSection=targets|caches|discovered|worktrees`.
 
 ## Review the result

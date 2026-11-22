@@ -181,6 +181,19 @@ fn focus(app: &tauri::AppHandle) {
     }
 }
 
+/// Opens Settings › License in the viewer without leaving the current page.
+fn open_license(app: &tauri::AppHandle) {
+    focus(app);
+    let script = "(()=>{const detail={section:'license'};window.__whyfullSettings=detail;window.dispatchEvent(new CustomEvent('whyfull-settings',{detail}))})()".to_string();
+    let viewer = app.state::<Viewer>();
+    match app.get_webview_window("main") {
+        Some(window) if viewer.loaded.load(Ordering::SeqCst) => {
+            let _ = window.eval(script);
+        }
+        _ => viewer.pending.lock().unwrap().push(script),
+    }
+}
+
 fn notify_viewer(app: &tauri::AppHandle, outcome: activation::Outcome) {
     let viewer = app.state::<Viewer>();
     match app.get_webview_window("main") {
@@ -416,8 +429,10 @@ fn main() {
             }
             let install = MenuItem::with_id(app, "install-cli", "Install command-line tool…", true, None::<&str>)?;
             let update = MenuItem::with_id(app, "check-updates", "Check for updates…", true, None::<&str>)?;
+            let license = MenuItem::with_id(app, "license", "License…", true, None::<&str>)?;
             let tools = Submenu::with_items(app, "Whyfull", true, &[
                 &PredefinedMenuItem::about(app, Some("About Whyfull"), None)?,
+                &license, &PredefinedMenuItem::separator(app)?,
                 &install, &update, &PredefinedMenuItem::separator(app)?, &PredefinedMenuItem::quit(app, None)?,
             ])?;
             let edit = Submenu::with_items(app, "Edit", true, &[
@@ -438,6 +453,7 @@ fn main() {
                 app.dialog().message(message).show(|_| {});
             }
             "check-updates" => check_updates(app.clone(), true),
+            "license" => open_license(app),
             _ => {}
         })
         .build(context).expect("Could not start Whyfull");

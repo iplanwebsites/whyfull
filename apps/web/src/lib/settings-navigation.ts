@@ -4,6 +4,7 @@ export const settingsSections = [
   "instructions",
   "rules",
   "advanced",
+  "license",
 ] as const
 
 export type SettingsSection = (typeof settingsSections)[number]

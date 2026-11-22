@@ -29,3 +29,9 @@ test("invalid settings URLs do not open a panel", () => {
     assert.equal(parseSettingsSection(value), undefined)
   }
 })
+
+test("license is a settings section, not a panel", async () => {
+  assert.ok(settingsSections.includes("license"))
+  const { parseViewerPanel } = await import("../src/lib/panel-navigation.ts")
+  assert.equal(parseViewerPanel("license"), undefined)
+})
