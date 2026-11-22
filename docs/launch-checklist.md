@@ -51,7 +51,8 @@ $19 after a 30-day trial. Run these steps in order. Details live in
 - [ ] Email: verify the sending domain with Resend and set `EMAIL_FROM` and
       `SUPPORT_EMAIL`.
 - [ ] Set the secrets with `wrangler secret put`: `STRIPE_SECRET_KEY`,
-      `STRIPE_WEBHOOK_SECRET`, `LICENSE_PRIVATE_KEY` and `RESEND_API_KEY`.
+      `STRIPE_WEBHOOK_SECRET` and `RESEND_API_KEY`. `LICENSE_PRIVATE_KEY` is uploaded
+      (re-run `pnpm --filter @whyfull/brochure secret:license` if the key changes).
       Set the variable `STRIPE_PRICE_ID`. Never set `LICENSE_PUBLIC_KEY` in
       production.
 

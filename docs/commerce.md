@@ -125,12 +125,14 @@ Run these from `apps/brochure`.
    npx wrangler secret put STRIPE_SECRET_KEY
    npx wrangler secret put STRIPE_WEBHOOK_SECRET
    npx wrangler secret put RESEND_API_KEY
-   # The license signing key: pipe the file so it never lands in shell history.
-   npx wrangler secret put LICENSE_PRIVATE_KEY < ../../.signing/whyfull-license-private.pem
+   # The license signing key: checks it matches the app, then uploads it.
+   pnpm --filter @whyfull/brochure secret:license
    ```
 
-   The PEM can be piped as is. To store base64 DER instead:
-   `openssl pkey -in ../../.signing/whyfull-license-private.pem -outform DER | base64 | npx wrangler secret put LICENSE_PRIVATE_KEY`.
+   `secret:license` reads `apps/brochure/.signing/whyfull-license-private.pem`
+   (git-ignored; override with `WHYFULL_LICENSE_PRIVATE_KEY_FILE`), refuses a
+   key that doesn't match the app's `LICENSE_PUBLIC_KEY`, and passes it to
+   wrangler on stdin without printing it.
    Anyone with this key can mint licenses; keep the original in a password
    manager.
 
