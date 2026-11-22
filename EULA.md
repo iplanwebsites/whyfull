@@ -28,6 +28,20 @@ Version 1.0 · Effective [EFFECTIVE DATE]
 >    example the right of withdrawal for digital content and the liability
 >    limits) cannot be waived by contract and may require changes to
 >    Sections 5 and 9 to 11.
+> 6. **Broad exclusions and the zero cap.** Confirm how far Sections 8 to 10
+>    can be enforced against consumers in Quebec, the EU, the UK and
+>    Australia: the "as is" disclaimer for a paid license, the exclusion of
+>    data loss and consequential damages, and the liability cap of USD 0 for
+>    the free CLI and the evaluation (abusive clauses in contracts of
+>    adhesion under article 1437 of the Civil Code of Québec, sections 10 and
+>    19.1 of the Consumer Protection Act, articles 1474 and 1475 of the Civil
+>    Code, the UK Consumer Rights Act and Unfair Contract Terms Act, the EU
+>    Digital Content Directive and unfair terms rules, and the Australian
+>    Consumer Law guarantees, which may need their own wording).
+> 7. **Cap for paid licenses.** The cap is the amount paid for the license,
+>    which is paid to Stripe as merchant of record, not to us. Confirm the
+>    wording of Section 10, item 5, and whether a minimum amount is wiser
+>    than USD 0 for courts outside Quebec.
 
 ## Plain-English summary (not legally binding)
 
@@ -52,7 +66,15 @@ differ, the numbered sections below apply.
 - **You decide what to clean up.** Whyfull never deletes anything on its own.
   When you choose to move files to the Trash or run a tool's cleanup command,
   that's your action. Keep backups.
-- **The software comes as is**, and our liability is limited to what you paid.
+- **Provided as is. Use at your own risk.** Whyfull comes with no warranty.
+  Its sizes, estimates and "safe" labels are best-effort and can be wrong.
+  You decide what to remove or run, and it's up to you to check first and
+  keep backups.
+- **No liability beyond what you paid.** As far as the law allows, we're not
+  liable for lost files or any other problem Whyfull might cause, and the
+  most we could owe you is what you paid for your license: nothing for the
+  free CLI. Rights that consumer law gives you can't be taken away and stay
+  in place.
 
 ## 1. Who this agreement is between
 
@@ -265,23 +287,56 @@ You should understand these facts before using Whyfull:
    from cleanup you initiate.
 6. **Reports may contain private information.** File paths and project names
    can be sensitive. You decide whether to share a report, for example with
-   an AI agent or another person.
+   an AI agent or another person, and you are responsible for keeping
+   reports, caches and the local viewer away from people you do not want to
+   see them.
+7. **Commands and AI agents are yours to check.** Whyfull may show cleanup
+   commands, or produce reports that you give to an AI coding agent, a
+   script or another tool. Whether to run a command, and what an AI agent or
+   other tool does with a Whyfull report, are your decisions and your
+   responsibility. Read every command, and check every file or folder,
+   before you run, remove or let anything else remove it.
+8. **You use Whyfull at your own risk.** You assume all risks of using
+   Whyfull and of acting on its results, including the risk that a size,
+   estimate, owner or label is wrong, that a cleanup removes something you
+   needed, or that another program behaves differently than Whyfull
+   expects.
 
-## 9. No warranty
+## 9. No warranty: Whyfull is provided as is
 
 _Consumers in Quebec: this section does not apply to you to the extent that
 the Consumer Protection Act or the Civil Code of Québec prohibits it,
 including the legal warranties of quality and of conformity, which this
 Agreement does not exclude._
 
-TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, WHYFULL IS PROVIDED "AS IS"
-AND "AS AVAILABLE", WITH ALL FAULTS AND WITHOUT WARRANTY OF ANY KIND. WE
-DISCLAIM ALL WARRANTIES, EXPRESS, IMPLIED OR STATUTORY, INCLUDING ANY
-WARRANTY OF MERCHANTABILITY, SATISFACTORY QUALITY, FITNESS FOR A PARTICULAR
-PURPOSE, ACCURACY, QUIET ENJOYMENT, TITLE AND NON-INFRINGEMENT, AND ANY
-WARRANTY THAT WHYFULL WILL BE ERROR-FREE, UNINTERRUPTED, SECURE, COMPATIBLE
-WITH YOUR SYSTEM, OR THAT ITS SIZES, CLASSIFICATIONS OR CLEANUP SUGGESTIONS
-WILL BE CORRECT OR COMPLETE. YOU USE WHYFULL AT YOUR OWN RISK.
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, WHYFULL, INCLUDING THE
+CLI, THE DESKTOP APP, THE BROWSER VIEWER, THE LOCATION CATALOG, ITS REPORTS
+AND ANY COMMAND IT SHOWS OR SUGGESTS, IS PROVIDED "AS IS" AND "AS
+AVAILABLE", WITH ALL FAULTS, AND WITHOUT WARRANTY OR CONDITION OF ANY KIND,
+WHETHER EXPRESS, IMPLIED, STATUTORY OR ARISING FROM A COURSE OF DEALING OR
+USAGE OF TRADE. WE DISCLAIM ALL WARRANTIES AND CONDITIONS, INCLUDING ANY
+WARRANTY OR CONDITION:
+
+1. OF MERCHANTABILITY, SATISFACTORY QUALITY, FITNESS FOR A PARTICULAR
+   PURPOSE, ACCURACY, QUIET ENJOYMENT, TITLE OR NON-INFRINGEMENT;
+2. THAT ANY SIZE, FILE COUNT, ESTIMATE OF RECLAIMABLE SPACE, OWNER,
+   CLASSIFICATION OR LABEL (SUCH AS "SAFE", "SAFE TO REMOVE", "REBUILDABLE"
+   OR "CACHE") IS CORRECT, COMPLETE OR APPROPRIATE FOR YOUR SYSTEM;
+3. THAT ANY SUGGESTED CLEANUP OR COMMAND IS SAFE, OR WILL HAVE ONLY THE
+   EFFECT DESCRIBED;
+4. THAT WHYFULL WILL BE UNINTERRUPTED, TIMELY, SECURE OR ERROR-FREE, THAT
+   DEFECTS WILL BE CORRECTED, OR THAT IT WILL MEET YOUR NEEDS;
+5. THAT WHYFULL WILL BE COMPATIBLE WITH, OR WORK CORRECTLY ON, ANY
+   OPERATING SYSTEM, FILE SYSTEM, DISK, SYNCED OR NETWORK FOLDER, OR
+   THIRD-PARTY TOOL, NOW OR AFTER ANY OF THEM CHANGES; OR
+6. FOR THIRD-PARTY COMPONENTS (SUCH AS THE BUNDLED NODE.JS RUNTIME) OR FOR
+   ANY THIRD-PARTY TOOL WHOSE CLEANUP COMMAND YOU RUN.
+
+NO ADVICE OR INFORMATION, WHETHER ORAL OR WRITTEN, OBTAINED FROM US OR
+THROUGH WHYFULL CREATES ANY WARRANTY NOT EXPRESSLY STATED IN THIS AGREEMENT.
+YOU USE WHYFULL, AND ACT ON ITS RESULTS, AT YOUR OWN RISK, AND THE ENTIRE
+RISK AS TO ITS QUALITY, RESULTS AND PERFORMANCE IS WITH YOU. This section is
+subject to the last paragraph of Section 10.
 
 ## 10. Limitation of liability
 
@@ -290,28 +345,50 @@ the Consumer Protection Act or the Civil Code of Québec prohibits it,
 including where it would exclude or limit our liability for our own acts or
 those of our representatives._
 
-TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW:
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, AND UNDER ANY THEORY OF
+LIABILITY (CONTRACTUAL OR EXTRA-CONTRACTUAL, INCLUDING NEGLIGENCE, STRICT
+LIABILITY OR OTHERWISE):
 
 1. WE WILL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL,
-   CONSEQUENTIAL, EXEMPLARY OR PUNITIVE DAMAGES, OR FOR ANY LOSS OF DATA,
-   FILES, MODELS, CACHES, WORK, PROFITS, REVENUE, BUSINESS, GOODWILL OR
-   USE, OR COST OF RECOVERY, RE-DOWNLOAD OR REPLACEMENT, HOWEVER CAUSED AND
-   UNDER ANY THEORY OF LIABILITY, EVEN IF WE WERE ADVISED OF THE
-   POSSIBILITY OF SUCH DAMAGES.
-2. WITHOUT LIMITING THE ABOVE, WE ARE NOT LIABLE FOR THE CONSEQUENCES OF
-   ANY CLEANUP YOU INITIATE, INCLUDING MOVING ITEMS TO THE TRASH, EMPTYING
-   THE TRASH, OR RUNNING ANY OWNING TOOL'S CLEANUP COMMAND, WHETHER OR NOT
+   CONSEQUENTIAL, EXEMPLARY OR PUNITIVE DAMAGES, HOWEVER CAUSED, EVEN IF WE
+   WERE ADVISED OF THE POSSIBILITY OF SUCH DAMAGES OR THEY WERE
+   FORESEEABLE.
+2. WE WILL NOT BE LIABLE FOR ANY LOSS OF OR DAMAGE TO DATA, FILES, FOLDERS,
+   PROJECTS, GIT REPOSITORIES OR WORKTREES, MODELS, BUILD CACHES,
+   CONFIGURATION OR SETTINGS; FOR ANY SYSTEM INSTABILITY, CRASH, SLOWDOWN OR
+   FAILURE TO START; FOR ANY LOST WORK, TIME, PROFITS, REVENUE, BUSINESS,
+   GOODWILL OR USE; OR FOR ANY COST OF RECOVERY, RESTORE, RE-DOWNLOAD,
+   REBUILD, BANDWIDTH, REPLACEMENT OR SUBSTITUTE SOFTWARE.
+3. WE WILL NOT BE LIABLE FOR THE CONSEQUENCES OF ANY CLEANUP OR OTHER ACTION
+   THAT YOU, OR A PERSON, SCRIPT OR AI AGENT ACTING FOR YOU, TAKE BASED ON
+   WHYFULL OR ITS RESULTS, INCLUDING MOVING ITEMS TO THE TRASH, EMPTYING THE
+   TRASH, OR RUNNING ANY COMMAND WHYFULL SHOWS OR SUGGESTS, WHETHER OR NOT
    WHYFULL SUGGESTED IT OR LABELLED THE ITEM AS SAFE.
-3. OUR TOTAL LIABILITY FOR ALL CLAIMS RELATING TO WHYFULL OR THIS
-   AGREEMENT IS LIMITED TO THE GREATER OF (A) THE AMOUNT YOU PAID US FOR
-   WHYFULL IN THE 12 MONTHS BEFORE THE EVENT GIVING RISE TO THE CLAIM AND
-   (B) USD 20.
+4. WE WILL NOT BE LIABLE FOR THE BEHAVIOR OF OPERATING SYSTEMS, THIRD-PARTY
+   TOOLS, AI AGENTS OR THIRD-PARTY COMPONENTS, OR FOR ANY SECURITY OR
+   PRIVACY INCIDENT ARISING FROM A REPORT, CACHE, SCREENSHOT OR OTHER OUTPUT
+   OF WHYFULL THAT YOU SHARE, UPLOAD OR LEAVE ACCESSIBLE TO OTHERS.
+5. OUR TOTAL LIABILITY FOR ALL CLAIMS RELATING TO WHYFULL OR THIS
+   AGREEMENT, TAKEN TOGETHER, WILL NOT EXCEED (A) FOR THE CLI, THE
+   EVALUATION PERIOD AND ANY OTHER USE OF WHYFULL FOR WHICH YOU PAID
+   NOTHING, ZERO (USD 0); AND (B) FOR A PAID DESKTOP APP LICENSE, THE AMOUNT
+   YOU ACTUALLY PAID FOR THAT LICENSE IN THE 12 MONTHS BEFORE THE CLAIM.
 
-These limits apply even if a remedy fails of its essential purpose. Some
-jurisdictions do not allow certain exclusions or limits; in that case they
-apply only to the extent allowed, and nothing in this Agreement limits
-liability that cannot be limited by law (for example for death or personal
-injury caused by negligence, or for fraud).
+These exclusions and limits reflect that the CLI is free and the Desktop App
+costs little, and they apply even if a remedy fails of its essential
+purpose.
+
+**Rights the law does not let us exclude.** Nothing in this Agreement
+excludes or limits a liability, warranty or right that applicable law does
+not allow to be excluded or limited. For example, for consumers in Quebec,
+it does not exclude or limit our liability for material injury caused by
+our intentional or gross fault, or for bodily or moral injury (article 1474
+of the Civil Code of Québec), or the legal warranties and other protections
+of the Consumer Protection Act; consumers in the European Union, the United
+Kingdom, Australia and elsewhere keep their statutory rights; and nothing
+limits liability for death or personal injury caused by negligence, or for
+fraud. Where such a law applies, the exclusions and limits in Sections 9 and
+10 apply to the maximum extent that law permits.
 
 ## 11. Your responsibility to us
 

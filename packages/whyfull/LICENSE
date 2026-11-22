@@ -14,7 +14,8 @@ Whyfull's source is public so you can see exactly what it does. You may read
 it, audit it, point to it in bug reports and send contributions. You may not
 copy, modify, redistribute or reuse it. This is not an open source license and
 it will not turn into one. Running Whyfull is covered by the End User License
-Agreement in EULA.md, not by this file.
+Agreement in EULA.md, not by this file. The Materials come as is: no
+warranty, use at your own risk, and no liability to the extent the law allows.
 
 -------------------------------------------------------------------------------
 1. Definitions
@@ -159,13 +160,42 @@ Materials you hold, except copies you are required to keep by law. Sections
 10. No warranty and limitation of liability
 -------------------------------------------------------------------------------
 
-THE MATERIALS ARE PROVIDED "AS IS" AND "AS AVAILABLE", WITHOUT WARRANTY OF ANY
-KIND, EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY WARRANTY OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE OR NON-INFRINGEMENT.
-TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE LICENSOR WILL NOT BE LIABLE FOR
-ANY DAMAGES OR LOSSES OF ANY KIND ARISING OUT OF OR IN CONNECTION WITH THE
-MATERIALS OR THIS LICENSE, WHETHER IN CONTRACT, TORT OR OTHERWISE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+(a) No warranty. TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE
+    MATERIALS, AND ANYTHING BUILT OR RUN FROM THEM, ARE PROVIDED "AS IS" AND
+    "AS AVAILABLE", WITH ALL FAULTS AND WITHOUT WARRANTY OR CONDITION OF ANY
+    KIND, WHETHER EXPRESS, IMPLIED OR STATUTORY, INCLUDING WITHOUT
+    LIMITATION ANY WARRANTY OR CONDITION OF MERCHANTABILITY, SATISFACTORY
+    QUALITY, FITNESS FOR A PARTICULAR PURPOSE, ACCURACY, TITLE OR
+    NON-INFRINGEMENT, ANY WARRANTY THAT THE MATERIALS ARE ERROR-FREE, SECURE
+    OR COMPATIBLE WITH ANY SYSTEM, AND ANY WARRANTY THAT SIZES, ESTIMATES,
+    CLASSIFICATIONS, LABELS (SUCH AS "SAFE TO REMOVE") OR SUGGESTED COMMANDS
+    ARE CORRECT OR SAFE.
+
+(b) Your risk. You read, build, run and test the Materials entirely at your
+    own risk. You are solely responsible for your data, for keeping backups,
+    for checking anything before you remove it, and for any command you, a
+    script or an AI agent runs.
+
+(c) No liability. TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE
+    LICENSOR WILL NOT BE LIABLE FOR ANY DAMAGES OR LOSSES OF ANY KIND
+    ARISING OUT OF OR IN CONNECTION WITH THE MATERIALS OR THIS LICENSE,
+    INCLUDING DIRECT, INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL,
+    EXEMPLARY OR PUNITIVE DAMAGES, LOSS OF OR DAMAGE TO DATA OR FILES,
+    SYSTEM INSTABILITY, LOST WORK, TIME OR PROFITS, AND COSTS OF RECOVERY,
+    RE-DOWNLOAD OR REBUILD, WHETHER IN CONTRACT, EXTRA-CONTRACTUAL
+    LIABILITY, TORT (INCLUDING NEGLIGENCE) OR OTHERWISE, EVEN IF ADVISED OF
+    THE POSSIBILITY OF SUCH DAMAGES. THE LICENSOR'S TOTAL LIABILITY UNDER
+    THIS LICENSE IS ZERO (USD 0).
+
+(d) Rights that cannot be excluded. Nothing in this license
+    excludes or limits a liability, warranty or right that applicable law
+    does not allow to be excluded or limited, such as liability for
+    material injury caused by intentional or gross fault, or for bodily or
+    moral injury (article 1474 of the Civil Code of Quebec), liability for
+    fraud or for death or personal injury caused by negligence, or the
+    mandatory rights of consumers. Where such a law applies, this Section
+    applies to the maximum extent that law permits. The use of the Whyfull
+    CLI and desktop app is covered by Sections 9 and 10 of the EULA.
 
 -------------------------------------------------------------------------------
 11. General
