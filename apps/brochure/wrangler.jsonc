@@ -12,9 +12,7 @@
     {
       "binding": "LICENSES",
       "database_name": "whyfull-licenses",
-      // PLACEHOLDER: replace with the id printed by
-      // `wrangler d1 create whyfull-licenses` before deploying.
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "9d81bdde-7b34-45b6-8028-f40c88f72622",
       "migrations_dir": "migrations",
     },
   ],
