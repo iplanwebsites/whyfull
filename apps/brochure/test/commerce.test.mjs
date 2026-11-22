@@ -544,6 +544,7 @@ test("/buy/ creates a Checkout Session, or falls back to /download/", async () =
   })
   assert.equal(managed.get("managed_payments[enabled]"), "true")
   assert.equal(managed.has("automatic_tax[enabled]"), false)
+  assert.equal(managed.has("custom_text[submit][message]"), false)
 })
 
 test("/api/recover answers the same either way and rate limits", async () => {

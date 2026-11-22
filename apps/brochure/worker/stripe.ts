@@ -98,8 +98,11 @@ export function checkoutParameters(options: CheckoutOptions): URLSearchParams {
     "custom_text[submit][message]":
       "Your license key appears right after payment and is emailed to you. One-time purchase, 30-day refunds. Terms: whyfull.app/legal/",
   })
-  if (options.managedPayments) params.set("managed_payments[enabled]", "true")
-  else
+  if (options.managedPayments) {
+    params.set("managed_payments[enabled]", "true")
+    // Managed Payments rejects custom_text (Stripe shows its own seller terms).
+    params.delete("custom_text[submit][message]")
+  } else
     params.set(
       "automatic_tax[enabled]",
       options.automaticTax ? "true" : "false"

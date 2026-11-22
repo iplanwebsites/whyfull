@@ -51,7 +51,7 @@
       ],
       "vars": {
         "STRIPE_AUTOMATIC_TAX": "false",
-        "STRIPE_MANAGED_PAYMENTS": "false",
+        "STRIPE_MANAGED_PAYMENTS": "true",
         "LICENSE_PUBLIC_KEY": "MCowBQYDK2VwAyEAKQ9gtBg3YzbcTBq4Cq+4S/nB48s08yinko6/dIl1AK4=",
       },
     },

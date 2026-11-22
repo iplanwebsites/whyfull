@@ -121,6 +121,8 @@ else {
     "metadata[app]": "whyfull",
     "metadata[product]": "whyfull-desktop",
     url: "https://whyfull.app/",
+    // Required by Stripe Managed Payments: downloadable, non-recreational software.
+    tax_code: "txcd_10202001",
   })
   price = await stripe("POST", "/prices", {
     product: product.id,
