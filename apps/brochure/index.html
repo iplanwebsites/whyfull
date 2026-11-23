@@ -291,16 +291,100 @@
               </p>
             </li>
           </ol>
-          <figure class="wf-home-app-shot" data-app-shot>
-            <img
-              src="/images/app-suggestions.png"
-              width="2880"
-              height="1800"
-              loading="lazy"
-              decoding="async"
-              alt="Whyfull Suggestions after a scan: npm, uv, Cargo, Homebrew, Xcode and simulator caches grouped by how safely they can be removed, each with its size, the cleanup command, and a Copy for agent button."
-            />
-          </figure>
+          <div
+            id="product-preview"
+            class="wf-home-showcase"
+            data-product-preview
+          >
+            <nav class="wf-home-preview-nav" aria-label="Product preview">
+              <a href="#preview-overview" data-preview="overview"
+                >Disk overview</a
+              >
+              <a href="#preview-folders" data-preview="folders"
+                >Folder explorer</a
+              >
+              <a href="#preview-suggestions" data-preview="suggestions"
+                >Cleanup suggestions</a
+              >
+            </nav>
+            <div class="wf-home-preview-stage">
+              <figure id="preview-overview" data-preview-panel="overview">
+                <img
+                  src="/images/app-overview.jpg"
+                  width="1280"
+                  height="720"
+                  loading="lazy"
+                  decoding="async"
+                  alt="Whyfull’s radial disk overview: nested rings show the space used by Library, Pictures, models, caches, and projects, beside a folder list sorted by size."
+                />
+                <figcaption>
+                  <span
+                    >See what’s filling your disk, from the big picture to
+                    individual folders.</span
+                  >
+                  <span class="wf-home-preview-note"
+                    >Example data ·
+                    <a
+                      href="/images/app-overview.jpg"
+                      target="_blank"
+                      rel="noopener"
+                      >View full size</a
+                    ></span
+                  >
+                </figcaption>
+              </figure>
+              <figure id="preview-folders" data-preview-panel="folders">
+                <img
+                  src="/images/app-folders.jpg"
+                  width="1280"
+                  height="720"
+                  loading="lazy"
+                  decoding="async"
+                  alt="Whyfull’s folder explorer showing the Code folder: a treemap compares project sizes, including a machine-learning project, an API, and development worktrees."
+                />
+                <figcaption>
+                  <span
+                    >Open a folder and compare the projects, models, and
+                    worktrees inside.</span
+                  >
+                  <span class="wf-home-preview-note"
+                    >Example data ·
+                    <a
+                      href="/images/app-folders.jpg"
+                      target="_blank"
+                      rel="noopener"
+                      >View full size</a
+                    ></span
+                  >
+                </figcaption>
+              </figure>
+              <figure id="preview-suggestions" data-preview-panel="suggestions">
+                <img
+                  src="/images/app-cleanup.jpg"
+                  width="1280"
+                  height="720"
+                  loading="lazy"
+                  decoding="async"
+                  alt="Whyfull’s cleanup suggestions, grouped by what can regenerate or be rebuilt, with measured sizes, cleanup commands, and a Copy for agent button."
+                />
+                <figcaption>
+                  <span
+                    >Review what can go, what it costs to rebuild, and how to
+                    clear it.</span
+                  >
+                  <span class="wf-home-preview-note"
+                    >Example data ·
+                    <a
+                      href="/images/app-cleanup.jpg"
+                      target="_blank"
+                      rel="noopener"
+                      >View full size</a
+                    ></span
+                  >
+                </figcaption>
+              </figure>
+            </div>
+          </div>
           <div class="wf-home-quick-commands">
             <div>
               <span class="wf-home-command-label"
@@ -651,16 +735,6 @@ Find the biggest useful cleanup opportunities, explain what I’d be removing, a
               folders, compare their sizes, and find what’s worth clearing out.
             </p>
           </div>
-          <figure class="wf-home-app-shot" data-app-shot>
-            <img
-              src="/images/app-screenshot.png"
-              width="2880"
-              height="1800"
-              loading="lazy"
-              decoding="async"
-              alt="The Whyfull disk explorer: a treemap of a developer's home folder (Library, Pictures, Ollama models, caches, Code) beside a list of folders by size, with small markers on folders that are safe to remove."
-            />
-          </figure>
           <div class="wf-home-chart-previews">
             <figure>
               <img

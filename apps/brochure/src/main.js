@@ -1,4 +1,7 @@
 import { detectPlatform, loadRelease, primaryDownload } from "./release.js"
+import { initializeProductPreview } from "./product-preview.js"
+
+initializeProductPreview()
 
 // The visible content is also the clipboard source, including without JS.
 for (const button of document.querySelectorAll("[data-copy]")) {
@@ -56,15 +59,6 @@ for (const button of document.querySelectorAll("[data-copy]")) {
         : "Copy the selected command, then paste it into your terminal."
     }
   })
-}
-
-// Drop a screenshot's frame if its image fails to load.
-for (const appShot of document.querySelectorAll("[data-app-shot]")) {
-  const image = appShot.querySelector("img")
-  if (!image) continue
-  const hide = () => (appShot.hidden = true)
-  if (image.complete && !image.naturalWidth) hide()
-  else image.addEventListener("error", hide, { once: true })
 }
 
 // Show the star count only once it says something.

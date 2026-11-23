@@ -2,13 +2,10 @@
 // used to capture website screenshots without exposing real folders.
 //
 //   node scripts/demo-snapshot.mjs <home-root> <output.json>
-//   HOME=<home-root> pnpm whyfull --ui --snapshot <output.json>
+//   pnpm whyfull --ui --snapshot <output.json> --no-open
 import { writeFileSync } from "node:fs"
-import { join } from "node:path"
-
-const [root, output] = process.argv.slice(2)
-if (!root || !output)
-  throw new Error("Usage: node scripts/demo-snapshot.mjs <home-root> <output>")
+import { isAbsolute, join, normalize, resolve } from "node:path"
+import { pathToFileURL } from "node:url"
 
 const GB = 1024 ** 3
 const MB = 1024 ** 2
@@ -73,86 +70,99 @@ const tree = {
   Desktop: 1.7 * GB,
 }
 
-const directories = []
-function add(path, name, parent, value) {
-  const id = directories.length
-  const node = {
-    id,
-    parent,
-    path,
-    name,
-    children: [],
-    topFiles: [],
-    ownBytes: 0,
-    ownApparentBytes: 0,
-    ownFiles: 0,
-    bytes: 0,
-    apparentBytes: 0,
-    files: 0,
-    directories: 0,
-    issues: 0,
-    excluded: 0,
-    state: "scanned",
-  }
-  directories.push(node)
-  if (typeof value === "number") {
-    const bytes = Math.round(value)
-    const files = Math.max(1, Math.round(bytes / (3 * MB)))
-    Object.assign(node, {
-      ownBytes: bytes,
-      ownApparentBytes: bytes,
-      ownFiles: files,
-      topFiles: [
-        {
-          name: `${name}.bin`,
-          bytes: Math.round(bytes / 5),
-          apparentBytes: Math.round(bytes / 5),
-        },
-      ],
-    })
-  } else {
-    for (const [childName, childValue] of Object.entries(value)) {
-      const child = add(join(path, childName), childName, id, childValue)
-      node.children.push(child.id)
+export function createDemoSnapshot(root) {
+  if (!isAbsolute(root)) throw new Error("Demo root must be an absolute path")
+  root = normalize(root)
+  const directories = []
+  function add(path, name, parent, value) {
+    const id = directories.length
+    const node = {
+      id,
+      parent,
+      path,
+      name,
+      children: [],
+      topFiles: [],
+      ownBytes: 0,
+      ownApparentBytes: 0,
+      ownFiles: 0,
+      bytes: 0,
+      apparentBytes: 0,
+      files: 0,
+      directories: 0,
+      issues: 0,
+      excluded: 0,
+      state: "scanned",
     }
+    directories.push(node)
+    if (typeof value === "number") {
+      const bytes = Math.round(value)
+      const files = Math.max(1, Math.round(bytes / (3 * MB)))
+      Object.assign(node, {
+        ownBytes: bytes,
+        ownApparentBytes: bytes,
+        ownFiles: files,
+        topFiles: [
+          {
+            name: `${name}.bin`,
+            bytes: Math.round(bytes / 5),
+            apparentBytes: Math.round(bytes / 5),
+          },
+        ],
+      })
+    } else {
+      for (const [childName, childValue] of Object.entries(value)) {
+        const child = add(join(path, childName), childName, id, childValue)
+        node.children.push(child.id)
+      }
+    }
+    node.bytes = node.ownBytes
+    node.apparentBytes = node.ownApparentBytes
+    node.files = node.ownFiles
+    for (const childId of node.children) {
+      const child = directories[childId]
+      node.bytes += child.bytes
+      node.apparentBytes += child.apparentBytes
+      node.files += child.files
+      node.directories += child.directories + 1
+    }
+    return node
   }
-  node.bytes = node.ownBytes
-  node.apparentBytes = node.ownApparentBytes
-  node.files = node.ownFiles
-  for (const childId of node.children) {
-    const child = directories[childId]
-    node.bytes += child.bytes
-    node.apparentBytes += child.apparentBytes
-    node.files += child.files
-    node.directories += child.directories + 1
-  }
-  return node
-}
 
-// Children must have higher ids than their parent: depth-first insertion does that.
-add(root, root.split("/").at(-1), null, tree)
-const now = new Date().toISOString()
-const files = directories[0].files
-writeFileSync(
-  output,
-  JSON.stringify({
+  // The display name never includes the capturing machine's account name.
+  // Children must have higher ids than their parent: depth-first insertion does that.
+  add(root, "Home", null, tree)
+  return {
     format: "whyfull-disk",
     schemaVersion: 1,
     root,
-    startedAt: now,
-    completedAt: now,
+    startedAt: "2026-11-01T11:59:12.000Z",
+    completedAt: "2026-11-01T12:00:00.000Z",
     durationMs: 48_000,
     status: "complete",
     workers: 8,
     engine: "async",
     scanner: "node",
-    files,
+    files: directories[0].files,
     skippedLinks: 0,
     issues: 0,
     policy: { keep: [], exclude: [] },
     directories,
-  })
-)
-console.log(
-  `Wrote ${directories.length} folders, ${(directories[0].bytes / GB).toFixed(1)} GiB → ${output}`
-)
+  }
+}
+
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(resolve(process.argv[1])).href
+) {
+  const [root, output, extra] = process.argv.slice(2)
+  if (!root || !output || extra)
+    throw new Error(
+      "Usage: node scripts/demo-snapshot.mjs <home-root> <output>"
+    )
+  const snapshot = createDemoSnapshot(root)
+  writeFileSync(output, JSON.stringify(snapshot))
+  console.log(
+    `Wrote ${snapshot.directories.length} folders, ${(snapshot.directories[0].bytes / GB).toFixed(1)} GiB → ${output}`
+  )
+}

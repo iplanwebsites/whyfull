@@ -16,6 +16,7 @@
     "build": "turbo build",
     "typecheck": "turbo typecheck",
     "test": "turbo test",
+    "screenshots:brochure": "pnpm --filter @whyfull/brochure screenshots",
     "lint": "turbo lint",
     "docs:sync": "node scripts/sync-publish-docs.mjs --write",
     "docs:check": "node scripts/sync-publish-docs.mjs",

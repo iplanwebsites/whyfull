@@ -7,9 +7,10 @@
   "scripts": {
     "dev": "node scripts/prepare-demo.mjs && node scripts/build-legal.mjs && vite --host 127.0.0.1 --port 3001",
     "build": "node scripts/prepare-demo.mjs && node scripts/build-legal.mjs && vite build",
+    "screenshots": "pnpm -w exec turbo build --filter=whyfull --output-logs=errors-only && node scripts/capture-screenshots.mjs",
     "legal": "node scripts/build-legal.mjs",
     "preview": "pnpm build && wrangler dev --ip 127.0.0.1 --port 3001",
-    "typecheck": "node scripts/build-legal.mjs --check && node --check src/main.js && node --check src/download.js && node --check src/release.js && node --check src/commerce.js && node --check src/thanks.js && node --check src/activate.js && node --check src/recover.js && tsc --noEmit && tsc --project tsconfig.client.json --noEmit",
+    "typecheck": "node scripts/build-legal.mjs --check && node --check src/main.js && node --check src/product-preview.js && node --check src/download.js && node --check src/release.js && node --check src/commerce.js && node --check src/thanks.js && node --check src/activate.js && node --check src/recover.js && tsc --noEmit && tsc --project tsconfig.client.json --noEmit",
     "deploy": "pnpm build && wrangler deploy",
     "deploy:dry-run": "pnpm build && wrangler deploy --dry-run",
     "test": "node --experimental-strip-types --test test/*.test.mjs",
@@ -18,17 +19,18 @@
     "stripe:setup": "node scripts/stripe-setup.mjs"
   },
   "devDependencies": {
-    "vite": "^8",
-    "wrangler": "^4",
-    "typescript": "^5.7.2",
-    "@vitejs/plugin-react": "^6",
+    "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@types/node": "^22"
+    "@vitejs/plugin-react": "^6",
+    "playwright": "^1.65.1",
+    "typescript": "^5.7.2",
+    "vite": "^8",
+    "wrangler": "^4"
   },
   "dependencies": {
+    "echarts": "^6.1.0",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "echarts": "^6.1.0"
+    "react-dom": "^19.2.8"
   }
 }

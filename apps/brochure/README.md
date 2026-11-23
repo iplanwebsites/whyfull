@@ -111,13 +111,42 @@ the content for manual copying.
 
 ## Informational page
 
-The landing page explains the real CLI and agent workflow. It does not embed a
-simulated disk explorer or publish a fictional snapshot. The generated donut
-image is the hero visual. JavaScript supports copying commands and prompts,
-points the hero download button at the visitor's platform from `/api/downloads`
-(shared logic in `src/release.js`), and hides the app screenshot frame until
-`public/images/app-screenshot.png` (2880×1800) exists. The actual disk viewer
-remains in `apps/web` and is opened with `npx whyfull --ui`.
+The landing page explains the real CLI and agent workflow. The generated donut
+image is the hero visual. A product preview shows three actual viewer captures
+with synthetic example data: the radial disk overview, a project-folder treemap,
+and cleanup suggestions. The JPEGs live in `public/images/app-{overview,folders,cleanup}.jpg`
+at 1280×720; `scripts/demo-snapshot.mjs` at the repository root generates their
+shared sample inventory. This is a screenshot gallery, not an embedded viewer.
+
+Regenerate all three captures from the repository root:
+
+```sh
+# One-time browser setup after pnpm install
+pnpm --filter @whyfull/brochure exec playwright install --only-shell chromium
+pnpm screenshots:brochure
+```
+
+The command builds the current viewer, opens a temporary local server with
+synthetic data and fresh settings, and captures the radial overview, the Code
+folder in treemap view, and the cleanup suggestions. It waits for the charts
+and report to render, then replaces the three JPEGs only after every capture
+succeeds. It closes the browser and server and removes temporary state on exit.
+The generated inventory uses your home path to match the current platform’s
+built-in tool locations, but its contents are entirely synthetic and its display
+name is always Home. It does not scan your folders or use your saved settings.
+
+For a preview without replacing the landing-page assets, pass
+`--output /tmp/whyfull-captures`. To use an existing Chrome installation instead
+of downloading Chromium, pass `--channel chrome`. Keep the same OS and
+Playwright browser version when pixel-identical output matters.
+
+`src/product-preview.js` stores the selected view in `?preview=overview|folders|suggestions#product-preview`
+and restores it on reload and Back/Forward. Without JavaScript, all three
+screenshots remain visible and the preview links jump to each capture.
+JavaScript also supports copying commands and prompts and points the hero
+download button at the visitor's platform from `/api/downloads` (shared logic
+in `src/release.js`). The actual disk viewer remains in `apps/web` and is
+opened with `npx whyfull --ui`.
 
 ## Pricing and terms copy
 

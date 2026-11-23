@@ -1,0 +1,20 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "viewer-dev",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--filter",
+        "@whyfull/viewer",
+        "dev",
+        "--port",
+        "3007"
+      ],
+      "env": {
+        "WHYFULL_DEV_API": "http://127.0.0.1:49875"
+      },
+      "port": 3007
+    }
+  ]
+}

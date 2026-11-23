@@ -1107,19 +1107,83 @@ body {
 .wf-home-node-note {
   margin-top: 16px !important;
 }
-.wf-home-app-shot {
-  margin: 32px 0 0;
-  border-radius: 16px;
-  overflow: hidden;
-  background: #efefe4;
-  border: 1px solid var(--wf-home-line);
+.wf-home-showcase {
+  margin-top: 36px;
+  scroll-margin-top: 24px;
 }
-.wf-home-app-shot img {
+.wf-home .wf-home-preview-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 28px;
+  justify-content: flex-start;
+  margin-bottom: 16px;
+}
+.wf-home-preview-nav a {
+  padding: 10px 0;
+  border-bottom: 2px solid transparent;
+  color: var(--wf-home-muted);
+  font-size: 1rem;
+  text-decoration: none;
+}
+.wf-home-preview-nav a:hover,
+.wf-home-preview-nav a[aria-current] {
+  border-color: var(--wf-home-accent);
+  color: var(--wf-home-ink);
+}
+.wf-home .wf-home-preview-nav a:hover {
+  text-decoration: none;
+}
+.wf-home-preview-stage {
+  overflow: hidden;
+  border: 1px solid var(--wf-home-line);
+  border-radius: 12px;
+  background: #efefe4;
+  box-shadow: 0 12px 36px #292b230a;
+}
+.wf-home-preview-stage figure {
+  margin: 0;
+  scroll-margin-top: 24px;
+}
+.wf-home-preview-stage img {
   display: block;
   width: 100%;
   height: auto;
+  aspect-ratio: 16 / 9;
+}
+.wf-home-preview-stage figcaption {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px 24px;
+  padding: 18px 22px;
+  border-top: 1px solid var(--wf-home-line);
+  font-size: 1rem;
+}
+.wf-home-preview-note {
+  flex-shrink: 0;
+  font-size: 0.875rem;
+  color: var(--wf-home-muted);
 }
 @media (max-width: 680px) {
+  .wf-home .wf-home-preview-nav {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .wf-home .wf-home-preview-nav a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    line-height: 1.45;
+    text-align: center;
+    white-space: normal;
+  }
+  .wf-home-preview-stage figcaption {
+    flex-direction: column;
+    gap: 6px;
+    padding: 16px;
+  }
   .wf-home-paths {
     grid-template-columns: 1fr;
   }
